@@ -1,0 +1,40 @@
+import type { Router, RouteLocationNormalized } from 'vue-router';
+import { UserStore } from '@/moon/on_line';
+
+// 定义需要排除的路由名称
+const EXCLUDED_ROUTES = [
+  'NotFound',        // 404页面
+  'ManagementLogin', // 管理员登录页
+  'Management'       // 管理员管理页
+];
+
+export function setupHeartbeatGuard(router: Router) {
+  router.beforeEach(async (to: RouteLocationNormalized, from: RouteLocationNormalized, next) => {
+    // 检查目标路由是否在排除列表中
+    if (EXCLUDED_ROUTES.includes(to.name as string)) {
+      return next(); // 直接放行，不处理心跳
+    }
+
+    const userStore = UserStore();
+    const token = localStorage.getItem('access_token');
+
+    // 如果有token且心跳未启动，则启动心跳
+    if (token && !userStore.heartbeatInterval) {
+      await userStore.startHeartbeat();
+    }
+
+    // 如果没有token但心跳正在运行，则停止心跳
+    if (!token && userStore.heartbeatInterval) {
+      userStore.stopHeartbeat();
+    }
+
+    next();
+  });
+
+  // 监听路由错误
+  router.onError((error) => {
+    console.error('路由错误:', error);
+    const userStore = UserStore();
+    userStore.stopHeartbeat();
+  });
+}  

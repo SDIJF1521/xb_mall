@@ -1,0 +1,54 @@
+from pydantic import BaseModel,EmailStr
+from datetime import time
+
+# 定义商品添加数据模型
+class AddMall(BaseModel):
+    Name: str
+    Info: str
+    Type: list
+    Money:int
+    token:str
+
+
+# 定义商品删除数据模型
+class DeleteMall(BaseModel):
+    Name:str
+    type:list
+    token:str
+
+# 定义用户注册数据模型
+class UserRegister(BaseModel):
+    email:EmailStr
+    user_name:str
+    user_password:str
+    captcha:str
+
+# 定义用户信息修改数据模型
+class UserInformation(BaseModel):
+    nickname:str
+    age:int
+    sex:str
+    token:str
+
+# 定义用户注册数据模型
+class Password_reset(BaseModel):
+    email:EmailStr
+    user_password:str
+    captcha:str
+
+# 定义商家申请路由数据模型
+class ApplyBusiness(BaseModel):
+    token:str
+    name:str
+    phone:str
+    mall_name:str
+    mall_describe:str
+
+# 定义在线用户上传数据模型
+class UserOnLineUploading(BaseModel):
+    token:str
+
+# 定义管理员登录路由数据模型
+class ManageSignIn(BaseModel):
+    user:str
+    password:str

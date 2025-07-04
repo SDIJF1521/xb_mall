@@ -1,0 +1,70 @@
+<template>
+  <ul>
+    <li>用户： <el-text class="mx-1" type="primary" size="large">{{ user_name }}</el-text></li>
+    <li v-for = '(item,index) in data_list'> {{ item['name'] }}
+      <el-text class="mx-1" size="large">{{ item['text'] }}</el-text>
+      <el-button :type ="item['type']" v-if="item['text'] == `${item['select_val']}`" @click="item['fun']" round>{{ item['button_text'] }}</el-button>
+    </li>
+  </ul>
+  <div class="button_style">
+      <el-button type="info" @click="logout" style="width: 200px;" round>登出</el-button>
+      <el-button  v-if = 'select' type="warning" style="width: 200px;" round>进入卖家端</el-button>
+  </div>
+
+</template>
+<script lang="ts" setup>
+import { ref } from 'vue'
+import router from '@/router'
+import { ElMessage } from 'element-plus';
+import axios from 'axios';
+
+// 基础数据
+const user_name = ref('***')
+const token = localStorage.getItem('access_token')||''
+
+const Axios = axios.create({
+  baseURL: 'http://127.0.0.1:8000/api',
+
+});
+// 登出功能函数
+const logout = ref(()=>{
+  console.log(token);
+  const formdata = new FormData()
+  formdata.append('token',token)
+  Axios.delete('online_off',{ data: formdata })
+  localStorage.removeItem('access_token')
+  router.push('/register')
+  ElMessage.success('已登出')
+})
+
+
+// 跳转到申请页函数
+const apply_seller = ref(()=>{
+  router.push('/apply_seller')
+})
+
+// 基础数据
+const data_list  = ref([
+  {name:'身份：',text:'买家',button_text:'申请为卖家',type:'danger',fun:apply_seller,select_val : '买家'},
+  {name:'地址',text:'***',button_text:'修改地址',type:'primary',fun:'***',select_val : '***'}
+])
+
+const select = ref(data_list.value[0]['text'] == '卖家')
+
+
+// 设置组件名称
+defineOptions({
+  name:'Set'
+})
+
+
+</script>
+<style scoped>
+*{
+  margin-left: 10px;
+  margin-top: 5px;
+}
+.button_style{
+  display: flex;
+}
+</style>
