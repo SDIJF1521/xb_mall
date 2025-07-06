@@ -4,21 +4,37 @@
         <ManagementNavigation/>
       </el-header>
       <el-main>
-        <ExampleView/>
+        <div class="data_panel">
+          <ExampleView/>
+          <NewlyIncreasedNumberPeople/>
+          <NumberMerchants/>
+        </div>
+        <div>
+          <MerchantClientRatio/>
+        </div>
+        
+        
       </el-main>
       <el-footer class="footer-content">版权所有 © [小白的商城]，保留所有权利。</el-footer>
     </el-container>
 </template>
 <script lang="ts" setup>
-import {ref, onMounted} from 'vue';
+import {ref} from 'vue';
 import ManagementNavigation from '@/moon/management_navigation.vue'
 import ExampleView from './content/online_people_counting.vue'
+import NewlyIncreasedNumberPeople from './content/newly_increased_number_people.vue'
+import NumberMerchants from './content/number_merchants.vue'
+import MerchantClientRatio from './content/merchant_client_ratio.vue'
+
 const user_name = ref()
 defineOptions({
   name:'Management',
   components:{
     ManagementNavigation,
-    ExampleView
+    ExampleView,
+    NewlyIncreasedNumberPeople,
+    NumberMerchants,
+    MerchantClientRatio
   }
 })
 </script>
@@ -60,5 +76,12 @@ el-main {
     font-size: 12px;
     padding: 10px 0;
   }
+}
+.data_panel{
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
 }
 </style>

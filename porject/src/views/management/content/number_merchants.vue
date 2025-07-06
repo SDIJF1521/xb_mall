@@ -1,8 +1,8 @@
 <template>
     <el-card style="width: 100%; max-width: 90%; margin: 0 auto" shadow="always">
         <div class="title-container">
-            <h4 class="online-title">在线人数</h4>
-            <el-icon><UserFilled /></el-icon>
+            <h4 class="online-title">商家数</h4>
+            <el-icon><Shop /></el-icon>
         </div>
         <!-- 添加key属性确保数值变化时触发过渡动画 -->
         <transition name="number-change"><h3 class="online-count" :key="number_people">{{ number_people }}</h3></transition>
@@ -14,7 +14,7 @@ import { UserFilled } from '@element-plus/icons-vue';
 import axios from 'axios';
 
 export default {
-  name: 'ExampleView',
+  name: 'NumberMerchants',
   setup() {
     let intervalId: number | null = null;
     const token = localStorage.getItem('admin_access_token') || '';
@@ -23,11 +23,13 @@ export default {
 
     const sendRequest = async () => {
       try {
-        await axios.get(`http://127.0.0.1:8000/api/get_online_user_list?token=${token}`)
+        const formdata = new FormData();
+        formdata.append('token',token);
+        await axios.post(`http://127.0.0.1:8000/api/number_merchants`,formdata)
         .then(ref =>{
             if (ref.status === 200) {
                 if (ref.data.current){
-                    number_people.value=Object.keys(ref.data.online_users).length;
+                    number_people.value=ref.data.merchant_list.length;
                 }else{
                     number_people.value = 0
                 }
@@ -91,6 +93,8 @@ export default {
   color: #409EFF;
   text-align: center;
 }
+
+
 
 /* 响应式调整 */
 @media (max-width: 768px) {

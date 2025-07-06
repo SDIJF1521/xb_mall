@@ -5,7 +5,8 @@ import { UserStore } from '@/moon/on_line';
 const EXCLUDED_ROUTES = [
   'NotFound',        // 404页面
   'ManagementLogin', // 管理员登录页
-  'Management'       // 管理员管理页
+  'Management',      // 管理员管理页
+  'UserManagement'    // 用户管理页
 ];
 
 export function setupHeartbeatGuard(router: Router) {

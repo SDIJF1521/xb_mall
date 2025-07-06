@@ -10,7 +10,8 @@ async def user_list(token:str=Form(min_length=6), db:aiomysql.Connection = Depen
     try:
         Verify = ManagementTokenVerify(token=token)
         data = await execute_db_query(db,'select user from manage_user')
-        if await Verify.run(data=data)['current']:
+        Verify_data = await Verify.run(data=data)
+        if Verify_data['current']:
             query = 'SELECT user FROM user'
             result = await execute_db_query(db,query)
             user_list = [i[0] for i in result]

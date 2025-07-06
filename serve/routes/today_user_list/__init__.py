@@ -11,7 +11,9 @@ async def today_user_list(token:str=Form(min_length=6),db:aiomysql.Connection = 
     try:
         verify = ManagementTokenVerify(token=token)
         data = await execute_db_query(db,'select user from manage_user')
-        if await verify.run(data=data)['current']:
+        verify_vul = await verify.run(data=data)
+        print(verify_vul)
+        if verify_vul['current']:
             query = 'SELECT * FROM user WHERE time = %s'
             params = (date.today(),)
             result = await execute_db_query(db,query,params)

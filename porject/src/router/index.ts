@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import type { RouteRecordRaw } from 'vue-router';
 import HomeView from '@/views/index/HomeView.vue';
+
 import Center from '@/views/personal_center/PersonalCenter.vue';
 import Mall from '@/views/mall/Mall.vue'
 import ShoppingTrolley  from '@/views/shopping_trolley/ShoppingTrolley.vue'
@@ -11,6 +12,7 @@ import PasswordReset from '@/views/password_reset/password_reset.vue'
 import Management from '@/views/management/management.vue'
 import NotFound from '@/views/errors/NotFound.vue'
 import ManagementLogin from '@/views/management_login/management_login.vue'
+import UserManagement from '@/views/user_management/user_management.vue'
 
 import { setupHeartbeatGuard } from './heartbeatGuard'
 import { setupAuthGuard } from './authGuard';
@@ -74,6 +76,12 @@ const routes: Array<RouteRecordRaw> = [
     path:'/management',
     name:'Management',
     component:Management
+  },
+  // 管理员管理页——用户管理
+  {
+    path:'/user_management',
+    name:'UserManagement',
+    component:UserManagement
   },
     {
     // 404 页面 - 匹配所有未定义的路由

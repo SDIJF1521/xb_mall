@@ -3,7 +3,8 @@ import axios from 'axios';
 
 // 需要验证登录状态的路由名称列表
 const AUTH_REQUIRED_ROUTES = [
-    'Management'
+    'Management',
+    'UserManagement'
 ];
 
 // API基础URL

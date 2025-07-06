@@ -8,7 +8,7 @@
       mode="horizontal"
        @select="handleSelect"
     >
-      <el-menu-item index="1">主页</el-menu-item>
+      <el-menu-item index="1">仪表盘</el-menu-item>
       <el-menu-item index="2">商品管理</el-menu-item>
       <el-menu-item index="3">订单管理</el-menu-item>
       <el-menu-item index="4">用户管理</el-menu-item>
@@ -35,11 +35,16 @@ import router from '@/router';
 import { useRoute } from 'vue-router';
 import { Sunny, Moon } from '@element-plus/icons-vue'
 
+// 设置导航栏默认选中项
+const activeIndex = ref('1')
+
 // 处理菜单选择事件
 const handleSelect = (index: string) => {
   console.log('选中的菜单 index:', index);
   if (index =='1'){
     router.push('/management')
+  }else if (index =='4'){
+    router.push('/user_management')
   }
 }
 
@@ -47,8 +52,7 @@ const handleSelect = (index: string) => {
 defineOptions({
     name: 'ManagementNavigation',
 })
-// 设置导航栏默认选中项
-const activeIndex = ref('1')
+
 
 // 定义一个开关状态
 const value = ref(true)
@@ -56,10 +60,16 @@ const value = ref(true)
 onMounted(()=>{
   const route = useRoute()
   // 修正导航栏选项
-    switch (route.path){
+  
+    switch (route.path) {
+      
       case '/management':
         activeIndex.value = '1'
-      }
+        break
+      case '/user_management':
+        activeIndex.value = '4'
+        break
+    }
     
     const savedTheme =  localStorage.getItem('management_theme')
     if (savedTheme === 'dark') {

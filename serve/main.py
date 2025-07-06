@@ -28,7 +28,7 @@ from routes.manage_sign_in import router as manage_sign_in_router
 from routes.management_verify import router as management_verify_router
 from routes.user_list import router as user_list_router
 from routes.today_user_list import router as today_user_list_router
-
+from routes.number_merchants import router as number_merchants_router
 redis_client = RedisClient()
 # 定义 lifespan 事件处理器
 @asynccontextmanager
@@ -136,6 +136,9 @@ app.include_router(management_verify_router,prefix='/api')
 
 # 获取用户列表路由
 app.include_router(user_list_router,prefix='/api')
+
+# 获取商家列表路由
+app.include_router(number_merchants_router,prefix='/api')
 
 # 当日新增用户列表
 app.include_router(today_user_list_router,prefix='/api')
