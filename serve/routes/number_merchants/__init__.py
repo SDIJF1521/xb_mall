@@ -4,11 +4,16 @@ from fastapi import APIRouter,Depends,Form, HTTPException
 from data.sql_client import get_db,execute_db_query
 from services.management_token_verify import ManagementTokenVerify
 
+def get_redis():
+    from main import redis_client
+    return redis_client
+
 router = APIRouter()
 @router.post('/number_merchants')
-async def NumberMerchants(token:str=Form(min_length=6),db:aiomysql.Connection = Depends(get_db)):
+async def NumberMerchants(token:str=Form(min_length=6),db:aiomysql.Connection = Depends(get_db),redis_client=Depends(get_redis)):
     try:
-        verify = ManagementTokenVerify(token=token)
+        verify = ManagementTokenVerify(token=token,redis_client=redis_client)
+
         data = await execute_db_query(db,'select user from manage_user')
         verify_data = await verify.run(data)
         if verify_data['current']:

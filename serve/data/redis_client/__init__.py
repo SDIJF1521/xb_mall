@@ -9,6 +9,7 @@ class RedisClient:
         self.db = db
         self.redis = None
 
+        
     async def connect(self) -> None:
         """异步连接到Redis服务器"""
         self.redis = await aioredis.from_url(
@@ -27,6 +28,10 @@ class RedisClient:
             else:
                 # 对于旧版本aioredis，可能需要使用await self.redis.close()
                 await self.redis.close()
+    
+    async def set(self,key: str, value: str) -> None:
+        """设置键值对"""
+        await self.redis.set(key, value)
 
     async def setex(self, key: str, timeout: int, value: str) -> None:
         """设置带过期时间的键值对"""

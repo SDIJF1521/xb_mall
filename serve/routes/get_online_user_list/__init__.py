@@ -13,7 +13,8 @@ def get_redis():
 router = APIRouter()
 @router.get('/get_online_user_list')
 async def get_online_user_list(token,redis_client=Depends(get_redis),db:aiomysql.Connection = Depends(get_db)):
-    Verify = ManagementTokenVerify(token)
+    Verify = ManagementTokenVerify(token=token,redis_client=redis_client)
+
     sql_data = await execute_db_query(db,'select user from manage_user')
     Verify_data = await Verify.run(sql_data)
     online = OnLine(redis_client=redis_client)
