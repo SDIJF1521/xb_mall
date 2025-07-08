@@ -57,3 +57,8 @@ class ManageSignIn(BaseModel):
 class GetApplySellerUser(BaseModel):
     token:str
     name:str
+
+# 定义管理员同意商家申请路由数据模型
+class ApplySellerConsent(BaseModel):
+    token:str
+    name:str

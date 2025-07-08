@@ -18,6 +18,8 @@ async function verifyToken(token: string): Promise<boolean> {
     formData.append('token', token);
     
     const response = await axios.post(API_BASE_URL + '/management_verify', formData);
+    console.log(response.data);
+    
     
     return response.status === 200 && response.data.current;
   } catch (error) {

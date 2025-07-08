@@ -150,7 +150,7 @@ onMounted(() => {
     intervalId = window.setInterval(fetchData, 30000);
 
     // 响应窗口大小变化
-    window.addEventListener('resize', handleResize);
+    window.addEventListener('resize', handleResize, { passive: true });
   }
 });
 

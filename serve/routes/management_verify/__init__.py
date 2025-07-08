@@ -15,7 +15,10 @@ router = APIRouter()
 async def management_verify(token:str=Form(min_length=6),db:aiomysql.Connection = Depends(get_db),redis_client=Depends(get_redis)):
     try:
         management_token_verify = ManagementTokenVerify(token=token,redis_client=redis_client)
-        data = await execute_db_query(db,'select user from manage_user')
-        return await management_token_verify.run(data)
+        admin_tokrn_content = await management_token_verify.token_admin()
+        if admin_tokrn_content['current']:
+            admin = admin_tokrn_content['user']
+            data = await execute_db_query(db,f'select * from manage_user where user = "{admin}"')
+            return await management_token_verify.run(data)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

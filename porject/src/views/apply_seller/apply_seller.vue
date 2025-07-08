@@ -145,28 +145,35 @@ export default {
   },
   methods: {
       async submitApplication() {
-            const formdata = new FormData()
-            
+        try {
+            // 先进行表单验证
+            const valid = await this.$refs.applyForm.validate();
+            if (!valid) {
+                ElMessage.warning('请完善表单信息后再提交');
+                return;
+            }
+
+            const formdata = new FormData();
             formdata.append('token', this.formData.token);
-            formdata.append('name', this.formData.name)
-            formdata.append('phone', this.formData.contact)
-            formdata.append('mall_name', this.formData.storeName)
-            formdata.append('mall_describe', this.formData.storeDescription)
+            formdata.append('name', this.formData.name);
+            formdata.append('phone', this.formData.contact);
+            formdata.append('mall_name', this.formData.storeName);
+            formdata.append('mall_describe', this.formData.storeDescription);
+
+            const response = await this.Axios.post('/apply_seller', formdata);
             
-
-            await this.Axios.post('/apply_seller',formdata)
-            .then(ref =>{
-              console.log(ref.data);
-              if(ref.status == 200){
-                if (ref.data.current){
-                  ElMessage.success(ref.data.msg)
-                }else{
-                  ElMessage.error(ref.data.msg)
+            if (response.status === 200) {
+                if (response.data.current) {
+                    ElMessage.success(response.data.msg);
+                } else {
+                    ElMessage.error(response.data.msg);
                 }
-              }
-              this.resultType = 'success';
-
-            })
+            }
+            this.resultType = 'success';
+        } catch (error) {
+            console.error('提交失败:', error);
+            ElMessage.error('请将所有内容填写完毕');
+        }
     }
 
   }
@@ -244,4 +251,4 @@ export default {
     font-size: 0.875rem; /* text-sm */
   }
 }
-</style>    
+</style>

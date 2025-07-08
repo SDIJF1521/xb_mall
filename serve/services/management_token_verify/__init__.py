@@ -6,6 +6,18 @@ class ManagementTokenVerify:
         self.token = token
         self.redis_client = redis_client
 
+    async def token_admin(self):
+        try:
+            SECRET_KEY = "1352%!#$@awdS"
+            token = self.token.split(" ")[1]
+            payload:dict = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+            user = payload.get("user")
+            return {"current":True,'user':user}
+        except jwt.InvalidTokenError:
+            return {'msg':'无效的 token',"current":False}
+        except jwt.ExpiredSignatureError:
+            return {'mag':'token已过期',"current":False}
+
     async def run(self,data) -> bool:
         SECRET_KEY = "1352%!#$@awdS"
         try:

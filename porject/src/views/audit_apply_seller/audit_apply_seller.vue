@@ -35,7 +35,7 @@
           </el-descriptions-item>
         </el-descriptions >
         <div v-if="!reject_select" class="button">
-          <el-button type="primary" size="large" plain>通过</el-button>
+          <el-button type="primary" size="large" @click="constent" plain>通过</el-button>
           <el-button type="danger" size="large" @click="reject" plain>驳回</el-button>
         </div>
         <!--驳回窗口-->
@@ -57,7 +57,7 @@ import { useRoute } from 'vue-router';
 import { ref, onMounted } from 'vue'
 import axios from "axios";
 import { ElMessage } from 'element-plus';
-
+import router  from "@/router";
 import { asc } from "echarts/types/src/util/number.js";
 
 const Axios = axios.create({
@@ -70,12 +70,9 @@ defineOptions({name:'AuditApplySeller',
   } 
 })
 const apply_seller_data = ref(['***','***','***','123456','***'])
-
+const route = useRoute();
+  const userId = route.params.id||'';
 onMounted(async ()=>{
-
-    const route = useRoute();
-    const userId = route.params.id||'';
-
     const fromdata = new FormData()
     fromdata.append('token',localStorage.getItem('admin_access_token') || '')
     fromdata.append('name',String(userId))
@@ -99,6 +96,24 @@ const reject_reason = ref('')
 
 const pass = ref(async ()=>{})
 
+// 同意
+const constent = ref(async ()=>{
+  const fromdata = new FormData()
+  fromdata.append('token',localStorage.getItem('admin_access_token') || '')
+  fromdata.append('name',String(userId))
+  Axios.post('/apply_seller_consent',fromdata)
+  .then(async ref=>{
+    if (ref.status ==200){
+      if (ref.data.current){
+        ElMessage.success('同意成功');
+        router.push('/user_management')
+      }else{
+        ElMessage.warning(ref.data.msg || '同意失败');
+      }
+
+    }
+  })
+})
 // 驳回
 const reject = ref(async () =>{
   reject_select.value=true
