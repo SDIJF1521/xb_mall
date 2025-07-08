@@ -6,7 +6,8 @@ const EXCLUDED_ROUTES = [
   'NotFound',        // 404页面
   'ManagementLogin', // 管理员登录页
   'Management',      // 管理员管理页
-  'UserManagement'    // 用户管理页
+  'UserManagement',    // 用户管理页
+  "AuditApplySeller"  // 审核申请页
 ];
 
 export function setupHeartbeatGuard(router: Router) {

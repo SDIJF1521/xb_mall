@@ -36,7 +36,7 @@ import { useRoute } from 'vue-router';
 import { Sunny, Moon } from '@element-plus/icons-vue'
 
 // 设置导航栏默认选中项
-const activeIndex = ref('1')
+const activeIndex = ref('')
 
 // 处理菜单选择事件
 const handleSelect = (index: string) => {

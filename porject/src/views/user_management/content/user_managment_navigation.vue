@@ -3,6 +3,7 @@
     <el-menu
         default-active="1-1"
         class="el-menu-vertical-demo"
+        @select="handleSelect"
     >
 
     <el-sub-menu index="1">
@@ -37,4 +38,10 @@ defineOptions({
         IconUser
     }
 })
+const emit = defineEmits(['menu-selected']);
+//导航栏响应函数
+const handleSelect = (index: string) => {
+  console.log('选中的菜单 index:', index);
+  emit('menu-selected', index);
+}
 </script>

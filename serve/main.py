@@ -30,6 +30,7 @@ from routes.user_list import router as user_list_router
 from routes.today_user_list import router as today_user_list_router
 from routes.number_merchants import router as number_merchants_router
 from routes.get_apply_seller_list import router as get_apply_seller_list_router
+from routes.get_name_apply_seller_user import router as get_name_apply_seller_user_router
 
 redis_client = RedisClient()
 # 定义 lifespan 事件处理器
@@ -147,6 +148,10 @@ app.include_router(today_user_list_router,prefix='/api')
 
 # 获取商家申请列表路由
 app.include_router(get_apply_seller_list_router,prefix='/api')
+
+# 获取用户申请商家路由
+app.include_router(get_name_apply_seller_user_router,prefix='/api')
+
 
 # 商品添加路由
 @app.patch('/Product_upload')

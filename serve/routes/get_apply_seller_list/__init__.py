@@ -15,7 +15,7 @@ async def get_apply_seller_list(token:str=Form(min_length=6), db:aiomysql.Connec
     data = await execute_db_query(db,'select user from manage_user')
     Verify_data = await verify.run(data)
     if Verify_data['current']:
-        sql_data = await execute_db_query(db,'select * from shop_apply')
+        sql_data = await execute_db_query(db,'select * from shop_apply where state = 0')
         if sql_data:
             user_list = [list(i) for i in sql_data]
             return {'apply_list':user_list,'current':True}

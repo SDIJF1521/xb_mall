@@ -52,3 +52,8 @@ class UserOnLineUploading(BaseModel):
 class ManageSignIn(BaseModel):
     user:str
     password:str
+
+# 定义管理员获取商家申请资料路由模型
+class GetApplySellerUser(BaseModel):
+    token:str
+    name:str

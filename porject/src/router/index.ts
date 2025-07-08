@@ -13,6 +13,7 @@ import Management from '@/views/management/management.vue'
 import NotFound from '@/views/errors/NotFound.vue'
 import ManagementLogin from '@/views/management_login/management_login.vue'
 import UserManagement from '@/views/user_management/user_management.vue'
+import AuditApplySeller from '@/views/audit_apply_seller/audit_apply_seller.vue'
 
 import { setupHeartbeatGuard } from './heartbeatGuard'
 import { setupAuthGuard } from './authGuard';
@@ -82,6 +83,12 @@ const routes: Array<RouteRecordRaw> = [
     path:'/user_management',
     name:'UserManagement',
     component:UserManagement
+  },
+  // 管理员管理页——商家审核
+  {
+    path:'/audit_apply_seller/:id',
+    name:'AuditApplySeller',
+    component:AuditApplySeller
   },
     {
     // 404 页面 - 匹配所有未定义的路由

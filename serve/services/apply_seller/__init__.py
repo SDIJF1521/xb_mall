@@ -1,3 +1,4 @@
+import datetime
 from ..user_info import UserInfo
 class ApplySeller:
     def __init__(self,name:str,phone:str,mall_name:str,mall_describe:str):
@@ -16,14 +17,14 @@ class ApplySeller:
             print(sql_name)
             if data['user'] not in sql_name:
                 return {
-                    'query': 'INSERT INTO shop_apply (user, name, phone, mall_name, describe_mall) VALUES (%s, %s, %s, %s, %s)',
-                    'params': (data['user'],self.name, self.phone, self.mall_name, self.mall_describe),
+                    'query': 'INSERT INTO shop_apply (user, name, phone, mall_name, describe_mall,time) VALUES (%s, %s, %s, %s, %s,%s)',
+                    'params': (data['user'],self.name, self.phone, self.mall_name, self.mall_describe,datetime.date.today()),
                     'current': True
                 }
             elif sql_data[sql_name.index(data['user'])] != '1':
                 return {
-                    'query': 'UPDATE shop_apply SET name = %s, phone = %s, mall_name = %s, describe_mall = %s WHERE user = %s',
-                    'params': (self.name, self.phone, self.mall_name, self.mall_describe, data['user']),
+                    'query': 'UPDATE shop_apply SET name = %s, phone = %s, mall_name = %s, describe_mall = %s , time = %sWHERE user = %s',
+                    'params': (self.name, self.phone, self.mall_name, self.mall_describe, datetime.date.today(),data['user']),
                     'current': True
                 }
             else:

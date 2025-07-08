@@ -39,27 +39,20 @@ defineOptions({
 })
 </script>
 <style scoped>
-/* 响应式布局样式 */
-el-container {
-  min-height: 100vh;
-  width: 100%;
-}
 
-el-header {
+.el-header {
   padding: 0 20px;
   height: auto;
   min-height: 60px;
 }
 
-el-main {
+.el-main {
   padding: 20px;
   flex: 1;
 }
-
 .footer-content {
   text-align: center;
   color: darkgray;
-  padding: 15px 0;
 }
 
 /* 媒体查询 - 适配移动设备 */
