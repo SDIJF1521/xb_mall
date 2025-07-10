@@ -30,7 +30,7 @@
             :column="1"
             style="margin-top: 20px"
         >
-          <el-descriptions-item label="内容">
+          <el-descriptions-item label="店铺描述">
                 {{ apply_seller_data[4] }}
           </el-descriptions-item>
         </el-descriptions >
@@ -42,7 +42,7 @@
         <div style="margin-top: 15px;" v-if="reject_select">
           <el-input v-model="reject_reason" type="textarea" placeholder="请输入驳回理由" :autosize="{ minRows: 2, maxRows: 25}" />
           <div class="button">
-            <el-button type="success" size="large" plain>发送</el-button>
+            <el-button type="success" size="large" @click="send" plain>发送</el-button>
             <el-button type="danger" size="large" @click="cancel" plain>取消</el-button>
           </div>
         </div>
@@ -124,6 +124,25 @@ const cancel = ref(async ()=>{
   reject_select.value=false
 })
 
+// 发送
+const send = ref(async ()=>{
+  const fromdata = new FormData()
+  fromdata.append('token',localStorage.getItem('admin_access_token') || '')
+  fromdata.append('name',String(userId))
+  fromdata.append('reason',reject_reason.value)
+  Axios.post('/apply_seller_reject',fromdata)
+  .then(async ref=>{
+    if (ref.status ==200){
+      if (ref.data.current){
+        ElMessage.success('拒绝成功');
+        router.push('/user_management')
+      }else{
+        ElMessage.warning(ref.data.msg || '拒绝失败');
+      }
+
+    }
+  })
+})
 </script>
 
 <style scoped>

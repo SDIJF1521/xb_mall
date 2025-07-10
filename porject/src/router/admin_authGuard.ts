@@ -5,7 +5,7 @@ import axios from 'axios';
 const AUTH_REQUIRED_ROUTES = [
     'Management',
     'UserManagement',
-    'AuditApplySeller'
+    'AuditApplySeller',
 ];
 
 // API基础URL

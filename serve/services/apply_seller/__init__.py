@@ -22,7 +22,7 @@ class ApplySeller:
                 }
             elif sql_data[sql_name.index(data['user'])][5] != 3:
                 return {
-                    'query': 'UPDATE shop_apply SET name = %s, phone = %s, mall_name = %s, describe_mall = %s , time = %sWHERE user = %s',
+                    'query': 'UPDATE shop_apply SET name = %s, phone = %s, mall_name = %s, describe_mall = %s , time = %s, state = 1 WHERE user = %s',
                     'params': (self.name, self.phone, self.mall_name, self.mall_describe, datetime.date.today(),data['user']),
                     'current': True
                 }

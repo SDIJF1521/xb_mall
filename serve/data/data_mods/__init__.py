@@ -62,3 +62,10 @@ class GetApplySellerUser(BaseModel):
 class ApplySellerConsent(BaseModel):
     token:str
     name:str
+
+# 定义管理员驳回商家申请路由数据模型
+class ApplySellerReject(BaseModel):
+    token:str
+    name:str
+    reason:str
+

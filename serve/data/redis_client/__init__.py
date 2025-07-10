@@ -22,7 +22,7 @@ class RedisClient:
     async def close(self) -> None:
         """异步关闭Redis连接"""
         if self.redis:
-            self.redis.close()
+            await self.redis.close()
             if hasattr(self.redis, 'wait_closed'):
                 await self.redis.wait_closed()
             else:

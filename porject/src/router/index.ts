@@ -14,6 +14,7 @@ import NotFound from '@/views/errors/NotFound.vue'
 import ManagementLogin from '@/views/management_login/management_login.vue'
 import UserManagement from '@/views/user_management/user_management.vue'
 import AuditApplySeller from '@/views/audit_apply_seller/audit_apply_seller.vue'
+import AddreSet from '@/views/addre_set/addre_set.vue'
 
 import { setupHeartbeatGuard } from './heartbeatGuard'
 import { setupAuthGuard } from './authGuard';
@@ -66,6 +67,11 @@ const routes: Array<RouteRecordRaw> = [
     path:'/password_reset',
     name:'PasswordReset',
     component:PasswordReset
+  },{
+    // 地址设置页
+    path:'/addre_set',
+    name:'AddreSet',
+    component:AddreSet
   },{
     // 管理员登录页
     path:'/management_login',

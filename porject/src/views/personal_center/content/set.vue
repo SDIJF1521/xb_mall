@@ -13,7 +13,7 @@
 
 </template>
 <script lang="ts" setup>
-import { ref } from 'vue'
+import { ref,onMounted } from 'vue'
 import router from '@/router'
 import { ElMessage } from 'element-plus';
 import axios from 'axios';
@@ -43,13 +43,33 @@ const apply_seller = ref(()=>{
   router.push('/apply_seller')
 })
 
+// 跳转地址设置页
+const addre_set = ref(()=>{
+  router.push('/addre_set')
+})
+
 // 基础数据
 const data_list  = ref([
   {name:'身份：',text:'买家',button_text:'申请为卖家',type:'danger',fun:apply_seller,select_val : '买家'},
-  {name:'地址',text:'***',button_text:'修改地址',type:'primary',fun:'***',select_val : '***'}
+  {name:'地址',text:'***',button_text:'修改地址',type:'primary',fun:addre_set,select_val : '***'}
 ])
 
-const select = ref(data_list.value[0]['text'] == '卖家')
+const select = ref(false)
+
+onMounted(async ()=>{
+  const formdata = new FormData
+  formdata.append('token',token)
+
+  const res = await Axios.post('/user_data',formdata)
+  if (res.status == 200){
+    if (res.data.current){
+      console.log(res.data);
+      user_name.value = res.data.data[0]||'***'
+      data_list.value[0]['text'] = (res.data.data[1] == 1)?'卖家':'买家'
+      select.value = data_list.value[0]['text'] == '卖家'
+    }
+  }
+})
 
 
 // 设置组件名称

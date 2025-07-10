@@ -266,8 +266,11 @@ export default {
                 // 开始倒计时
                 this.countdown = 60;
                 this.button_text = `重新发送(${this.countdown}s)`;
-                
-                this.startCountdown('验证码已发送请注意邮箱');
+                if (res.data.message == '验证码已发送'){
+                    this.startCountdown('验证码已发送请注意邮箱');
+                }else{
+                    this.startCountdown(res.data.message);
+                }
             })
             .catch(err => {
                 ElMessage.error('验证码发送失败')

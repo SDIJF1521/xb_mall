@@ -23,8 +23,9 @@ async def apply_seller_consent(data:Annotated[ApplySellerConsent,Form()], db:aio
 
             Verify_data = await verify.run(verify_data)
             if Verify_data['current']:
-                    print(f'yes1{data.name}')
-                    await execute_db_query(db,'update user set merchant = 1 where user = %s',data.name)
+                    reject_user = await execute_db_query(db,'select user from shop_apply where state = 2 and user = %s',data.name)
+                    if reject_user:
+                         await execute_db_query(db,'DELETE FROM rejection_reason WHERE user = %s',data.name)
                     await execute_db_query(db,'update shop_apply set state = 3 where user = %s',data.name)
                     return {'msg':'同意成功','current':True}
             else:

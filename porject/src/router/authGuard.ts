@@ -5,7 +5,8 @@ import axios from 'axios';
 const AUTH_REQUIRED_ROUTES = [
   'PersonalCenter',,
   'PersonalDetailsChange',
-  'ApplySeller'
+  'ApplySeller',
+  'AddreSet'
 ];
 
 // API基础URL

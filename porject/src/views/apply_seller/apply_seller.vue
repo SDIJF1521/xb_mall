@@ -9,7 +9,10 @@
     <el-main class="flex-grow bg-gray-50 py-8 px-4">
       <div class="max-w-3xl mx-auto bg-white rounded-xl shadow-md p-6 md:p-8 transform transition-all duration-300 hover:shadow-lg">
         <div class="text-center mb-8">
-          <h2 class="text-[clamp(1.5rem,3vw,2rem)] font-bold text-gray-800 mb-2">申请成为卖家</h2>
+          <div class="hrad">
+            <h2 class="text-[clamp(1.5rem,3vw,2rem)] font-bold text-gray-800 mb-2">申请成为卖家</h2>
+            <el-button v-if="reject_select" @click="reject_content_examin" type="danger" circle><h3>!</h3></el-button>
+          </div>
           <p class="text-gray-600">请填写以下信息以申请成为卖家，我们将在3个工作日内审核您的申请</p>
         </div>
         
@@ -68,7 +71,20 @@
         </el-form>
         
 
+    </div>
+    <el-drawer v-model="drawer" title="驳回理由" :with-header="true" width="35%" :before-close="handleClose">
+      <div class="reject-reason-container">
+        <div class="reject-icon">
+          <el-icon class="warning-icon"><WarningFilled /></el-icon>
+        </div>
+        <div class="reject-content">
+          <p class="reject-text">{{ reject_reason || '暂无驳回理由' }}</p>
+        </div>
+        <div class="reject-footer">
+          <el-button type="primary" @click="drawer = false" class="w-full">我知道了</el-button>
+        </div>
       </div>
+    </el-drawer>
     </el-main>
     
     <!-- 页尾 -->
@@ -80,7 +96,9 @@
 
 <script>
 import AppNavigation from '@/moon/navigation.vue';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElIcon } from 'element-plus';
+import { WarningFilled } from '@element-plus/icons-vue';
+import router from '@/router';
 import axios from 'axios';
 
 export default {
@@ -91,6 +109,10 @@ export default {
       Axios: axios.create({
         baseURL:'http://127.0.0.1:8000/api'
       }),
+      reject_select:false,
+      reject_reason:'',
+      // 抽屉
+      drawer:false,
       // 表单数据
       formData: {
         name: '',
@@ -136,6 +158,11 @@ export default {
         this.formData.contact = ref.data.phone || '';
         this.formData.storeName = ref.data.mall_name || '';
         this.formData.storeDescription = ref.data.mall_describe || '';
+        if (ref.data.reject_cause){
+          this.drawer = true;
+          this.reject_select = true
+          this.reject_reason = ref.data.reject_cause
+        }
       }
       console.log(ref.data);
     })
@@ -165,6 +192,7 @@ export default {
             if (response.status === 200) {
                 if (response.data.current) {
                     ElMessage.success(response.data.msg);
+                    router.push('/personal_center')
                 } else {
                     ElMessage.error(response.data.msg);
                 }
@@ -174,6 +202,10 @@ export default {
             console.error('提交失败:', error);
             ElMessage.error('请将所有内容填写完毕');
         }
+    },
+    //查看驳回内容
+    reject_content_examin(){
+      this.drawer = true;
     }
 
   }
@@ -181,6 +213,54 @@ export default {
 </script>
 
 <style scoped>
+
+.hrad{
+display: flex;
+justify-content: space-between;
+align-items: center;
+width: 100%;
+}
+.el-button[type='danger'] {
+  margin-left: auto;
+}
+/* 驳回理由抽屉样式 */
+.reject-reason-container {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+}
+.reject-icon {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.warning-icon {
+  font-size: 48px;
+  color: #f59e0b;
+  animation: pulse 2s infinite;
+}
+.reject-content {
+  flex: 1;
+  padding: 16px;
+  background-color: #fffbeb;
+  border-radius: 8px;
+  border: 1px solid #fde68a;
+  margin-bottom: 20px;
+}
+.reject-text {
+  color: #92400e;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+.reject-footer {
+  width: 100%;
+}
+/* 动画效果 */
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
 /* 页脚样式 */
 .footer-content {
   text-align: center;

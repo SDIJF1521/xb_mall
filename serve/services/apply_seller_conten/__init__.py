@@ -19,6 +19,7 @@ class ApplySellerConten:
                     'phone': sql_data[index][2],
                     'mall_name': sql_data[index][3],
                     'mall_describe': sql_data[index][4],
+                    'state':sql_data[index][5],
                     'current': True
                 }
             else:
