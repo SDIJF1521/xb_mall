@@ -109,7 +109,7 @@ export default {
             emailError: '',
             verificationCodeError: '',
             isSending: false,
-            countdown: 0
+
         }
     },
     computed: {
@@ -262,15 +262,13 @@ export default {
             })
             .then(res => {
                 console.log(res.data);
-                ElMessage.success('验证码发送成功请注意邮箱')
-                // 开始倒计时
-                this.countdown = 60;
-                this.button_text = `重新发送(${this.countdown}s)`;
-                if (res.data.message == '验证码已发送'){
-                    this.startCountdown('验证码已发送请注意邮箱');
-                }else{
-                    this.startCountdown(res.data.message);
-                }
+                if(res.data.current){
+                    ElMessage.success('验证码已发送请注意邮箱');
+
+                    }else{
+                        ElMessage.error(res.data.message);
+
+                    }
             })
             .catch(err => {
                 ElMessage.error('验证码发送失败')
@@ -283,18 +281,6 @@ export default {
         },
         
         // 开始倒计时
-        startCountdown() {
-            const timer = setInterval(() => {
-                this.countdown--;
-                this.button_text = `重新发送(${this.countdown}s)`;
-                
-                if (this.countdown <= 0) {
-                    clearInterval(timer);
-                    this.button_text = '获取验证码';
-                }
-            }, 1000);
-        },
-        
         // 验证所有字段
         validateAllFields() {
             let isValid = true;

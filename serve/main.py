@@ -20,6 +20,10 @@ from routes.apply_seller import router as apply_seller_router
 from routes.user_data_amend import router as user_data_amend_router
 from routes.uploading_profile_photo import router as uploading_profile_photo_router
 from routes.get_apply_seller_content import router as get_apply_seller_content_router
+from routes.add_address import router as add_address_router
+from routes.get_address import router as get_address_router
+from routes.modify_address import router as modify_address_router
+from routes.delete_address import router as delete_address_router
 from routes.online_user import router as online_user_router
 from routes.get_online_user_list import router as get_online_user_list_router
 from routes.online_heartbeat import router as online_heartbeat_router
@@ -127,6 +131,18 @@ app.include_router(online_user_router, prefix='/api')
 
 # 获取在线用户列表
 app.include_router(get_online_user_list_router,prefix='/api')
+
+# 地址添加路由
+app.include_router(add_address_router,prefix='/api')
+
+# 地址获取路由
+app.include_router(get_address_router,prefix='/api')
+
+# 地址修改路由
+app.include_router(modify_address_router,prefix='/api')
+
+# 地址删除路由
+app.include_router(delete_address_router,prefix='/api')
 
 # 在线用户心跳请求路由
 app.include_router(online_heartbeat_router,prefix='/api')

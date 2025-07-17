@@ -64,6 +64,5 @@ class Register:
         return {1:{'query': 'INSERT INTO user(user, password,email,merchant,time) VALUES(%s, %s,%s,%s,%s)', 
                 'params': (self.user, self.password,self.email,0,date.today())},
                 2:{'query':'INSERT INTO personal_details(user,nickname) VALUES(%s,%s)',
-                   'params':(self.user,self.user)},
-                3:{'query':'INSERT INTO user_address(user) VALUES(%s)','params':(self.user)}
+                   'params':(self.user,self.user)}
                    }

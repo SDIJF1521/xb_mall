@@ -30,6 +30,32 @@ class UserInformation(BaseModel):
     sex:str
     token:str
 
+# 定义用户地址数据模型
+class UserAddress(BaseModel):
+    token:str
+    save:str
+    city:str
+    county:str
+    address:str
+    name:str
+    phone:str
+
+# 定义用户地址修改数据模型
+class UserAddressModify(BaseModel):
+    token:str
+    id:int
+    save:str
+    city:str
+    county:str
+    address:str
+    name:str
+    phone:str
+
+# 定义用户地址删除数据模型
+class UserDeleteAddress(BaseModel):
+    token:str
+    id:int
+
 # 定义用户注册数据模型
 class Password_reset(BaseModel):
     email:EmailStr
