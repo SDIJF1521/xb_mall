@@ -11,11 +11,13 @@ import ApplySeller from '@/views/apply_seller/apply_seller.vue'
 import PasswordReset from '@/views/password_reset/password_reset.vue'
 import Management from '@/views/management/management.vue'
 import NotFound from '@/views/errors/NotFound.vue'
+import BuyerSideIdex from '@/views/buyer_side_index/BuyerSideIdex.vue'
 import ManagementLogin from '@/views/management_login/management_login.vue'
 import UserManagement from '@/views/user_management/user_management.vue'
 import AuditApplySeller from '@/views/audit_apply_seller/audit_apply_seller.vue'
 import AddreSet from '@/views/addre_set/addre_set.vue'
-
+import BusinessManagement from '@/views/business_management/business_management.vue'
+import BuyerSideSing from '@/views/buyer_side_sing/buyer_side_sing.vue'
 import { setupHeartbeatGuard } from './heartbeatGuard'
 import { setupAuthGuard } from './authGuard';
 import { setupAdminAuthGuard } from './admin_authGuard'
@@ -72,7 +74,22 @@ const routes: Array<RouteRecordRaw> = [
     path:'/addre_set',
     name:'AddreSet',
     component:AddreSet
-  },{
+  },
+  {
+    // 买家端首页
+    path:'/buyer_index',
+    name:'BuyerIndex',
+
+    component:BuyerSideIdex
+
+  },
+  {
+    // 买家端登录页
+    path:'/buyer_sing',
+    name:'BuyerSing',
+    component:BuyerSideSing
+  },
+  {
     // 管理员登录页
     path:'/management_login',
     name:'ManagementLogin',
@@ -90,6 +107,13 @@ const routes: Array<RouteRecordRaw> = [
     name:'UserManagement',
     component:UserManagement
   },
+  {
+    // 用户管理页
+    path:'/business_management/:id',
+    name:'BusinessManagement',
+    component:BusinessManagement
+  },
+  
   // 管理员管理页——商家审核
   {
     path:'/audit_apply_seller/:id',

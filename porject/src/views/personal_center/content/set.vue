@@ -8,7 +8,8 @@
   </ul>
   <div class="button_style">
       <el-button type="info" @click="logout" style="width: 200px;" round>登出</el-button>
-      <el-button  v-if = 'select' type="warning" style="width: 200px;" round>进入卖家端</el-button>
+      <el-button  v-if = 'select' @click="buyer_sing" type="warning" style="width: 200px;" round>进入卖家端</el-button>
+
   </div>
 
 </template>
@@ -61,6 +62,7 @@ onMounted(async ()=>{
   formdata.append('token',token)
 
   const res = await Axios.post('/user_data',formdata)
+  const apply_address = await Axios.post('/get_address_apply',formdata)
   if (res.status == 200){
     if (res.data.current){
       console.log(res.data);
@@ -69,7 +71,22 @@ onMounted(async ()=>{
       select.value = data_list.value[0]['text'] == '卖家'
     }
   }
+  if (apply_address.status == 200){
+    if (apply_address.data.current){
+      console.log(12);
+      
+      data_list.value[1]['text'] = `${apply_address.data.data[2]}-${apply_address.data.data[3]}-${apply_address.data.data[4]}`||'***'
+      data_list.value[1]['select_val'] = `${apply_address.data.data[2]}-${apply_address.data.data[3]}-${apply_address.data.data[4]}`||'***'
+    }
+  }
+
 })
+
+// 进入卖家端登录页
+function buyer_sing (){
+  router.push('/buyer_sing')
+}
+
 
 
 // 设置组件名称

@@ -6,6 +6,7 @@ const AUTH_REQUIRED_ROUTES = [
     'Management',
     'UserManagement',
     'AuditApplySeller',
+    'BusinessManagement',
 ];
 
 // API基础URL

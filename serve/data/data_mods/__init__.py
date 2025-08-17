@@ -56,6 +56,11 @@ class UserDeleteAddress(BaseModel):
     token:str
     id:int
 
+# 定义地址应用路由数据模型
+class UserAddressApply(BaseModel):
+    token:str
+    id:int
+
 # 定义用户注册数据模型
 class Password_reset(BaseModel):
     email:EmailStr
@@ -94,4 +99,10 @@ class ApplySellerReject(BaseModel):
     token:str
     name:str
     reason:str
+
+# 定义管理员获取商家信息路由数据模型
+class ManagementGetMall(BaseModel):
+    token:str
+    name:str
+
 

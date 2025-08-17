@@ -20,19 +20,23 @@ import {ref} from 'vue'
 import ManagementNavigation from '@/moon/management_navigation.vue'
 import UserManagmentNavigation from './content/user_managment_navigation.vue'
 import MallApplyManagement from './content/mall_apply_management.vue'
+import BusinessManagement from './content/business_management.vue'
 
 const mods = ref('MallApplyManagement')
 defineOptions({name:'UserManagement',
                 components:{
                   ManagementNavigation,
                   UserManagmentNavigation,
-                  MallApplyManagement
+                  MallApplyManagement,
+                  BusinessManagement
                 }
                 })
 const handleMenuSelect = (data:string) =>{
   console.log(data);
   if (data == '1-1'){
     mods.value = 'MallApplyManagement'
+  }else if (data == '1-2'){
+    mods.value = 'BusinessManagement'
   }
 }
 </script>

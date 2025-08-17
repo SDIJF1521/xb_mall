@@ -7,7 +7,8 @@ const EXCLUDED_ROUTES = [
   'ManagementLogin', // 管理员登录页
   'Management',      // 管理员管理页
   'UserManagement',    // 用户管理页
-  "AuditApplySeller"  // 审核申请页
+  "AuditApplySeller",  // 审核申请页
+  "BusinessManagement",  // 卖家管理页
 ];
 
 export function setupHeartbeatGuard(router: Router) {

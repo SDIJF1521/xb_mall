@@ -12,7 +12,7 @@ async def get_address_options(token=Form(min_length=6),db:aiomysql.Connection=De
         token_user_data = await token_user_info.token_analysis()
         if token_user_data['current']:
             sql_save = await execute_db_query(db,
-                                            'SELECT ROW_NUMBER() OVER (ORDER BY user DESC) AS temp_id,address_id,name,phone,save,city,county,address FROM user_address WHERE user = %s',
+                                            'SELECT ROW_NUMBER() OVER (ORDER BY user DESC) AS temp_id,address_id,name,phone,save,city,county,address,apply_option FROM user_address WHERE user = %s',
                                             token_user_data['user'])
             if sql_save:
                 out_dic:dict = {}

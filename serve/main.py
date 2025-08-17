@@ -22,6 +22,8 @@ from routes.uploading_profile_photo import router as uploading_profile_photo_rou
 from routes.get_apply_seller_content import router as get_apply_seller_content_router
 from routes.add_address import router as add_address_router
 from routes.get_address import router as get_address_router
+from routes.address_apply import router as address_apply_router
+from routes.get_address_apply import router as get_address_apply_router
 from routes.modify_address import router as modify_address_router
 from routes.delete_address import router as delete_address_router
 from routes.online_user import router as online_user_router
@@ -31,6 +33,7 @@ from routes.online_off import router as online_off_router
 from routes.user_online_state import router as user_online_state_router
 from routes.manage_sign_in import router as manage_sign_in_router
 from routes.management_verify import router as management_verify_router
+from routes.management_mall_info import router as management_mall_info_router
 from routes.user_list import router as user_list_router
 from routes.today_user_list import router as today_user_list_router
 from routes.number_merchants import router as number_merchants_router
@@ -39,6 +42,7 @@ from routes.get_name_apply_seller_user import router as get_name_apply_seller_us
 from routes.apply_seller_consent import router as apply_seller_consent_router
 from routes.apply_seller_reject import router as apply_seller_reject_router
 from routes.address_show import router as address_show_router
+
 
 redis_client = RedisClient()
 # 定义 lifespan 事件处理器
@@ -144,6 +148,12 @@ app.include_router(modify_address_router,prefix='/api')
 # 地址删除路由
 app.include_router(delete_address_router,prefix='/api')
 
+# 地址应用路由
+app.include_router(address_apply_router,prefix='/api')
+
+# 获取应用地址路由
+app.include_router(get_address_apply_router,prefix='/api')
+
 # 在线用户心跳请求路由
 app.include_router(online_heartbeat_router,prefix='/api')
 
@@ -182,6 +192,9 @@ app.include_router(apply_seller_consent_router,prefix='/api')
 
 # 拒绝商家申请路由
 app.include_router(apply_seller_reject_router,prefix='/api')
+
+# 获取商家信息路由
+app.include_router(management_mall_info_router,prefix='/api')
 
 # 商品添加路由
 @app.patch('/Product_upload')

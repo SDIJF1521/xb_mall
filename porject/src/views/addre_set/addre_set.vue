@@ -12,12 +12,18 @@
             <el-table-column prop="detail_address" label="详细地址" />
             <el-table-column prop="name" label="名称" />
             <el-table-column prop="mobile" label="手机号" />
+            <el-table-column prop="apply_option" label="应用状态">
+                <template #default="scope">
+                    <el-tag v-if="scope.row.apply_option == 1" type="success">已应用</el-tag>
+                    <el-tag v-else type="danger">未应用</el-tag>
+                </template>
+            </el-table-column>
 
             <el-table-column prop="id" label="操作">
                 <template #default="scope">
-                    <el-button type="warning" plain>应用</el-button>
-                    <el-button type="info" @click="modify(scope.row.id,scope.row.data_id)" plain>编辑</el-button>
-                    <el-button type="danger" @click="delete_fun(scope.row.data_id)" plain>删除</el-button>
+                    <el-button size="small" type="warning"  @click="apply(scope.row.data_id)" plain>应用</el-button>
+                    <el-button size="small" type="info" @click="modify(scope.row.id,scope.row.data_id)" plain>编辑</el-button>
+                    <el-button size="small" type="danger" @click="delete_fun(scope.row.data_id)" plain>删除</el-button>
                 </template>
             </el-table-column>
         </el-table>
@@ -215,7 +221,8 @@ async function fetchData(){
                         'name':res.data.save_list[i][2],
                         'mobile':res.data.save_list[i][3],
                         'id':res.data.save_list[i][0],
-                        'data_id':res.data.save_list[i][1]
+                        'data_id':res.data.save_list[i][1],
+                        'apply_option':res.data.save_list[i][8]
                 })
 
                 
@@ -307,7 +314,7 @@ const modify = ref(async(order: number,id: number)=>{
 })
 
 // 提交按钮功能
-const commit = ref(async ()=>{
+const commit = async ()=>{
     const token = localStorage.getItem('access_token')||''
     if (form.data_id == null){
         // 添加逻辑
@@ -386,10 +393,10 @@ const commit = ref(async ()=>{
             }
         })
     }
-})
+}
 
 // 删除按钮功能
-const delete_fun = ref(async (id: number)=>{
+const delete_fun = async (id: number)=>{
     const fromdata = new FormData()
     console.log(id.toString());
     
@@ -410,7 +417,30 @@ const delete_fun = ref(async (id: number)=>{
         }
     })
 
-})
+}
+
+// 应用按钮功能
+const apply = async (id: number)=>{
+    const fromdata = new FormData()
+    console.log(id.toString());
+    
+    fromdata.append('id',id.toString())
+    fromdata.append('token',localStorage.getItem('access_token')||'')
+    await Axios.post('/address_apply', fromdata)
+    .then(res=>{
+        if (res.status == 200){
+            if (res.data.current){
+                ElMessage.success('应用成功')
+                fetchData()
+            }else{
+                ElMessage.error('应用失败')
+                fetchData()
+            }
+        }
+    })
+}
+
+// 
 
 </script>
 <style scoped>
