@@ -30,15 +30,13 @@ async def apply_seller_consent(data:Annotated[ApplySellerConsent,Form()], db:aio
                     if reject_user:
                          # 移除驳回内容
                          await execute_db_query(db,'DELETE FROM rejection_reason WHERE user = %s',data.name)
-                    print(123)
                     mall_info = await execute_db_query(db,'select user,name,phone,describe_mall from shop_apply where user = %s',data.name)
-                    print(mall_info)
 
                     if not sql_mall_info_data:
                         await execute_db_query(db,'insert into mall_info(user,mall_name,mall_phone,mall_descrine,mall_state) values(%s,%s,%s,%s,%s)',(mall_info[0][0],mall_info[0][1],mall_info[0][2],mall_info[0][3],1))
-
-
                         await execute_db_query(db,'update shop_apply set state = 3 where user = %s',data.name)
+                        user_info = await execute_db_query(db,'select user,password from user where user = %s',data.name)
+                        await execute_db_query(db,'insert into seller_sing(user,password) values(%s,%s)',(user_info[0][0],user_info[0][1]))
                         return {'msg':'同意成功','current':True}
                     else:
                         return {'msg':'数据库数据异常','current':False}

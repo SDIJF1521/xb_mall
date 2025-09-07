@@ -6,7 +6,7 @@ const AUTH_REQUIRED_ROUTES = [
   'PersonalCenter',,
   'PersonalDetailsChange',
   'ApplySeller',
-  'AddreSet'
+  'AddreSet',
 ];
 
 // API基础URL

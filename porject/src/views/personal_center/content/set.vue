@@ -35,7 +35,12 @@ const logout = ref(()=>{
   Axios.delete('online_off',{ data: formdata })
   localStorage.removeItem('access_token')
   router.push('/register')
+  const exit_user = new FormData()
+  exit_user.append('token',token)
+  exit_user.append('genre',"1")
+  Axios.delete('/delete_token_time',{ data: exit_user })
   ElMessage.success('已登出')
+
 })
 
 

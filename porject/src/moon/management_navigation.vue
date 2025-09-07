@@ -6,7 +6,7 @@
       :default-active="activeIndex"
       class="el-menu-center"
       mode="horizontal"
-       @select="handleSelect"
+      @select="handleSelect"
     >
       <el-menu-item index="1">仪表盘</el-menu-item>
       <el-menu-item index="2">商品管理</el-menu-item>

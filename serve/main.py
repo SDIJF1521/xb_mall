@@ -31,6 +31,10 @@ from routes.get_online_user_list import router as get_online_user_list_router
 from routes.online_heartbeat import router as online_heartbeat_router
 from routes.online_off import router as online_off_router
 from routes.user_online_state import router as user_online_state_router
+from routes.buyer_side_token import router as buyer_side_token_router
+from routes.buyer_side_sgin import router as buyer_side_sgin_router
+from starlette.middleware.base import BaseHTTPMiddleware
+
 from routes.manage_sign_in import router as manage_sign_in_router
 from routes.management_verify import router as management_verify_router
 from routes.management_mall_info import router as management_mall_info_router
@@ -42,7 +46,7 @@ from routes.get_name_apply_seller_user import router as get_name_apply_seller_us
 from routes.apply_seller_consent import router as apply_seller_consent_router
 from routes.apply_seller_reject import router as apply_seller_reject_router
 from routes.address_show import router as address_show_router
-
+from routes.delete_token_time import router as delete_token_time_router
 
 redis_client = RedisClient()
 # 定义 lifespan 事件处理器
@@ -82,6 +86,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 标识中间件
+class FastAPIIndicatorMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        # 添加FastAPI标识头
+        response.headers["X-Powered-By"] = "FastAPI"
+        # 可选：添加版本信息
+        response.headers["Server"] = "FastAPI/0.115.0"  # 替换为你的FastAPI版本
+        return response
+app.add_middleware(FastAPIIndicatorMiddleware)
 # 邮箱配置
 email_config = {
     "sender_email": "3574747175@qq.com",
@@ -166,11 +180,21 @@ app.include_router(online_off_router,prefix='/api')
 # 地址选项获取路由
 app.include_router(address_show_router,prefix='/api')
 
+# 买家端token路由
+app.include_router(buyer_side_token_router,prefix='/api')
+
+# 买家端登录路由
+app.include_router(buyer_side_sgin_router,prefix='/api')
+
+
 # 管理员登录路由
 app.include_router(manage_sign_in_router,prefix='/api')
 
 # 管理员验证路由
 app.include_router(management_verify_router,prefix='/api')
+
+# 删除token时间戳路由
+app.include_router(delete_token_time_router,prefix='/api')
 
 # 获取用户列表路由
 app.include_router(user_list_router,prefix='/api')

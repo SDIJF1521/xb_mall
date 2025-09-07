@@ -79,6 +79,13 @@ class ApplyBusiness(BaseModel):
 class UserOnLineUploading(BaseModel):
     token:str
 
+# 定义商家端登录路由数据模型
+class SellerSignIn(BaseModel):
+    user:str
+    password:str
+    station:str
+
+
 # 定义管理员登录路由数据模型
 class ManageSignIn(BaseModel):
     user:str
@@ -105,4 +112,14 @@ class ManagementGetMall(BaseModel):
     token:str
     name:str
 
+# 定义删除token时间戳路由数据模型
+class DeleteToken(BaseModel):
+    genre:str
+    token:str
 
+# 定义新增由数据模型
+class AddMallData(BaseModel):
+    token:str
+    name:str
+    mall:str
+    info:str

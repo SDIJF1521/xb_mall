@@ -9,6 +9,14 @@ const EXCLUDED_ROUTES = [
   'UserManagement',    // 用户管理页
   "AuditApplySeller",  // 审核申请页
   "BusinessManagement",  // 卖家管理页
+  "BuyerSideIndex",  // 买家管理页
+  "BuyerSideSing",  // 买家登录页
+  "BuyerSingIn",  //商家端登录页
+  "BuyerIndex",  // 买家端首页
+  "BuyerStoreManagement",  // 买家端店铺管理页
+  "BuyerAddMall",  // 买家端创建店铺页
+  "BuyerSing"   // 买家端登录页
+
 ];
 
 export function setupHeartbeatGuard(router: Router) {

@@ -18,9 +18,14 @@ import AuditApplySeller from '@/views/audit_apply_seller/audit_apply_seller.vue'
 import AddreSet from '@/views/addre_set/addre_set.vue'
 import BusinessManagement from '@/views/business_management/business_management.vue'
 import BuyerSideSing from '@/views/buyer_side_sing/buyer_side_sing.vue'
+import BuyerSideStoreManagement from '@/views/buyer_side_store_management/buyer_side_store_management.vue'
+import BuyerSideAddMall from '@/views/buyer_side_add_mall/buyer_side_add_mall.vue'
+
 import { setupHeartbeatGuard } from './heartbeatGuard'
 import { setupAuthGuard } from './authGuard';
 import { setupAdminAuthGuard } from './admin_authGuard'
+import {setupBuyerAuthGuard} from './buyer_authGuard'
+
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -84,6 +89,18 @@ const routes: Array<RouteRecordRaw> = [
 
   },
   {
+    // 买家端店铺管理页
+    path:'/buyer_store_management',
+    name:'BuyerStoreManagement',
+    component:BuyerSideStoreManagement
+  },
+  {
+    // 买家端创建店铺页
+    path:'/buyer_add_mall',
+    name:'BuyerAddMall',
+    component:BuyerSideAddMall
+  },
+  {
     // 买家端登录页
     path:'/buyer_sing',
     name:'BuyerSing',
@@ -139,4 +156,8 @@ setupAuthGuard(router);
 setupAdminAuthGuard(router)
 // 应用心跳守卫
 setupHeartbeatGuard(router);
+
+// 买家端认证守卫
+setupBuyerAuthGuard(router)
+
 export default router;
