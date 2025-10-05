@@ -33,6 +33,10 @@ from routes.online_off import router as online_off_router
 from routes.user_online_state import router as user_online_state_router
 from routes.buyer_side_token import router as buyer_side_token_router
 from routes.buyer_side_sgin import router as buyer_side_sgin_router
+from routes.mall_img_upload import router as mall_img_upload_router
+from routes.add_mall import router as add_mall_router
+from routes.buyer_repeat_show import router as buyer_repeat_show_router
+
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from routes.manage_sign_in import router as manage_sign_in_router
@@ -186,7 +190,6 @@ app.include_router(buyer_side_token_router,prefix='/api')
 # 买家端登录路由
 app.include_router(buyer_side_sgin_router,prefix='/api')
 
-
 # 管理员登录路由
 app.include_router(manage_sign_in_router,prefix='/api')
 
@@ -219,6 +222,15 @@ app.include_router(apply_seller_reject_router,prefix='/api')
 
 # 获取商家信息路由
 app.include_router(management_mall_info_router,prefix='/api')
+
+# 买家端重复店铺检测路由
+app.include_router(buyer_repeat_show_router,prefix='/api')
+
+# 店铺图片上传路由
+app.include_router(mall_img_upload_router,prefix='/api')
+
+# 店铺添加路由
+app.include_router(add_mall_router,prefix='/api')
 
 # 商品添加路由
 @app.patch('/Product_upload')

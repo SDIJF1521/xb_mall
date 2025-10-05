@@ -50,7 +50,7 @@
                                     <div class="card-content">
                                         <el-icon class="feature-icon" size="64"><Warning /></el-icon>
                                         <p class="card-description">安全移除不需要的店铺</p>
-                                        <el-button type="danger" plain>谨慎操作</el-button>
+                                        <el-button type="danger" @click="toDeleteMall" plain>谨慎操作</el-button>
                                     </div>
                                 </el-card>
                             </div>
@@ -83,6 +83,10 @@ onMounted(()=>{
 // 跳转到添加店铺页面
 function toAddMall(){
     router.push('/buyer_add_mall')
+}
+// 跳转到删除店铺页面
+function toDeleteMall(){
+    router.push('/buyer_delete_mall')
 }
 </script>
 <style scoped>

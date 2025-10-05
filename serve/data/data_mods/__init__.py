@@ -1,3 +1,4 @@
+from fastapi import File
 from pydantic import BaseModel,EmailStr
 from datetime import time
 
@@ -117,9 +118,17 @@ class DeleteToken(BaseModel):
     genre:str
     token:str
 
-# 定义新增由数据模型
+# 定义新增店铺/查询创建重复店铺路由数据模型
 class AddMallData(BaseModel):
     token:str
-    name:str
-    mall:str
+    mall_name:str
+    user:str
+    mall_site:str
+    mall_phone:str
     info:str
+
+# 定义卖家上传店铺图片路由数据模型
+class AddMallImg(BaseModel):
+    token:str
+    id:str
+    mall_img:bytes = File()

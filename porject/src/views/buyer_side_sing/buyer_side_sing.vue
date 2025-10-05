@@ -59,19 +59,17 @@
                             </el-option>
                         </el-select>
                     </el-form-item>
-                    <el-form-item>
-                        <el-button 
-                            type="primary" 
-                            size="large" 
-                            class="login-button"
-                            @click="handleLogin"
-                            native-type="submit"
-                        >
-                            <el-icon><Right /></el-icon>
-                            <span>立即登录</span>
-                        </el-button>
-                    </el-form-item>
                 </el-form>
+                <el-button 
+                        type="primary" 
+                        size="large" 
+                        class="login-button"
+                        @click="handleLogin"
+                        native-type="submit"
+                    >
+                        <el-icon><Right /></el-icon>
+                        <span>立即登录</span>
+                    </el-button>
                 
             </div>
         </div>

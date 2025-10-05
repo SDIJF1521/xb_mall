@@ -20,6 +20,7 @@ import BusinessManagement from '@/views/business_management/business_management.
 import BuyerSideSing from '@/views/buyer_side_sing/buyer_side_sing.vue'
 import BuyerSideStoreManagement from '@/views/buyer_side_store_management/buyer_side_store_management.vue'
 import BuyerSideAddMall from '@/views/buyer_side_add_mall/buyer_side_add_mall.vue'
+import BuyerDeleteMall from '@/views/buyer_delete_mall/buye_delete_mall.vue'
 
 import { setupHeartbeatGuard } from './heartbeatGuard'
 import { setupAuthGuard } from './authGuard';
@@ -99,6 +100,12 @@ const routes: Array<RouteRecordRaw> = [
     path:'/buyer_add_mall',
     name:'BuyerAddMall',
     component:BuyerSideAddMall
+  },
+  {
+    // 买家端删除店铺页
+    path:'/buyer_delete_mall',
+    name:'BuyerDeleteMall',
+    component:BuyerDeleteMall
   },
   {
     // 买家端登录页
