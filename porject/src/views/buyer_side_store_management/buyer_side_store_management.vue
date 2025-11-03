@@ -10,7 +10,7 @@
                         <div class="store-management-container">
                             <h2 class="page-title">店铺管理中心</h2>
                             <p class="page-subtitle">高效管理您的店铺，提升运营效率</p>
-                            
+
                             <div class="card-grid">
                                 <el-card class="action-card add-store" shadow="hover" >
                                     <template #header>
@@ -36,7 +36,7 @@
                                     <div class="card-content">
                                         <el-icon class="feature-icon" size="64"><Shop /></el-icon>
                                         <p class="card-description">全面管理店铺信息、商品和订单</p>
-                                        <el-button type="success" plain>进入管理</el-button>
+                                        <el-button type="success" @click="toStoreManage" plain>进入管理</el-button>
                                     </div>
                                 </el-card>
 
@@ -88,6 +88,10 @@ function toAddMall(){
 function toDeleteMall(){
     router.push('/buyer_delete_mall')
 }
+// 跳转到店铺管理页面
+function toStoreManage(){
+    router.push('/buyer_store_manage')
+}
 </script>
 <style scoped>
     .footer-content {
@@ -99,7 +103,7 @@ function toDeleteMall(){
         padding-bottom: 10px;
         margin-bottom: 10px;
     }
-    
+
     .store-management-container {
         padding: 20px;
         max-width: 1200px;

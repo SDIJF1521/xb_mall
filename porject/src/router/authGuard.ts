@@ -3,7 +3,7 @@ import axios from 'axios';
 
 // 需要验证登录状态的路由名称列表
 const AUTH_REQUIRED_ROUTES = [
-  'PersonalCenter',,
+  'PersonalCenter',
   'PersonalDetailsChange',
   'ApplySeller',
   'AddreSet',
@@ -17,9 +17,9 @@ async function verifyToken(token: string): Promise<boolean> {
   try {
     const formData = new FormData();
     formData.append('token', token);
-    
+
     const response = await axios.post(API_BASE_URL + '/user_sign_in', formData);
-    
+
     return response.status === 200 && response.data.current;
   } catch (error) {
     console.error('Token verification failed:', error);
@@ -31,10 +31,10 @@ async function verifyToken(token: string): Promise<boolean> {
 export function setupAuthGuard(router: Router) {
   router.beforeEach(async (to: RouteLocationNormalized, from: RouteLocationNormalized, next) => {
     const token = localStorage.getItem('access_token');
-    
+
     // 检查是否为需要认证的路由
     const requiresAuth = AUTH_REQUIRED_ROUTES.includes(String(to.name));
-    
+
     // 登录页面的特殊处理
     if (to.name === 'Register') {
       if (token && await verifyToken(token)) {
@@ -43,27 +43,27 @@ export function setupAuthGuard(router: Router) {
       }
       return next();
     }
-    
+
     // 需要认证的路由处理
     if (requiresAuth) {
       if (!token) {
         // 无令牌，重定向到登录页
         return next('/register');
       }
-      
+
       const isTokenValid = await verifyToken(token);
-      
+
       if (!isTokenValid) {
         // 令牌无效，清除并重定向到登录页
         localStorage.removeItem('access_token');
         return next('/register');
       }
-      
+
       // 认证通过，继续路由
       return next();
     }
-    
+
     // 不需要认证的路由直接通过
     next();
   });
-}  
+}

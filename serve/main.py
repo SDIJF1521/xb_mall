@@ -36,6 +36,10 @@ from routes.buyer_side_sgin import router as buyer_side_sgin_router
 from routes.mall_img_upload import router as mall_img_upload_router
 from routes.add_mall import router as add_mall_router
 from routes.buyer_repeat_show import router as buyer_repeat_show_router
+from routes.buyer_get_mall_name import router as buyer_get_mall_name_router
+from routes.buyer_delete_show import router as buyer_delete_show_router
+from routes.buyer_get_mall_info import router as buyer_get_mall_info_router
+
 
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -231,6 +235,15 @@ app.include_router(mall_img_upload_router,prefix='/api')
 
 # 店铺添加路由
 app.include_router(add_mall_router,prefix='/api')
+
+# 买家端获取店铺名称路由
+app.include_router(buyer_get_mall_name_router,prefix='/api')
+
+# 买家端删除店铺路由
+app.include_router(buyer_delete_show_router,prefix='/api')
+
+# 买家端获取店铺信息路由
+app.include_router(buyer_get_mall_info_router,prefix='/api')
 
 # 商品添加路由
 @app.patch('/Product_upload')

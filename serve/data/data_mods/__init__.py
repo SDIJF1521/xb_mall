@@ -1,4 +1,5 @@
-from fastapi import File
+from typing import Optional
+from fastapi import File, UploadFile
 from pydantic import BaseModel,EmailStr
 from datetime import time
 
@@ -127,8 +128,21 @@ class AddMallData(BaseModel):
     mall_phone:str
     info:str
 
+# 定义买家获取店铺名称路由数据模型
+class GetMallName(BaseModel):
+    token:str
+    mall_name:Optional[str] = None
+
 # 定义卖家上传店铺图片路由数据模型
 class AddMallImg(BaseModel):
     token:str
     id:str
-    mall_img:bytes = File()
+
+# 定义买家删除店铺路由数据模型
+class DeleteMall(BaseModel):
+    token:str
+    mall_id:int
+
+# 定义买家获取店铺信息路由数据模型
+class GetMallInfo(BaseModel):
+    token:str

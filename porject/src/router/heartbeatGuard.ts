@@ -17,6 +17,8 @@ const EXCLUDED_ROUTES = [
   "BuyerAddMall",  // 买家端创建店铺页
   "BuyerSing",   // 买家端登录页
   "BuyerAddMallSuccess",  // 买家端创建店铺页
+  "BuyerDeleteMall", // 买家端删除店铺页
+  "BuyerStoreManage" // 买家端店铺管理页
 ];
 
 export function setupHeartbeatGuard(router: Router) {
@@ -48,4 +50,4 @@ export function setupHeartbeatGuard(router: Router) {
     const userStore = UserStore();
     userStore.stopHeartbeat();
   });
-}  
+}

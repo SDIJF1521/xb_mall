@@ -21,6 +21,9 @@ import BuyerSideSing from '@/views/buyer_side_sing/buyer_side_sing.vue'
 import BuyerSideStoreManagement from '@/views/buyer_side_store_management/buyer_side_store_management.vue'
 import BuyerSideAddMall from '@/views/buyer_side_add_mall/buyer_side_add_mall.vue'
 import BuyerDeleteMall from '@/views/buyer_delete_mall/buye_delete_mall.vue'
+import BuyerStoreManage from '@/views/buyer_store_manage/buyer_store_manage.vue'
+
+
 
 import { setupHeartbeatGuard } from './heartbeatGuard'
 import { setupAuthGuard } from './authGuard';
@@ -107,6 +110,12 @@ const routes: Array<RouteRecordRaw> = [
     name:'BuyerDeleteMall',
     component:BuyerDeleteMall
   },
+  // 买家端店铺管理页
+  {
+    path:'/buyer_store_manage',
+    name:'BuyerStoreManage',
+    component:BuyerStoreManage
+  },
   {
     // 买家端登录页
     path:'/buyer_sing',
@@ -137,7 +146,7 @@ const routes: Array<RouteRecordRaw> = [
     name:'BusinessManagement',
     component:BusinessManagement
   },
-  
+
   // 管理员管理页——商家审核
   {
     path:'/audit_apply_seller/:id',
@@ -158,7 +167,7 @@ const router = createRouter({
 });
 
 // 认证守卫应放在最前面
-setupAuthGuard(router); 
+setupAuthGuard(router);
 // 后台管理认证守卫
 setupAdminAuthGuard(router)
 // 应用心跳守卫

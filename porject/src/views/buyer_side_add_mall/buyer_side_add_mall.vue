@@ -40,7 +40,7 @@
                             <el-form-item label="" style="width: 100%;" prop="mall_phone">
                                 <el-input v-model="mall_info.mall_phone" style="width: 100%;" placeholder="店铺联系电话" />
                             </el-form-item>
-                            
+
                             <el-form-item label="" style="width: 100%;" prop="mall_admin">
                                 <el-select style="width: 100%;" v-model="mall_info.mall_admin">
                                     <el-option v-for="item in optiins" :label="item.label" :value="item.value"/>
@@ -68,7 +68,7 @@
                                     type="textarea"
                                 />
                         </el-form-item>
-                        
+
                         <el-button type="primary" style="width: 100%;" @click="submitForm(ruleFormRef)" plain>提交</el-button>
                     </el-form>
                 </el-col>
@@ -174,7 +174,7 @@ async function submitForm(formEl: FormInstance | undefined){
         if (valid) {
             // 初始化 FormData 对象，买家端重复店铺检测路由表单数据
             console.log(mall_info.value);
-            
+
             const formdata = new FormData();
             formdata.append('token',localStorage.getItem('buyer_access_token') || '')
             formdata.append('mall_name',mall_info.value.mall_name)
@@ -197,7 +197,7 @@ async function submitForm(formEl: FormInstance | undefined){
         console.log('error submit!', fields)
         }
   })
-    
+
 }
 
 
@@ -218,7 +218,9 @@ async function handleOk() {
             const mall_img = new FormData();
             mall_img.append('token',localStorage.getItem('buyer_access_token') || '')
             mall_img.append('id',res.data.prod_id)
-            mall_img.append('mall_img',mall_info.value.mall_img[0]["name"])
+            console.log(mall_info.value.mall_img);
+
+            mall_img.append('mall_img',mall_info.value.mall_img[0]["raw"]||'')
             Axios.post("/mall_img_upload",mall_img)
             .then(res =>{
                 if (res.data.current){
@@ -229,7 +231,7 @@ async function handleOk() {
                     mall_info.value.mall_admin = "";
                     mall_info.value.mall_img = [];
                     ElMessage.success("店铺创建成功")
-                    
+
                     return
                 }else if(res.data.code == 403 && res.data.code == 500){
                     ElMessage.warning("店铺创建成功，但店铺图片上传失败")

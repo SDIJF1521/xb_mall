@@ -35,8 +35,8 @@ async def add_mall(data:Annotated[AddMallData,Form()],db:Connection=Depends(get_
                 return {'msg':'选择的用户没有店长账号不能设置为店长,','current':False,'code':200}
             print("y")
             await execute_db_query(db,
-                                   'INSERT INTO store (mall_name,user,mall_phone,mall_site,mall_describe,creation_time) values (%s,%s,%s,%s,%s,%s)',
-                                   (data.mall_name,data.user,data.mall_phone,data.mall_site,data.info,date.today()))
+                                   'INSERT INTO store (mall_name,user,mall_phone,mall_site,mall_describe,creation_time,state) values (%s,%s,%s,%s,%s,%s,%s)',
+                                   (data.mall_name,data.user,data.mall_phone,data.mall_site,data.info,date.today(),1))
             # 获取新增店铺的ID·
             sql_prod_id = await execute_db_query(db,'SELECT LAST_INSERT_ID() AS prod_id;')
             prod_id = sql_prod_id[0][0]

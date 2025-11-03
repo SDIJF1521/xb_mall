@@ -54,10 +54,10 @@
                 <span slot="title">系统管理</span>
 
             </el-menu-item>
-            
+
         </el-menu>
-        
-    
+
+
 </template>
 <script setup lang="ts">
 import { ref,onMounted} from 'vue'
@@ -80,6 +80,7 @@ onMounted(()=>{
         case '/buyer_store_management':
             selected.value = '2'
             break;
+
 
     }
 })
