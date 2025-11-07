@@ -35,7 +35,7 @@
                                     </template>
                                     <div class="card-content">
                                         <el-icon class="feature-icon" size="64"><Shop /></el-icon>
-                                        <p class="card-description">全面管理店铺信息、商品和订单</p>
+                                        <p class="card-description">全面管理店铺信息</p>
                                         <el-button type="success" @click="toStoreManage" plain>进入管理</el-button>
                                     </div>
                                 </el-card>

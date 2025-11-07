@@ -22,6 +22,7 @@ import BuyerSideStoreManagement from '@/views/buyer_side_store_management/buyer_
 import BuyerSideAddMall from '@/views/buyer_side_add_mall/buyer_side_add_mall.vue'
 import BuyerDeleteMall from '@/views/buyer_delete_mall/buye_delete_mall.vue'
 import BuyerStoreManage from '@/views/buyer_store_manage/buyer_store_manage.vue'
+import BuyerStoreManageIndex from '@/views/buyer_store_manage_id/buyer_store_manage_index.vue'
 
 
 
@@ -116,6 +117,12 @@ const routes: Array<RouteRecordRaw> = [
     name:'BuyerStoreManage',
     component:BuyerStoreManage
   },
+  // 买家端店铺管理页——店铺详情页
+  {
+    path:'/buyer_store_manage_index/:id',
+    name:'BuyerStoreManageIndex',
+    component:BuyerStoreManageIndex
+  },
   {
     // 买家端登录页
     path:'/buyer_sing',
@@ -165,6 +172,7 @@ const router = createRouter({
   history: createWebHistory(),
   routes
 });
+
 
 // 认证守卫应放在最前面
 setupAuthGuard(router);

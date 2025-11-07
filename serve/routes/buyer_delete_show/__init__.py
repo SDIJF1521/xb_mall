@@ -29,11 +29,12 @@ async def buyer_delete_mall(data: Annotated[DeleteMall, Form()], db: Connection 
             if not sql_data_store_id:
                 return {'msg':'该店铺不存在或无权限删除','current':False}
             
-            sql_data = await execute_db_query(db,'select user,img from seller_sing where user = %s',(token_data.get('user')))
+            sql_data = await execute_db_query(db,'select user from seller_sing where user = %s',(token_data.get('user')))
+            img_path = await execute_db_query(db,"select img_path from store where mall_id = %s",(data.mall_id))
             if sql_data:
-                
                 await execute_db_query(db,'delete from store where mall_id = %s',(data.mall_id))
-                os.remove(sql_data[0][1])
+                if img_path:
+                    os.remove(img_path[0][0])
                 return {'msg':'删除成功','current':True}
             else:
                 return {'msg':'删除失败','current':False}

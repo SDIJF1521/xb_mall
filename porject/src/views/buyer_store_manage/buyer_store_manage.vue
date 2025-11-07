@@ -11,7 +11,7 @@
             <template #header>
               <div class="card-header">
                 <span class="mall-name">{{item.mall_name}}</span>
-                <el-tag type="success" size="small">营业中</el-tag>
+                <el-tag :type="item.state==1?'success':'danger'" size="small">{{item.state==1?'营业中':'已关闭'}}</el-tag>
               </div>
             </template>
               <el-row :gutter="10" style="width: 100%;">
@@ -40,7 +40,7 @@
                       <el-icon><Phone /></el-icon>
                       <span>{{item.phone}}</span>
                     </div>
-                    <el-button type="primary" size="default" round class="manage-btn">
+                    <el-button type="primary" size="default" @click="goToStoreDetail(item.id||0)" round class="manage-btn">
                       <el-icon><Setting /></el-icon>
                       进入管理
                     </el-button>
@@ -64,6 +64,7 @@
 
 <script setup lang="ts">
   import {ref,onMounted } from 'vue';
+  import router from '@/router'
   import BuyerTheme from '@/moon/buyer_theme';
   import axios from 'axios';
   import { Document, Location, Phone, Clock, Setting, Picture } from '@element-plus/icons-vue';
@@ -83,7 +84,8 @@
     mall_name?:string,
     phone?:string,
     site?:string,
-    time?:string
+    time?:string,
+    state?:number
   }
   const store = ref<StoreInfoList[]>([])
   const token = localStorage.getItem('buyer_access_token')
@@ -95,7 +97,6 @@
     const res = await Axios.post("/buyer_get_mall_info",form)
     if (res.status == 200){
       if (res.data.current){
-        console.log(res.data.data);
         store.value = res.data.data
         console.log(store.value);
 
@@ -103,6 +104,10 @@
       }
     }
   })
+
+  function goToStoreDetail(id:number){
+    router.push({name:'BuyerStoreManageIndex',params:{id:id}})
+  }
 </script>
 
 <style scoped>

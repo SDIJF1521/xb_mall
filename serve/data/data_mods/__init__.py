@@ -146,3 +146,13 @@ class DeleteMall(BaseModel):
 # 定义买家获取店铺信息路由数据模型
 class GetMallInfo(BaseModel):
     token:str
+    id:int=None
+
+class UpdateMall(BaseModel):
+    token:str
+    id:int
+    mall_name:str
+    mall_site:str
+    mall_phone:str
+    info:str
+    state:int
