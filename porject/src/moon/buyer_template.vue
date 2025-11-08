@@ -1,0 +1,142 @@
+<template>
+  <el-container>
+    <el-header>
+      <h3 class="title">{{title}}</h3>
+    </el-header>
+    <el-main>
+      <div v-for="(component, index) in currentComponents" :key="index" class="component-container">
+        <component :is='component'></component>
+      </div>
+    </el-main>
+    <el-footer class="footer-content">版权所有 ©[小白的个人商城]，保留所有权利。</el-footer>
+  </el-container>
+</template>
+<script setup lang="ts">
+import {ref,onMounted} from 'vue'
+import { useRoute } from 'vue-router'
+import BuyerTheme from '@/moon/buyer_theme';
+import UserListMain from '@/views/buyer_user_list/content/user_list_main.vue'
+
+defineOptions({
+    name: 'BuyerTemplate',
+    components: {
+        BuyerTheme,
+        UserListMain
+    }
+})
+
+const props = defineProps({
+  currentComponents: {
+    type: Array as () => string[], // 接收组件名列表
+    default: () => ['Statistic'],
+  }
+})
+const title = ref('')
+onMounted(()=>{
+  const route = useRoute()
+  new BuyerTheme().toggleTheme(true)
+  switch (route.path) {
+    case '/buyer_user_list':
+      title.value = '小白的商城-用户管理页'
+      break
+  }
+
+})
+</script>
+<style scoped>
+
+/* 组件容器样式 - 细线边框 + 悬浮效果 */
+.component-container {
+  margin-bottom: 24px;
+  padding: 20px;
+  border: 1px solid #656668;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+/* 悬浮效果 */
+.component-container:hover {
+  border-color: #409eff;
+  box-shadow: 0 4px 16px rgba(64, 158, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+/* 细线装饰效果 */
+.component-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #409eff 0%, #67c23a 50%, #e6a23c 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.component-container:hover::before {
+  opacity: 0.8;
+}
+
+.component-container:last-child {
+  margin-bottom: 0;
+}
+
+/* 响应式间距调整 */
+@media (max-width: 768px) {
+  .component-container {
+    margin-bottom: 16px;
+    padding: 16px;
+    border-radius: 6px;
+  }
+
+  .component-container:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 12px rgba(64, 158, 255, 0.12);
+  }
+}
+
+@media (max-width: 480px) {
+  .component-container {
+    margin-bottom: 12px;
+    padding: 12px;
+    border-radius: 4px;
+  }
+
+  .component-container:hover {
+    transform: translateY(-0.5px);
+    box-shadow: 0 1px 8px rgba(64, 158, 255, 0.1);
+  }
+
+  .component-container::before {
+    height: 2px;
+  }
+}
+.footer-content {
+    text-align: center;
+    padding: 10px 0;
+}
+.el-header {
+  border-bottom: 1px solid #e0e0e0;
+  padding: 0 20px;
+  display: flex;
+  align-items: center; /* 垂直居中 */
+  justify-content: space-between; /* 左右分布对齐 */
+}
+.title {
+  background: linear-gradient(to right, #7ef0b3, #9c6edd);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0;
+}
+
+</style>

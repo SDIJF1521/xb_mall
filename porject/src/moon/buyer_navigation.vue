@@ -65,6 +65,7 @@ import router from '@/router'
 import { useRoute } from 'vue-router';
 import {Eleme,Odometer,Shop,List,Handbag,User,DocumentCopy,Box,Setting,Service} from '@element-plus/icons-vue'
 import { useBuyerNavigationStore } from '@/moon/buyer_navigatiom_pinia'
+import { el } from 'element-plus/es/locales.mjs';
 // 引入导航栏状态管理
 const store = useBuyerNavigationStore();
 
@@ -80,6 +81,9 @@ onMounted(()=>{
         case '/buyer_store_management':
             selected.value = '2'
             break;
+        case '/buyer_user_manage':
+            selected.value = '5'
+            break;
 
 
     }
@@ -92,6 +96,8 @@ const handleSelect = (index:string)=>{
         router.push('/buyer_index')
     }else if (index =='2'){
         router.push('/buyer_store_management')
+    }else if (index =='5'){
+        router.push('/buyer_user_manage')
     }
 }
 

@@ -7,50 +7,50 @@
                         <BuyerHead/>
                     </el-header>
                     <el-main>
-                        <div class="store-management-container">
-                            <h2 class="page-title">店铺管理中心</h2>
-                            <p class="page-subtitle">高效管理您的店铺，提升运营效率</p>
+                        <div class="user-management-container">
+                            <h2 class="page-title">用户管理中心</h2>
+                            <p class="page-subtitle">高效管理用户，提升运营效率</p>
 
                             <div class="card-grid">
-                                <el-card class="action-card add-store" shadow="hover" >
+                                <el-card class="action-card user-list" shadow="hover">
                                     <template #header>
                                         <div class="card-header">
-                                            <el-icon class="card-icon" size="24"><Plus /></el-icon>
-                                            <span class="card-title">新增店铺</span>
+                                            <el-icon class="card-icon" size="24"><User /></el-icon>
+                                            <span class="card-title">用户列表</span>
                                         </div>
                                     </template>
                                     <div class="card-content">
-                                        <el-icon class="feature-icon" size="64"><Plus /></el-icon>
-                                        <p class="card-description">创建新的店铺，开始您的电商之旅</p>
-                                        <el-button type="primary" @click="toAddMall" plain>立即创建</el-button>
+                                        <el-icon class="feature-icon" size="64"><UserFilled /></el-icon>
+                                        <p class="card-description">查看和管理所有用户信息</p>
+                                        <el-button type="primary" @click="toUserList" plain>进入管理</el-button>
                                     </div>
                                 </el-card>
 
-                                <el-card class="action-card manage-store" shadow="hover">
+                                <el-card class="action-card role-management" shadow="hover">
                                     <template #header>
                                         <div class="card-header">
-                                            <el-icon class="card-icon" size="24"><Setting /></el-icon>
-                                            <span class="card-title">店铺管理</span>
+                                            <el-icon class="card-icon" size="24"><Avatar /></el-icon>
+                                            <span class="card-title">角色权限</span>
                                         </div>
                                     </template>
                                     <div class="card-content">
-                                        <el-icon class="feature-icon" size="64"><Shop /></el-icon>
-                                        <p class="card-description">全面管理店铺信息</p>
-                                        <el-button type="success" @click="toStoreManage" plain>进入管理</el-button>
+                                        <el-icon class="feature-icon" size="64"><Key /></el-icon>
+                                        <p class="card-description">管理用户角色和权限配置</p>
+                                        <el-button type="success" @click="toRoleManage" plain>权限管理</el-button>
                                     </div>
                                 </el-card>
 
-                                <el-card class="action-card remove-store" shadow="hover">
+                                <el-card class="action-card user-statistics" shadow="hover">
                                     <template #header>
                                         <div class="card-header">
-                                            <el-icon class="card-icon" size="24"><Delete /></el-icon>
-                                            <span class="card-title">店铺移除</span>
+                                            <el-icon class="card-icon" size="24"><TrendCharts /></el-icon>
+                                            <span class="card-title">用户统计</span>
                                         </div>
                                     </template>
                                     <div class="card-content">
-                                        <el-icon class="feature-icon" size="64"><Warning /></el-icon>
-                                        <p class="card-description">安全移除不需要的店铺</p>
-                                        <el-button type="danger" @click="toDeleteMall" plain>谨慎操作</el-button>
+                                        <el-icon class="feature-icon" size="64"><DataAnalysis /></el-icon>
+                                        <p class="card-description">查看用户数据统计分析</p>
+                                        <el-button type="warning" @click="toUserStats" plain>查看统计</el-button>
                                     </div>
                                 </el-card>
                             </div>
@@ -66,31 +66,36 @@ import {ref, onMounted} from "vue"
 import router from "@/router"
 import BuyerNavigation from '@/moon/buyer_navigation.vue'
 import BuyerHead from '@/moon/buyer_head.vue'
-import {Delete} from '@element-plus/icons-vue'
 import BuyerTheme from '@/moon/buyer_theme';
+import { User, UserFilled, Avatar, Key, TrendCharts, DataAnalysis } from '@element-plus/icons-vue';
+
 defineOptions({
-    name: "BuyerSideStoreManagement",
+    name: "BuyerUserManage",
     components:{
-        BuyerNavigation,
-        BuyerHead,
-        Delete
+        BuyerNavigation
     }
 })
+
 onMounted(()=>{
-  new BuyerTheme().toggleTheme(true)
+   new BuyerTheme().toggleTheme(true)
 })
 
-// 跳转到添加店铺页面
-function toAddMall(){
-    router.push('/buyer_add_mall')
+// 跳转到用户列表页面
+function toUserList(){
+    // TODO: 实现跳转到用户列表页面
+    router.push({name:'BuyerUserList'})
 }
-// 跳转到删除店铺页面
-function toDeleteMall(){
-    router.push('/buyer_delete_mall')
+
+// 跳转到角色管理页面
+function toRoleManage(){
+    // TODO: 实现跳转到角色管理页面
+    console.log('跳转到角色管理页面')
 }
-// 跳转到店铺管理页面
-function toStoreManage(){
-    router.push('/buyer_store_manage')
+
+// 跳转到用户统计页面
+function toUserStats(){
+    // TODO: 实现跳转到用户统计页面
+    console.log('跳转到用户统计页面')
 }
 </script>
 <style scoped>
@@ -104,7 +109,7 @@ function toStoreManage(){
         margin-bottom: 10px;
     }
 
-    .store-management-container {
+    .user-management-container {
         padding: 20px;
         max-width: 1200px;
         margin: 0 auto;
@@ -145,16 +150,16 @@ function toStoreManage(){
         box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
     }
 
-    .action-card.add-store {
+    .action-card.user-list {
         border-left: 4px solid #409eff;
     }
 
-    .action-card.manage-store {
+    .action-card.role-management {
         border-left: 4px solid #67c23a;
     }
 
-    .action-card.remove-store {
-        border-left: 4px solid #f56c6c;
+    .action-card.user-statistics {
+        border-left: 4px solid #e6a23c;
     }
 
     .card-header {
@@ -168,12 +173,12 @@ function toStoreManage(){
         color: #409eff;
     }
 
-    .manage-store .card-icon {
+    .role-management .card-icon {
         color: #67c23a;
     }
 
-    .remove-store .card-icon {
-        color: #f56c6c;
+    .user-statistics .card-icon {
+        color: #e6a23c;
     }
 
     .card-title {
@@ -192,16 +197,16 @@ function toStoreManage(){
         color: #909399;
     }
 
-    .add-store .feature-icon {
+    .user-list .feature-icon {
         color: #409eff;
     }
 
-    .manage-store .feature-icon {
+    .role-management .feature-icon {
         color: #67c23a;
     }
 
-    .remove-store .feature-icon {
-        color: #f56c6c;
+    .user-statistics .feature-icon {
+        color: #e6a23c;
     }
 
     .card-description {
@@ -209,6 +214,7 @@ function toStoreManage(){
         color: #606266;
         margin-bottom: 20px;
         line-height: 1.6;
+        min-height: 40px;
     }
 
     .el-button {
@@ -218,7 +224,7 @@ function toStoreManage(){
 
     /* 响应式设计 */
     @media (max-width: 768px) {
-        .store-management-container {
+        .user-management-container {
             padding: 15px;
         }
 

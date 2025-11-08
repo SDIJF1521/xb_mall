@@ -23,6 +23,8 @@ import BuyerSideAddMall from '@/views/buyer_side_add_mall/buyer_side_add_mall.vu
 import BuyerDeleteMall from '@/views/buyer_delete_mall/buye_delete_mall.vue'
 import BuyerStoreManage from '@/views/buyer_store_manage/buyer_store_manage.vue'
 import BuyerStoreManageIndex from '@/views/buyer_store_manage_id/buyer_store_manage_index.vue'
+import BuyerUserManage from '@/views/buyer_store_user_manage/buyer_user_manage.vue'
+import BuyerUserList from '@/views/buyer_user_list/buyer_user_list.vue';
 
 
 
@@ -153,7 +155,18 @@ const routes: Array<RouteRecordRaw> = [
     name:'BusinessManagement',
     component:BusinessManagement
   },
-
+  // 买家端用户管理页
+  {
+    path:'/buyer_user_manage',
+    name:'BuyerUserManage',
+    component:BuyerUserManage
+  },
+  // 买家端用户列表页
+  {
+    path:'/buyer_user_list',
+    name:'BuyerUserList',
+    component:BuyerUserList
+  },
   // 管理员管理页——商家审核
   {
     path:'/audit_apply_seller/:id',
