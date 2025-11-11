@@ -6,10 +6,8 @@
     append-to-body
     :close-on-click-modal="false"
     :close-on-press-escape="false"
-    :modal-append-to-body="false"
-    custom-class="user-dialog"
   >
-    <component :is="mod"/>
+    <component :is="mod" @child-event="handleEvent"/>
 
   </el-dialog>
    <el-table
@@ -26,7 +24,7 @@
         <el-avatar :src="scope.row.img" fit="fill" :preview-src-list="[scope.row.img]"  size = 'small'/>
       </template>
     </el-table-column>
-    <el-table-column prop="name" label="用户名" ></el-table-column>
+    <el-table-column prop="user" label="用户名" ></el-table-column>
     <el-table-column prop="password" label="密码" ></el-table-column>
     <el-table-column prop="authority" label="用户权限" >
       <template #default="scope">
@@ -73,8 +71,10 @@
 </template>
 <script setup lang="ts">
 import {ref,onMounted} from 'vue'
+import axios from 'axios'
+import { useRoute } from 'vue-router'
 import type { TableInstance } from 'element-plus'
-import AddUser from '@/views/buyer_user_list/content/add_user.vue'
+import AddUser from '@/views/buyer_user_list_id/content/add_user.vue'
 
 defineOptions({
     name: 'UserListMain',
@@ -83,15 +83,23 @@ defineOptions({
     }
 })
 
+const route = useRoute().params
+
+const Axios = axios.create({
+   baseURL: "http://127.0.0.1:8000/api"
+})
+
 interface User {
   id: number
-  name: string
+  user: string
   password: string
   authority:number
   img:string
   email:string
 
 }
+
+const token = localStorage.getItem('buyer_access_token')
 const mod = ref('AddUser')
 const search = ref('')
 const dialog_title = ref('')
@@ -99,47 +107,43 @@ const dialog_title = ref('')
 const multipleTableRef = ref<TableInstance>()
 const multipleSelection = ref<User[]>([])
 const dialogVisible = ref(false)
-const toggleSelection = (rows?: User[], ignoreSelectable?: boolean) => {
-  if (rows) {
-    rows.forEach((row) => {
-      multipleTableRef.value!.toggleRowSelection(
-        row,
-        undefined,
-        ignoreSelectable
-      )
-    })
-  } else {
-    multipleTableRef.value!.clearSelection()
-  }
+
+const handleEvent = (data:boolean)=>{
+   dialogVisible.value = data
 }
+
+const id =  ref(route.id)
 const handleSelectionChange = (val: User[]) => {
   multipleSelection.value = val
 }
-const tableData: User[] = [
-  {
-    id: 1,
-    name: '用户1',
-    password: '123456',
-    authority: 0,
-    img: 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png',
-    email:'123@qq.com'
-  },{
-    id: 2,
-    name: '用户2',
-    password: '123456',
-    authority: 1,
-    img: 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png',
-    email:'123@qq.com'
+const tableData = ref<User[]>([
 
-  },{
-    id: 3,
-    name: '用户3',
-    password: '123456',
-    authority: 2,
-    img: 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png',
-    email:'123@qq.com'
+])
+
+onMounted(async ()=>{
+  try{
+    const formdata = new FormData()
+    formdata.append('token',token||'')
+    formdata.append('id',id.value.toString())
+    const res = await Axios.post('buyer_mall_user_list',formdata)
+
+    // 验证响应数据结构
+    if(res.data && res.data.code === 200){
+      if (res.data.current === true && Array.isArray(res.data.data)){
+        tableData.value = res.data.data
+      } else {
+        console.warn('API返回数据格式异常:', res.data)
+        tableData.value = []
+      }
+    } else {
+      console.error('API请求失败:', res?.data?.msg || '未知错误')
+      tableData.value = []
+    }
+  }catch(error){
+    console.error('获取用户列表失败:', error)
+    tableData.value = []
   }
-]
+})
 
 const deleteSelectedUsers = () => {
   console.log(multipleSelection.value);
@@ -153,14 +157,3 @@ function Add_button_click(){
 }
 
 </script>
-
-<style scoped>
-/* 对话框样式优化 */
-:deep(.user-dialog) {
-  z-index: 2000 !important;
-}
-
-:deep(.el-dialog__wrapper) {
-  z-index: 2001 !important;
-}
-</style>

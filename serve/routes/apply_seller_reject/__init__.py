@@ -5,13 +5,9 @@ from fastapi import APIRouter, Depends, Form, HTTPException
 
 from services.management_token_verify import ManagementTokenVerify
 from data.data_mods import ApplySellerReject
-from data.redis_client import RedisClient
+from data.redis_client import RedisClient,get_redis
 from data.sql_client import get_db, execute_db_query
 
-def get_redis():
-    # 从 main.py 引入 redis_client 实例
-    from main import redis_client
-    return redis_client
 
 router = APIRouter()
 @router.post('/apply_seller_reject')

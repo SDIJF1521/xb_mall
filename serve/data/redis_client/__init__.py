@@ -110,3 +110,8 @@ class RedisClient:
                 # 动态调用Redis连接的方法（如 setex, get 等）
                 getattr(pipe, cmd)(*args)
             return await pipe.execute()
+        
+def get_redis():
+# 从 main.py 引入 verifier 实例
+    from main import redis_client
+    return redis_client

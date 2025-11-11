@@ -37,6 +37,7 @@ async def  DuyerSideToken(data: Annotated[SellerSignIn,Form()], db: Connection =
                 payload = {
                         'user': sql_data[0][0],
                         'station':data.station,
+                        'role':-1,
                         'exp':str(expire_timestamp)
                     }
                 token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
@@ -56,6 +57,7 @@ async def  DuyerSideToken(data: Annotated[SellerSignIn,Form()], db: Connection =
                 payload = {
                         'user': sel_data[0][0],
                         'station':data.station,
+                        'role':sel_data[0][3],
                         'exp':str(expire_timestamp)
                     }
                 token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")

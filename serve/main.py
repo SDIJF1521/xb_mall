@@ -41,6 +41,8 @@ from routes.buyer_delete_show import router as buyer_delete_show_router
 from routes.buyer_get_mall_info import router as buyer_get_mall_info_router
 from routes.buyer_update_mall import router as buyer_update_mall_router
 from routes.buyer_img_update import router as buyer_img_update_router
+from routes.buyer_mall_user_list import router as buyer_mall_user_list_router
+from routes.buyer_user_add import router as buyer_user_add_router
 
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -251,6 +253,12 @@ app.include_router(buyer_update_mall_router,prefix='/api')
 
 # 买家端上传商品图片路由
 app.include_router(buyer_img_update_router,prefix='/api')
+
+# 买家端获取店铺用户列表路由
+app.include_router(buyer_mall_user_list_router,prefix='/api')
+
+# 买家端添加用户路由
+app.include_router(buyer_user_add_router,prefix='/api')
 
 
 

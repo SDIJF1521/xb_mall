@@ -4,14 +4,10 @@ from fastapi import APIRouter,Depends,HTTPException
 from services.verify_duter_token import VerifyDuterToken
 
 from data.sql_client import get_db,execute_db_query
-from data.redis_client import RedisClient
+from data.redis_client import RedisClient,get_redis
 
 
 
-def get_redis():
-    # 从 main.py 引入 verifier 实例
-    from main import redis_client
-    return redis_client
 
 router = APIRouter()
 @router.post('/buyer_side_verify')

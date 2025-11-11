@@ -4,12 +4,9 @@ import jwt
 
 from fastapi import APIRouter,Form,Depends
 
-from data.redis_client import RedisClient
+from data.redis_client import RedisClient,get_redis
 from data.data_mods import DeleteToken
 
-def get_redis():
-    from main import redis_client
-    return redis_client
 
 router = APIRouter()
 @router.delete('/delete_token_time')

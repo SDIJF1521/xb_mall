@@ -25,6 +25,7 @@ import BuyerStoreManage from '@/views/buyer_store_manage/buyer_store_manage.vue'
 import BuyerStoreManageIndex from '@/views/buyer_store_manage_id/buyer_store_manage_index.vue'
 import BuyerUserManage from '@/views/buyer_store_user_manage/buyer_user_manage.vue'
 import BuyerUserList from '@/views/buyer_user_list/buyer_user_list.vue';
+import BuyerUserListId from '@/views/buyer_user_list_id/buyer_user_list_id.vue'
 
 
 
@@ -166,6 +167,12 @@ const routes: Array<RouteRecordRaw> = [
     path:'/buyer_user_list',
     name:'BuyerUserList',
     component:BuyerUserList
+  },
+  // 买家端用户列表页——用户详情页
+  {
+    path:'/buyer_user_list_id/:id',
+    name:'BuyerUserListId',
+    component:BuyerUserListId
   },
   // 管理员管理页——商家审核
   {

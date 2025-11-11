@@ -12,8 +12,8 @@
         <div>
           <MerchantClientRatio/>
         </div>
-        
-        
+
+
       </el-main>
       <el-footer class="footer-content">版权所有 © [小白的商城]，保留所有权利。</el-footer>
     </el-container>
@@ -60,11 +60,11 @@ defineOptions({
   el-header {
     padding: 0 10px;
   }
-  
+
   el-main {
     padding: 10px;
   }
-  
+
   .footer-content {
     font-size: 12px;
     padding: 10px 0;

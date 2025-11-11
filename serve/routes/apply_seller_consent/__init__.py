@@ -4,13 +4,10 @@ import aiomysql
 from fastapi import APIRouter, Depends,Form, HTTPException
 
 from data.sql_client import get_db,execute_db_query
-from data.redis_client import RedisClient
+from data.redis_client import RedisClient,get_redis
 from data.data_mods import ApplySellerConsent
 from services.management_token_verify import ManagementTokenVerify
 
-def get_redis():
-    from main import redis_client
-    return redis_client
 
 router = APIRouter()
 @router.post('/apply_seller_consent')

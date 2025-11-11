@@ -2,16 +2,13 @@ import aiomysql
 from fastapi import APIRouter,HTTPException,Depends,Form
 
 from data.sql_client import get_db,execute_db_query
+from data.redis_client import RedisClient,get_redis
 from services.management_token_verify import ManagementTokenVerify
 
-def get_redis():
-    # 从 main.py 引入 verifier 实例
-    from main import redis_client
-    return redis_client
 
 router = APIRouter()
 @router.post('/user_list')
-async def user_list(token:str=Form(min_length=6), db:aiomysql.Connection = Depends(get_db),redis_client=Depends(get_redis)):
+async def user_list(token:str=Form(min_length=6), db:aiomysql.Connection = Depends(get_db),redis_client:RedisClient = Depends(get_redis)):
     try:
         Verify = ManagementTokenVerify(token=token,redis_client=redis_client)
 

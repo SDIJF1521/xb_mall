@@ -1,7 +1,7 @@
 <template>
   <div class="add-user-container">
 
-    <el-form ref="formRef" :model="formData" label-width="120px" class="user-form">
+    <el-form ref="formRef" :model="formData" class="user-form" :rules="rules">
       <el-row :gutter="30">
         <el-col :span="12">
           <div class="form-section">
@@ -109,10 +109,10 @@
       </el-row>
       <el-row :gutter="20">
         <el-col :span="12">
-          <el-button type="primary" style="width: 100%;">提交</el-button>
+          <el-button type="primary" style="width: 100%;" @click="addUserCommit">提交</el-button>
         </el-col>
         <el-col :span="12">
-          <el-button type="primary" style="width: 100%;">关闭</el-button>
+          <el-button type="primary" style="width: 100%;" @click="closeDialog">关闭</el-button>
       </el-col>
     </el-row>
     </el-form>
@@ -123,11 +123,25 @@
 
 import {ref,onMounted,reactive} from 'vue'
 import { ElMessage } from 'element-plus'
+import { useRoute } from 'vue-router'
+import router from '@/router'
+import axios from 'axios'
+
 import { Delete, Picture, Plus, InfoFilled, User, Edit } from '@element-plus/icons-vue'
+import { el } from 'element-plus/es/locales.mjs'
 
 defineOptions({
     name: 'AddUser',
 })
+
+const id = ref(useRoute().params.id)
+
+const Axios = axios.create({
+  baseURL: "http://127.0.0.1:8000/api"
+})
+
+const emit = defineEmits(['child-event'])
+const token = localStorage.getItem('buyer_access_token')
 
 interface FormData{
   name: string
@@ -145,14 +159,84 @@ const formData = reactive<FormData>({
   email: ''
 })
 
+
+// 密码校验函数
+function validatePassword(rule: any, value: any, callback: any) {
+  if (!value) {
+    callback(new Error('请输入密码'))
+  } else if (value.length < 6) {
+    callback(new Error('密码长度不能小于6位'))
+  } else if (!/[a-zA-Z]/.test(value)) {
+    callback(new Error('密码必须包含字母'))
+  } else if (!/[0-9]/.test(value)) {
+    callback(new Error('密码必须包含数字'))
+  } else {
+    callback()
+  }
+
+}
+
+// 邮箱校验函数
+function validateEmail(rule: any, value: any, callback: any) {
+  if (!value) {
+    callback(new Error('请输入邮箱'))
+  } else if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(value)) {
+    callback(new Error('请输入正确的邮箱格式'))
+  } else {
+    callback()
+  }
+}
+
+// 表单校验
+const rules = reactive({
+  name: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+  password: [{ required: true, message: '请输入密码', trigger: 'blur' },
+             { validator: validatePassword, trigger: 'blur' }
+            ],
+  authority: [{ required: true, message: '请选择用户权限', trigger: 'change' },],
+  img: [{ required: true, message: '请上传用户头像', trigger: 'change' },
+        ],
+  email: [{ required: true, message: '请输入邮箱', trigger: 'blur' },
+        { validator: validateEmail, trigger: 'blur' }
+        ]
+})
+
+const closeDialog = () => {
+  emit('child-event', false)
+}
+
 // 上传相关状态
 const uploadFileList = ref<any[]>([])
 const previewImage = ref<string>('')
 const previewDialogVisible = ref<boolean>(false)
 
+
+
+// 判断是否为图片文件
+const isImageFile = (file: File): boolean => {
+  const imageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp']
+  return imageTypes.includes(file.type)
+}
+
+// 验证图片文件大小（最大2MB）
+const validateImageSize = (file: File): boolean => {
+  const maxSize = 2 * 1024 * 1024 // 2MB
+  if (file.size > maxSize) {
+    ElMessage.error('图片文件大小不能超过 2MB')
+    return false
+  }
+  return true
+}
+
 // 图片处理函数
 const handlePictureChange = async (file: any) => {
   try {
+    // 检查是否为图片文件
+    if (!isImageFile(file.raw)) {
+      ElMessage.error('请上传图片文件（支持 JPG、PNG、GIF、WebP、BMP 格式）')
+      return
+    }
+
     const base64String = await fileToBase64(file.raw)
     previewImage.value = base64String
     formData.img = file.raw
@@ -195,6 +279,37 @@ const fileToBase64 = (file: File): Promise<string> => {
     reader.onerror = error => reject(error)
   })
 }
+
+async function addUserCommit(){
+  const fromdata_commit = new FormData()
+  fromdata_commit.append('token',token||'')
+  fromdata_commit.append("strore_id",id.value.toString())
+  fromdata_commit.append("user_name",formData.name)
+  fromdata_commit.append("user_password",formData.password)
+  fromdata_commit.append("authority",formData.authority.toString())
+  fromdata_commit.append("email",formData.email)
+  console.log(formData);
+  try{
+    const res = await Axios.post('buyer_user_add',fromdata_commit)
+    if (res.status == 200){
+      if (res.data.current){
+        ElMessage.success('添加成功')
+        emit('child-event', false)
+        console.log(useRoute().fullPath);
+
+        router.push(useRoute().fullPath)
+
+
+      }else{
+        ElMessage.error('添加失败')
+      }
+    }
+  }catch(error){
+    console.log(error);
+  }
+
+}
+
 </script>
 <style scoped>
 /* 整体容器美化 */

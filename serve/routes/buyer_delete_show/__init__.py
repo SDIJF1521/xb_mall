@@ -6,16 +6,12 @@ from fastapi import APIRouter, Depends, Form
 
 from services.verify_duter_token import VerifyDuterToken
 
-from data.redis_client import RedisClient
+from data.redis_client import RedisClient,get_redis
 from data.sql_client import get_db,execute_db_query
 from data.data_mods import DeleteMall
 
 router = APIRouter()
 
-def get_redis():
-    # 从 main.py 引入 verifier 实例
-    from main import redis_client
-    return redis_client
 
 @router.delete('/buyer_delete_mall')
 async def buyer_delete_mall(data: Annotated[DeleteMall, Form()], db: Connection = Depends(get_db),redis: RedisClient = Depends(get_redis)):

@@ -15,7 +15,7 @@
 import {ref,onMounted} from 'vue'
 import { useRoute } from 'vue-router'
 import BuyerTheme from '@/moon/buyer_theme';
-import UserListMain from '@/views/buyer_user_list/content/user_list_main.vue'
+import UserListMain from '@/views/buyer_user_list_id/content/user_list_main.vue'
 
 defineOptions({
     name: 'BuyerTemplate',

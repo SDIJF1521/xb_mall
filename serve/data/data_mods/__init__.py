@@ -156,3 +156,17 @@ class UpdateMall(BaseModel):
     mall_phone:str
     info:str
     state:int
+
+# 定义买家获取店铺用户列表路由数据模型
+class GetMallUserList(BaseModel):
+    token:str
+    id:int
+
+# 定义买家添加店铺用户路由数据模型
+class AddMallUser(BaseModel):
+    token:str
+    strore_id:int
+    user_name:str
+    user_password:str
+    authority:int
+    email:EmailStr

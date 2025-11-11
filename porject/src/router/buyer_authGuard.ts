@@ -13,7 +13,8 @@ const AUTH_REQUIRED_ROUTES = ['BuyerIndex',
                               'BuyerDeleteMall',
                               'BuyerStoreManage',
                               'BuyerUserManage',
-                              'BuyerUserList'];
+                              'BuyerUserList',
+                              'BuyerUserListId'];
 
 // 验证令牌有效性
 async function verifyToken(token: string): Promise<boolean> {
