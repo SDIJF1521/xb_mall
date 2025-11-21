@@ -11,6 +11,7 @@
     <el-footer class="footer-content">版权所有 ©[小白的个人商城]，保留所有权利。</el-footer>
   </el-container>
 </template>
+
 <script setup lang="ts">
 import {ref,onMounted} from 'vue'
 import { useRoute } from 'vue-router'
@@ -31,20 +32,24 @@ const props = defineProps({
     default: () => ['Statistic'],
   }
 })
-const title = ref('')
-onMounted(()=>{
-  const route = useRoute()
-  new BuyerTheme().toggleTheme(true)
-  switch (route.path) {
-    case '/buyer_user_list':
-      title.value = '小白的商城-用户管理页'
-      break
-  }
 
+const route = useRoute()
+const title = ref('')
+
+onMounted(() => {
+  new BuyerTheme().toggleTheme(true)
+  console.log('当前路由路径:', route.path);
+
+  // 根据当前路由路径设置页面标题
+  if (route.path.startsWith('/buyer_user_list_id')) {
+    title.value = '小白的商城-用户管理页';
+  } else {
+    title.value = '小白的商城';
+  }
 })
 </script>
-<style scoped>
 
+<style scoped>
 /* 组件容器样式 - 细线边框 + 悬浮效果 */
 .component-container {
   margin-bottom: 24px;
@@ -117,10 +122,12 @@ onMounted(()=>{
     height: 2px;
   }
 }
+
 .footer-content {
     text-align: center;
     padding: 10px 0;
 }
+
 .el-header {
   border-bottom: 1px solid #e0e0e0;
   padding: 0 20px;
@@ -128,6 +135,7 @@ onMounted(()=>{
   align-items: center; /* 垂直居中 */
   justify-content: space-between; /* 左右分布对齐 */
 }
+
 .title {
   background: linear-gradient(to right, #7ef0b3, #9c6edd);
   -webkit-background-clip: text;
@@ -138,5 +146,4 @@ onMounted(()=>{
   font-weight: 600;
   margin: 0;
 }
-
 </style>

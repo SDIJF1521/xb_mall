@@ -24,7 +24,7 @@
                   :value="role.id"
                   border
                 >
-                  {{ role.name[1]}}
+                  {{ role.name[1] }}
                 </el-radio>
               </el-radio-group>
             </el-form-item>
@@ -114,7 +114,7 @@
       </el-row>
       <el-row :gutter="20">
         <el-col :span="12">
-          <el-button type="primary" style="width: 100%;" @click="addUserCommit">提交</el-button>
+          <el-button type="primary" style="width: 100%;" @click="change_user_commit">提交</el-button>
         </el-col>
         <el-col :span="12">
           <el-button type="primary" style="width: 100%;" @click="closeDialog">关闭</el-button>
@@ -133,7 +133,6 @@ import router from '@/router'
 import axios from 'axios'
 
 import { Delete, Picture, Plus, InfoFilled, User, Edit } from '@element-plus/icons-vue'
-import { el } from 'element-plus/es/locales.mjs'
 
 defineOptions({
     name: 'AddUser',
@@ -147,6 +146,14 @@ const Axios = axios.create({
 
 const emit = defineEmits(['child-event'])
 const token = localStorage.getItem('buyer_access_token')
+const poops = defineProps<{
+  name: string
+  password: string
+  authority:number
+  img: UploadFile | string | null
+  email:string
+
+}>()
 
 interface UploadFile {
   name: string
@@ -155,14 +162,16 @@ interface UploadFile {
 }
 
 interface FormData{
+  user:string
   name: string
   password: string
   authority:number
-  img: UploadFile | null
+  img: UploadFile | string | null
   email:string
 }
 
 const formData = reactive<FormData>({
+  user: '',
   name: '',
   password: '',
   authority: 0,
@@ -170,14 +179,9 @@ const formData = reactive<FormData>({
   email: ''
 })
 
-// 表单引用
+// 添加formRef定义
 const formRef = ref<any>(null)
 
-
-onMounted(async () => {
-  // 获取权限列表
-  await fetchRoleList()
-})
 
 // 密码校验函数
 function validatePassword(rule: any, value: any, callback: any) {
@@ -228,7 +232,45 @@ const closeDialog = () => {
 const uploadFileList = ref<any[]>([])
 const previewImage = ref<string>('')
 const previewDialogVisible = ref<boolean>(false)
+const roleOptions = ref<Array<{id: number,name: string}>>([])
 
+const fetchRoleList = async () => {
+  try {
+    const role_formdata = new FormData()
+    role_formdata.append('token', token || '')
+    role_formdata.append('stroe_id', id.value?.toString() || '')
+
+    const response = await Axios.post('/buyer_get_role', role_formdata)
+
+    if (response.data.code === 200 && response.data.data) {
+      // 将后端返回的权限数据转换为前端需要的格式
+      roleOptions.value = response.data.data.map((role: any) => {
+        const roleId = Object.keys(role)[0]
+        const roleName = Object.values(role)[0]
+        return {
+          id: parseInt(roleId),
+          name: roleName as string
+        }
+      })
+    } else {
+      console.warn('获取权限列表失败，使用默认权限选项')
+      // 如果获取失败，使用默认权限选项
+      roleOptions.value = [
+        { id: 0, name: '普通用户' },
+        { id: 1, name: '管理员' },
+        { id: 2, name: '超级管理员' }
+      ]
+    }
+  } catch (error) {
+    console.error('获取权限列表失败:', error)
+    // 错误时使用默认权限选项
+    roleOptions.value = [
+      { id: 0, name: '普通用户' },
+      { id: 1, name: '管理员' },
+      { id: 2, name: '超级管理员' }
+    ]
+  }
+}
 
 
 // 判断是否为图片文件
@@ -368,107 +410,142 @@ const base64ToFile = (base64String: string, fileName: string = 'avatar.png'): Fi
   }
 }
 
-async function addUserCommit(){
-  // 先进行表单校验
+onMounted(async () => {
+  // 优先获取权限列表
+  await fetchRoleList()
+
+  formData.user = poops.name
+  formData.name = poops.name
+  formData.password = poops.password
+  formData.authority = poops.authority
+  formData.email = poops.email
+  console.log(poops.authority);
+
+
+  // 处理图片数据 - 如果提供的是base64字符串，转换为文件对象
+  if (poops.img) {
+    if (typeof poops.img === 'string') {
+      // 如果是base64字符串，转换为文件对象
+      try {
+        console.log('收到图片数据:', typeof poops.img, '长度:', poops.img.length)
+        console.log('图片数据前50字符:', poops.img.substring(0, 50))
+        console.log('图片数据后50字符:', poops.img.substring(Math.max(0, poops.img.length - 50)))
+
+        // 检查图片数据是否包含非法字符
+        const hasInvalidChars = /[^A-Za-z0-9+/=]/.test(poops.img)
+        if (hasInvalidChars) {
+          console.warn('图片数据包含非base64字符，可能需要清理')
+        }
+
+        // 检查是否是有效的base64字符串
+        if (poops.img.trim() === '') {
+          console.warn('图片数据为空字符串')
+          return
+        }
+
+        // 数据库中的图片数据通常是纯base64，需要添加前缀
+        let imageUrl = poops.img
+        if (!poops.img.includes('data:')) {
+          // 纯base64数据，添加data URL前缀 (与el-avatar一致，使用PNG格式)
+          imageUrl = `data:image/png;base64,${poops.img}`
+        }
+
+        try {
+          const file = base64ToFile(imageUrl, 'user_avatar.png')
+          const uploadFile: UploadFile = {
+            name: 'user_avatar.png',
+            raw: file,
+            url: imageUrl
+          }
+          formData.img = uploadFile
+          previewImage.value = imageUrl
+          uploadFileList.value = [uploadFile]
+          console.log('图片数据转换成功')
+        } catch (convertError) {
+          console.error('Base64转换失败，尝试备用方案:', convertError)
+          // 如果转换失败，仍然显示图片但标记为需要重新上传
+          formData.img = null
+          previewImage.value = imageUrl
+          uploadFileList.value = []
+          ElMessage.warning('头像数据格式异常，请重新上传头像')
+        }
+      } catch (error) {
+        console.error('图片数据转换失败:', error)
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        ElMessage.error(`头像数据加载失败: ${errorMessage}`)
+      }
+    } else {
+      // 如果已经是文件对象，直接使用
+      formData.img = poops.img
+      if (poops.img.url) {
+        previewImage.value = poops.img.url
+        uploadFileList.value = [poops.img]
+      }
+    }
+  } else {
+    console.log('没有接收到图片数据')
+  }
+})
+
+async function change_user_commit(){
+  // 添加表单验证
   if (!formRef.value) {
-    ElMessage.error('表单引用未找到')
+    console.error('表单引用未找到')
     return
   }
 
   try {
+    // 执行表单验证
     await formRef.value.validate()
+    console.log('表单验证通过')
   } catch (error) {
-    ElMessage.error('请检查表单输入')
+    console.log('表单验证失败')
+    ElMessage.error('请检查表单输入是否正确')
     return
   }
 
-  const fromdata_commit = new FormData()
-  fromdata_commit.append('token',token||'')
-  fromdata_commit.append("strore_id",id.value.toString())
-  fromdata_commit.append("user_name",formData.name)
-  fromdata_commit.append("user_password",formData.password)
-  fromdata_commit.append("authority",formData.authority.toString())
-  fromdata_commit.append("email",formData.email)
   console.log(formData);
+  const change_fromData = new FormData()
+  change_fromData.append('token', token||'')
+  change_fromData.append('stroe_id',id.value.toString()||'')
+  change_fromData.append('user', formData.user||'')
+  change_fromData.append('user_name', formData.name||'')
+  change_fromData.append('user_password', formData.password||'')
+  change_fromData.append('authority', formData.authority.toString()||'')
+  change_fromData.append('email', formData.email||'')
+  const res = await Axios.patch('/buyer_user_amend',change_fromData)
   try{
-    const res = await Axios.post('buyer_user_add',fromdata_commit)
-    if (res.status == 200){
+    if (res.status ==200){
       if (res.data.current){
-        // 头像上传
-        if (formData.img){
-          const img_commit = new FormData()
-          img_commit.append('token',token||'')
-          img_commit.append("id",id.value.toString())
-          img_commit.append("name",formData.name)
-          img_commit.append("file",formData.img.raw||'')
-          const img_res = await Axios.post('buyer_user_picture_uploading',img_commit)
-          if (img_res.status == 200){
-            ElMessage.success('头像上传成功')
-          }else{
-            ElMessage.error('头像上传失败')
+        ElMessage.success('用户信息修改成功')
+        if (formData.img) {
+          // 检查formData.img是否为文件对象类型
+          if (typeof formData.img !== 'string' && formData.img.raw) {
+            const commit_buser_img = new FormData()
+            commit_buser_img.append('token', token||'')
+            commit_buser_img.append('stroe_id',id.value.toString()||'')
+            commit_buser_img.append('name', formData.name||'')
+            commit_buser_img.append('file', formData.img.raw)
+            const res_img = await Axios.post('/buyer_user_picture_uploading',commit_buser_img)
+            if (res_img.status ==200){
+              if (res_img.data.current){
+                ElMessage.success('用户头像修改成功')
+              }else{
+                ElMessage.error('用户头像修改失败')
+              }
+            }
+            emit('child-event', false)
+
           }
-
         }
-        ElMessage.success('添加成功')
-        formData.name = ''
-        formData.password = ''
-        formData.authority = 0
-        formData.email = ''
-        formData.img = null
-        emit('child-event', false)
-
-
-      }else{
-        ElMessage.error('添加失败')
       }
     }
   }catch(error){
-    console.log(error);
-    const errorMessage = error instanceof Error ? error.message : String(error)
-    ElMessage.error(`添加用户失败: ${errorMessage}`)
-  }
-
- }
-
-// 权限选项接口
-interface RoleOption {
-  value: number
-  label: string
-  description?: string
-}
-
-// 权限选项列表
-const roleOptions = ref<Array<{id: number, name: string}>>([])
-
-// 从后端获取权限列表
-const fetchRoleList = async () => {
-  try {
-    const role_formdata = new FormData()
-    role_formdata.append('token', token || '')
-    role_formdata.append('stroe_id', id.value?.toString() || '')
-
-    const response = await Axios.post('/buyer_get_role', role_formdata)
-
-    if (response.data.code === 200 && response.data.data) {
-      // 将后端返回的权限数据转换为前端需要的格式
-      roleOptions.value = response.data.data.map((role: any) => {
-        const roleId = Object.keys(role)[0]
-        const roleName = Object.values(role)[0]
-        return {
-          id: parseInt(roleId),
-          name: roleName as string
-        }
-      })
-    } else {
-      ElMessage.error('获取权限列表失败')
-    }
-  } catch (error) {
-    console.error('获取权限列表失败:', error)
-    ElMessage.error('获取权限列表失败')
+    console.error('用户信息修改失败:', error)
+    ElMessage.error('用户信息修改失败')
   }
 }
 
-const loadingRoles = ref(false)
 </script>
 <style scoped>
 /* 整体容器美化 */
@@ -528,138 +605,12 @@ const loadingRoles = ref(false)
 /* 表单项美化 */
 .el-form-item {
   margin-bottom: 20px;
+}
+
 .el-form-item__label {
   font-weight: 600;
   color: var(--el-text-color-primary);
-}
-
-/* 响应式设计 */
-@media screen and (max-width: 768px) {
-  .add-user-container {
-    padding: 15px 10px;
-  }
-
-  .user-form {
-    border-radius: 12px;
-  }
-
-  .form-section {
-    padding: 20px 15px;
-  }
-
-  .section-title {
-    font-size: 16px;
-    margin-bottom: 20px;
-  }
-
-  .section-title .el-icon {
-    font-size: 18px;
-    margin-right: 8px;
-  }
-
-  /* 在小屏幕上单列显示 */
-  :deep(.el-row) {
-    display: block;
-  }
-
-  :deep(.el-col-12) {
-    width: 100%;
-    display: block;
-  }
-
-  /* 调整表单元素大小 */
-  :deep(.el-input__inner) {
-    font-size: 14px;
-  }
-
-  :deep(.el-radio) {
-    margin-right: 10px;
-    margin-bottom: 5px;
-  }
-
-  /* 按钮响应式 */
-  :deep(.el-button) {
-    width: 100%;
-    margin-bottom: 10px;
-  }
-
-  /* 上传区域响应式 */
-  :deep(.el-upload-dragger) {
-    padding: 20px;
-  }
-
-  :deep(.upload-icon-large) {
-    font-size: 24px;
-  }
-
-  :deep(.upload-text-main) {
-    font-size: 14px;
-  }
-
-  :deep(.upload-text-sub) {
-    font-size: 12px;
-  }
-
-  /* 预览图片响应式 */
-  :deep(.uploaded-image) {
-    max-width: 100%;
-    height: auto;
-  }
-
-  :deep(.preview-image) {
-    max-width: 100%;
-    height: auto;
-  }
-}
-
-@media screen and (max-width: 480px) {
-  .add-user-container {
-    padding: 10px 5px;
-  }
-
-  .form-section {
-    padding: 15px 10px;
-  }
-
-  .section-title {
-    font-size: 14px;
-  }
-
-  /* 单选按钮组在小屏幕上垂直排列 */
-  :deep(.authority-radio-group) {
-    display: flex;
-    flex-direction: column;
-  }
-
-  :deep(.authority-radio-group .el-radio) {
-    margin-bottom: 8px;
-    margin-right: 0;
-  }
-
-  /* 调整对话框大小 */
-  :deep(.el-dialog) {
-    width: 95% !important;
-    margin: 0 auto;
-  }
-}
-
-/* 中等屏幕设备优化 */
-@media screen and (min-width: 769px) and (max-width: 1024px) {
-  .add-user-container {
-    padding: 20px 15px;
-  }
-
-  .form-section {
-    padding: 25px 18px;
-  }
-}
-
-/* 大屏幕设备优化 */
-@media screen and (min-width: 1200px) {
-  .add-user-container {
-    max-width: 1400px;
-  }
-}  font-size: 14px;
+  font-size: 14px;
 }
 
 /* 输入框美化 */

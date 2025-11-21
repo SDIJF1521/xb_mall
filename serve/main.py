@@ -43,6 +43,11 @@ from routes.buyer_update_mall import router as buyer_update_mall_router
 from routes.buyer_img_update import router as buyer_img_update_router
 from routes.buyer_mall_user_list import router as buyer_mall_user_list_router
 from routes.buyer_user_add import router as buyer_user_add_router
+from routes.buyer_user_picture_uploading import router as buyer_user_picture_uploading_router
+from routes.buyer_user_select import router as buyer_user_select_router
+from routes.buyer_user_delete import router as buyer_user_delete_router
+from routes.buyer_amend_user import router as buyer_amend_user_router
+from routes.buyer_get_role import router as buyer_get_role_router
 
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -259,6 +264,21 @@ app.include_router(buyer_mall_user_list_router,prefix='/api')
 
 # 买家端添加用户路由
 app.include_router(buyer_user_add_router,prefix='/api')
+
+# 买家端上传用户头像路由
+app.include_router(buyer_user_picture_uploading_router,prefix='/api')
+
+# 买家端选择用户筛选
+app.include_router(buyer_user_select_router,prefix='/api')
+
+# 买家端删除用户路由
+app.include_router(buyer_user_delete_router,prefix='/api')
+
+# 买家端修改用户路由
+app.include_router(buyer_amend_user_router,prefix='/api')
+
+# 买家端获取用户角色路由
+app.include_router(buyer_get_role_router,prefix='/api')
 
 
 

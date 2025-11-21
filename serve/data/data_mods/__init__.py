@@ -1,7 +1,9 @@
-from typing import Optional
+from typing import Optional,List
 from fastapi import File, UploadFile
 from pydantic import BaseModel,EmailStr
 from datetime import time
+
+from pydantic import Field
 
 # 定义商品添加数据模型
 class AddMall(BaseModel):
@@ -170,3 +172,30 @@ class AddMallUser(BaseModel):
     user_password:str
     authority:int
     email:EmailStr
+
+# 定义卖家端用户查询路由数据模型
+class SelectMallUser(BaseModel):
+    token:str
+    strore_id:int
+    user_name:str
+
+# 定义卖家端用户删除路由数据模型
+class DeleteMallUser(BaseModel):
+    token:str
+    strore_id:int
+    user_name: List[str] = Field(..., min_items=1, description="要删除的用户名列表，至少一个")
+
+# 定义卖家端用户修改路由数据模型
+class UpdateMallUser(BaseModel):
+    token:str
+    stroe_id:int
+    user:str
+    user_name:str
+    user_password:str
+    authority:int
+    email:EmailStr
+
+# 定义卖家端角色获取路由数据模型
+class BuyerGetRole(BaseModel):
+    token:str
+    stroe_id:int
