@@ -174,7 +174,10 @@ async function submitForm(formEl: FormInstance | undefined){
         if (valid) {
             // 初始化 FormData 对象，买家端重复店铺检测路由表单数据
             console.log(mall_info.value);
-
+            if (mall_info.value.mall_img.length === 0){
+                ElMessage.error("请上传店铺图片")
+                return
+            }
             const formdata = new FormData();
             formdata.append('token',localStorage.getItem('buyer_access_token') || '')
             formdata.append('mall_name',mall_info.value.mall_name)

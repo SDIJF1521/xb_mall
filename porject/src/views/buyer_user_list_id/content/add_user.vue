@@ -398,7 +398,7 @@ async function addUserCommit(){
         if (formData.img){
           const img_commit = new FormData()
           img_commit.append('token',token||'')
-          img_commit.append("id",id.value.toString())
+          img_commit.append("stroe_id",id.value.toString())
           img_commit.append("name",formData.name)
           img_commit.append("file",formData.img.raw||'')
           const img_res = await Axios.post('buyer_user_picture_uploading',img_commit)

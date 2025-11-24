@@ -88,6 +88,7 @@ class SellerSignIn(BaseModel):
     user:str
     password:str
     station:str
+    mall_id:Optional[int] = None
 
 
 # 定义管理员登录路由数据模型

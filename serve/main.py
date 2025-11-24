@@ -63,6 +63,7 @@ from routes.apply_seller_consent import router as apply_seller_consent_router
 from routes.apply_seller_reject import router as apply_seller_reject_router
 from routes.address_show import router as address_show_router
 from routes.delete_token_time import router as delete_token_time_router
+from routes.cs import router as cs_router
 
 redis_client = RedisClient()
 # 定义 lifespan 事件处理器
@@ -296,3 +297,6 @@ async def select(name:str = Query(alias='type',min_length=1)):
 @app.delete('/mall_delete')
 async def mall_delete(data:Annotated[DeleteMall,Form()])->dict:
     pass
+
+# cs路由
+app.include_router(cs_router,prefix='/api') 

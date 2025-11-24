@@ -4,6 +4,7 @@ from aiomysql import Connection
 from fastapi import APIRouter,Depends,HTTPException,Form
 
 from services.verify_duter_token import VerifyDuterToken
+from services.buyer_role_authority import RoleAuthorityService
 
 from data.data_mods import UpdateMallUser
 from data.sql_client import get_db,execute_db_query
@@ -19,25 +20,28 @@ async def buyer_user_amend(
     verify_duter_token = VerifyDuterToken(data.token,redis)
     token_data = await verify_duter_token.token_data()
 
+
     async def execute():
-        sql_data = await execute_db_query(db,'select user from seller_sing where user = %s',(token_data.get('user')))
-        verify_data = await verify_duter_token.verify_token(sql_data)
-        if verify_data:
-            # 更新用户信息
-            await execute_db_query(db,'update store_user set user = %s,password = %s,authority = %s,email = %s where user = %s AND store_id = %s',
+        await execute_db_query(db,'update store_user set user = %s,password = %s,authority = %s,email = %s where user = %s AND store_id = %s',
                                    (data.user_name,data.user_password,data.authority,data.email,data.user,data.stroe_id))
-            return {"code":200,"msg":"success","data":None,'current':True}
-        else:
-            return {"code":400,"msg":"token验证失败","data":None,'current':False}
+        return {"code":200,"msg":"success","data":None,'current':True}
 
     try:
         if token_data.get('station') == '1':
-            return await execute()
+            sql_data = await execute_db_query(db,'select user from seller_sing where user = %s',(token_data.get('user')))
+            verify_data = await verify_duter_token.verify_token(sql_data)
+            if verify_data:
+                return await execute()
         else:
-            if token_data.get('role') == '1':
+            role_authority_service = RoleAuthorityService(token_data.get('role'),db)
+            role_authority = await role_authority_service.get_authority(token_data.get('mall_id'))
+            execute_code = await role_authority_service.authority_resolver(int(role_authority[0][0]))
+            sql_data = await execute_db_query(db,'select user from store_user where user = %s and store_id = %s',(token_data.get('user'),token_data.get('mall_id')))
+            verify_data = await verify_duter_token.verify_token(sql_data)
+            if execute_code[1] and execute_code[4] and verify_data:
                 return await execute()
             else:
-                raise HTTPException(status_code=403, detail="权限不足")
+               return {"code":400,"msg":"权限不足","data":None,'current':False}
     except HTTPException as e:
         return {"code":e.status_code,"msg":e.detail,"data":None,'current':False}
     except Exception as e:

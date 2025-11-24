@@ -67,6 +67,7 @@ import router from "@/router"
 import BuyerNavigation from '@/moon/buyer_navigation.vue'
 import BuyerHead from '@/moon/buyer_head.vue'
 import BuyerTheme from '@/moon/buyer_theme';
+import { useBuyerManagementSelectStore } from '@/moon/buyer_management_select';
 import { User, UserFilled, Avatar, Key, TrendCharts, DataAnalysis } from '@element-plus/icons-vue';
 
 defineOptions({
@@ -83,13 +84,16 @@ onMounted(()=>{
 // 跳转到用户列表页面
 function toUserList(){
     // TODO: 实现跳转到用户列表页面
-    router.push({name:'BuyerUserList'})
+    router.push({name:'BuyerSelect'})
+    useBuyerManagementSelectStore().to_uel='/buyer_user_list_id'
 }
 
 // 跳转到角色管理页面
 function toRoleManage(){
     // TODO: 实现跳转到角色管理页面
     console.log('跳转到角色管理页面')
+    router.push({name:'BuyerSelect'})
+    useBuyerManagementSelectStore().to_uel='/buyer_role_list'
 }
 
 // 跳转到用户统计页面

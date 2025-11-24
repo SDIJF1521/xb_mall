@@ -29,7 +29,7 @@ class VerifyDuterToken:
                 else:
                     return [False]
             elif token_data['station'] == '2':
-                if sql_data and token_data.get('exp') == str(self.redis_client.get(f'buyer_{token_data.get("user")}')):
+                if sql_data and token_data.get('exp') == str(await self.redis_client.get(f'buyer_{token_data.get("user")}')):
                     return [True,"user"]
                 else:
                     return [False]

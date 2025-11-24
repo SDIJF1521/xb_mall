@@ -4,6 +4,7 @@ from aiomysql import Connection
 from fastapi import APIRouter,Depends,Form
 
 from services.verify_duter_token import VerifyDuterToken
+from services.buyer_role_authority import RoleAuthorityService
 
 from data.sql_client import get_db,execute_db_query
 from data.redis_client import RedisClient,get_redis
@@ -16,6 +17,7 @@ router = APIRouter()
     
 @router.post('/get_mall_name')
 async def buyer_get_mall_name(data:Annotated[GetMallName,Form()] ,db: Connection = Depends(get_db),redis: RedisClient = Depends(get_redis)):
+    
     try:
         # 验证 token
         verify_duter_token = VerifyDuterToken(data.token,redis)
@@ -45,6 +47,25 @@ async def buyer_get_mall_name(data:Annotated[GetMallName,Form()] ,db: Connection
                 else:
                     return {'error':'该店铺不存在','current':False}
         else:
-            return {'error':'token 验证失败','current':False}
+            role_authority_service = RoleAuthorityService(token_data.get('role'),db)
+            role_authority = await role_authority_service.get_authority(token_data.get('mall_id'))
+            execute_code = await role_authority_service.authority_resolver(int(role_authority[0][0]))
+            sql_data = await execute_db_query(db,'select user from store_user where user = %s and store_id = %s',(token_data.get('role'),token_data.get('mall_id')))
+            verify_data = await verify_duter_token.verify_token(sql_data)
+            mall_name = []
+            if data.mall_name is None:
+                if execute_code[2] and verify_data:
+                    sql_data = await execute_db_query(db,'select mall_id,mall_name,creation_time from store where mall_id = %s',(token_data.get('mall_id')))
+                    if sql_data:
+                        print(2)
+                        print(sql_data)
+                        for i in sql_data:
+                            mall_name.append({'id':i[0],'mall_name':i[1],'creation_time':i[2]})
+                    return {'mall_name':mall_name,'current':True}
+                else:
+                    return {'error':'token 验证失败','current':False}
+            else:
+                return {'error':'该店铺不存在','current':False}
+        
     except Exception as e:
         return {'error':str(e),'current':False}

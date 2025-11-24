@@ -3,6 +3,7 @@ from aiomysql import Connection
 from fastapi import APIRouter,Depends,Form,UploadFile,File
 
 from services.verify_duter_token import VerifyDuterToken
+from services.buyer_role_authority import RoleAuthorityService
 
 from data.sql_client import get_db,execute_db_query
 from data.redis_client import get_redis,RedisClient
@@ -35,7 +36,12 @@ async def buyer_user_picture_uploading(token:str = Form(...),
         if verify_data:
             return await execute(name)
     else:
-        if token_data.get('role') == 1:
+        role_authority_service = RoleAuthorityService(token_data.get('role'),db)
+        role_authority = await role_authority_service.get_authority(token_data.get('mall_id'))
+        execute_code = await role_authority_service.authority_resolver(int(role_authority[0][0]))
+        sql_data = await execute_db_query(db,'select user from store_user where user = %s and store_id = %s',(token_data.get('user'),token_data.get('mall_id')))
+        verify_data = await verify_duter_token.verify_token(sql_data)
+        if execute_code[2] and execute_code[3] and execute_code[4] and verify_data:
             return await execute(name)
         else:
 

@@ -223,7 +223,7 @@ async function all_user_list(){
     const formdata = new FormData()
     formdata.append('token',token||'')
     formdata.append('id',id.value.toString())
-    const res = await Axios.post('buyer_mall_user_list',formdata)
+    const res = await Axios.post('/buyer_mall_user_list',formdata)
 
     // 验证响应数据结构
     if(res.data && res.data.code === 200){

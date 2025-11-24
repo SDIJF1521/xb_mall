@@ -538,6 +538,8 @@ async function change_user_commit(){
 
           }
         }
+      }else{
+        ElMessage.error('权限不足')
       }
     }
   }catch(error){

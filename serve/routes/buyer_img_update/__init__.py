@@ -2,15 +2,10 @@ from aiomysql import Connection
 from fastapi import APIRouter,Depends,Form,UploadFile,File
 
 from services.verify_duter_token import VerifyDuterToken
+from services.buyer_role_authority import RoleAuthorityService
 
 from data.sql_client import get_db,execute_db_query
-from data.redis_client import RedisClient
-
-
-def get_redis():
-    # 从 main.py 引入 verifier 实例
-    from main import redis_client
-    return redis_client
+from data.redis_client import RedisClient,get_redis
 
 router = APIRouter()
 @router.patch('/buyer_update_img')
@@ -32,13 +27,16 @@ async def buyer_update_img(token:str = Form(...),id:str = Form(...),img:UploadFi
             
 
     if token_data.get('station') == '1':
+        
         return await execute()
 
     else:
-        if token_data.get('role') == 1:
+        role_authority_service = RoleAuthorityService(token_data.get('role'),db)
+        role_authority = await role_authority_service.get_authority(token_data.get('mall_id'))
+        execute_code = await role_authority_service.authority_resolver(int(role_authority[0][0]))
+        sql_data = await execute_db_query(db,'select user from store_user where user = %s and store_id = %s',(token_data.get('user'),token_data.get('mall_id')))
+        verify_data = await verify_duter_token.verify_token(sql_data)
+        if execute_code[1] and execute_code[2] and execute_code[4] and verify_data:
             return await execute()
         else:
-            if token_data.get('user') == id:
-                return await execute()
-            else:
-                return {"code":400,"msg":"权限不足","data":None,'current':False}
+            return {"code":400,"msg":"权限不足","data":None,'current':False}

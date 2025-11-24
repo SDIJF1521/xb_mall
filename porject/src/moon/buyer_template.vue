@@ -17,12 +17,14 @@ import {ref,onMounted} from 'vue'
 import { useRoute } from 'vue-router'
 import BuyerTheme from '@/moon/buyer_theme';
 import UserListMain from '@/views/buyer_user_list_id/content/user_list_main.vue'
+import RoleListMain from '@/views/buyer_role_list/content/role_list_main.vue'
 
 defineOptions({
     name: 'BuyerTemplate',
     components: {
         BuyerTheme,
-        UserListMain
+        UserListMain,
+        RoleListMain,
     }
 })
 
@@ -41,11 +43,26 @@ onMounted(() => {
   console.log('当前路由路径:', route.path);
 
   // 根据当前路由路径设置页面标题
+  console.log('完整路由对象:', route);
+  console.log('路由路径:', route.path);
+  console.log('路由名称:', route.name);
+  console.log('设置标题前的值:', title.value);
+
   if (route.path.startsWith('/buyer_user_list_id')) {
     title.value = '小白的商城-用户管理页';
+    console.log('设置用户管理页标题，新值:', title.value);
+  } else if (route.path.startsWith('/buyer_role_list')) {
+    title.value = '小白的商城-角色管理页';
+    console.log('设置角色管理页标题，新值:', title.value);
   } else {
     title.value = '小白的商城';
+    console.log('设置默认标题，新值:', title.value);
   }
+
+  // 强制更新视图
+  setTimeout(() => {
+    console.log('延迟后标题值:', title.value);
+  }, 100);
 })
 </script>
 

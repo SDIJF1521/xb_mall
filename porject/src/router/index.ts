@@ -24,8 +24,9 @@ import BuyerDeleteMall from '@/views/buyer_delete_mall/buye_delete_mall.vue'
 import BuyerStoreManage from '@/views/buyer_store_manage/buyer_store_manage.vue'
 import BuyerStoreManageIndex from '@/views/buyer_store_manage_id/buyer_store_manage_index.vue'
 import BuyerUserManage from '@/views/buyer_store_user_manage/buyer_user_manage.vue'
-import BuyerUserList from '@/views/buyer_user_list/buyer_user_list.vue';
+import BuyerUserList from '@/views/buyer_select/buyer_select.vue';
 import BuyerUserListId from '@/views/buyer_user_list_id/buyer_user_list_id.vue'
+import BuyerRoleList from '@/views/buyer_role_list/buter_role_list.vue'
 
 
 
@@ -164,8 +165,8 @@ const routes: Array<RouteRecordRaw> = [
   },
   // 买家端用户列表页
   {
-    path:'/buyer_user_list',
-    name:'BuyerUserList',
+    path:'/buyer_select',
+    name:'BuyerSelect',
     component:BuyerUserList
   },
   // 买家端用户列表页——用户详情页
@@ -173,6 +174,12 @@ const routes: Array<RouteRecordRaw> = [
     path:'/buyer_user_list_id/:id',
     name:'BuyerUserListId',
     component:BuyerUserListId
+  },
+  // 买家端角色列表页
+  {
+    path:'/buyer_role_list/:id',
+    name:'BuyerRoleList',
+    component:BuyerRoleList
   },
   // 管理员管理页——商家审核
   {

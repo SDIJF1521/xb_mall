@@ -20,7 +20,6 @@ async def VerifyToken(token:str,db: Connection = Depends(get_db),redis: RedisCli
             if token_data.get('station') == '1':
                 sql_data = await execute_db_query(db,'select user from seller_sing where user = %s',(token_data.get('user')))
                 verify_data = await token_verify.verify_token(sql_data)
-                print(verify_data[0])
                 if verify_data[0]:
 
                     return {'msg':'验证通过','current':True,'station':'admin'}
@@ -28,7 +27,11 @@ async def VerifyToken(token:str,db: Connection = Depends(get_db),redis: RedisCli
                     return {'msg':'token错误或已过期','current':False}
 
             elif token_data.get('station') == '2':
+                print(token_data.get('user'))
                 sql_data = await execute_db_query(db,'select user from store_user where user = %s',(token_data.get('user')))
+                print(sql_data)
+                verify_data = await token_verify.verify_token(sql_data)
+                print(verify_data)
                 if verify_data[0]:
                     return {'msg':'验证通过','current':True,'station':'user'}
                 else:

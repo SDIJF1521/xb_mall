@@ -76,12 +76,13 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
+import { useBuyerManagementSelectStore } from '@/moon/buyer_management_select'
 import { Search, Refresh, Document, Location, Phone, Clock, Shop, Check } from '@element-plus/icons-vue'
 import BuyerTheme from '@/moon/buyer_theme'
 import router from '@/router'
 
 defineOptions({
-  name: 'BuyerUserList',
+  name: 'BuyerSelect',
 })
 
 const Axios = axios.create({
@@ -120,7 +121,9 @@ const handleRefresh = async () => {
 }
 
 const selectStore = (id: number) => {
-  router.push(`/buyer_user_list_id/${id}`)
+  console.log(useBuyerManagementSelectStore().to_uel.toString()+`/${id}`);
+
+  router.push(useBuyerManagementSelectStore().to_uel.toString()+`/${id}`)
 }
 
 const loadStoreData = async () => {

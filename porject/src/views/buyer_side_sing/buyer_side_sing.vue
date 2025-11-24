@@ -5,18 +5,18 @@
             <div class="bg-circle circle-2"></div>
             <div class="bg-circle circle-3"></div>
         </div>
-        
+
         <div class="login-container">
             <div class="login-box">
                 <div class="login-header">
                     <div class="icon-wrapper">
                         <el-icon class="login-icon"><User /></el-icon>
                     </div>
-                    
+
                     <h2>欢迎登录</h2>
                     <p class="login-subtitle">小白的商城管理系统</p>
                 </div>
-                
+
                 <el-form :model="from_data" class="login-form" @submit.prevent="handleLogin">
                     <el-form-item>
                         <el-input
@@ -40,10 +40,20 @@
                             class="custom-input"
                         />
                     </el-form-item>
+                    <el-form-item v-if = "from_data.type == '2'">
+                      <el-input
+                          v-model="from_data.mall_id"
+                          placeholder="请输入店铺id"
+                          clearable
+                          size="large"
+                          :prefix-icon="User"
+                          class="custom-input"
+                        />
+                    </el-form-item>
                     <el-form-item>
-                        <el-select 
-                            v-model="from_data.type" 
-                            placeholder="请选择身份" 
+                        <el-select
+                            v-model="from_data.type"
+                            placeholder="请选择身份"
                             size="large"
                             class="custom-select"
                             clearable
@@ -60,9 +70,9 @@
                         </el-select>
                     </el-form-item>
                 </el-form>
-                <el-button 
-                        type="primary" 
-                        size="large" 
+                <el-button
+                        type="primary"
+                        size="large"
                         class="login-button"
                         @click="handleLogin"
                         native-type="submit"
@@ -70,7 +80,7 @@
                         <el-icon><Right /></el-icon>
                         <span>立即登录</span>
                     </el-button>
-                
+
             </div>
         </div>
         <div class="footer-content">版权所有 © [小白的商城]，保留所有权利。</div>
@@ -92,6 +102,7 @@ const Axios = axios.create({
 const from_data = reactive({
     user_name: '',
     password: '',
+    mall_id:'',
     type: ''
 
 })
@@ -111,6 +122,9 @@ const handleLogin = async () => {
     const url_from_data = new FormData()
     url_from_data.append('user',from_data.user_name)
     url_from_data.append('password',from_data.password)
+    if (from_data.type == '2'){
+        url_from_data.append('mall_id',from_data.mall_id)
+    }
     url_from_data.append('station',from_data.type)
     Axios.post('/buyer_side_token',url_from_data)
     .then(async res=>{
@@ -156,7 +170,7 @@ const token = ref(async ()=>{
 
     Axios.post('/buyer_side_token',url_from_data)
 
-    
+
 })
 defineOptions({ name: 'BuyerSideSing' })
 </script>
@@ -266,8 +280,8 @@ defineOptions({ name: 'BuyerSideSing' })
         margin-top: 50px;
         text-align: center;
         transform: translateY(-5%);
-        
-        
+
+
     }
 
     /* 响应式设计 */
@@ -276,7 +290,7 @@ defineOptions({ name: 'BuyerSideSing' })
             padding: 40px 30px;
             margin: 10px;
         }
-        
+
         .login-header h2 {
             font-size: 24px;
         }
