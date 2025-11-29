@@ -129,12 +129,9 @@
 import {ref,onMounted,reactive} from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRoute } from 'vue-router'
-import router from '@/router'
 import axios from 'axios'
 
-import { Delete, Picture, Plus, InfoFilled, User, Edit } from '@element-plus/icons-vue'
-import { el } from 'element-plus/es/locales.mjs'
-
+import { Delete, Picture, Plus, InfoFilled,  Edit } from '@element-plus/icons-vue'
 defineOptions({
     name: 'AddUser',
 })
@@ -206,19 +203,6 @@ function validateEmail(rule: any, value: any, callback: any) {
   }
 }
 
-// 表单校验
-const rules = reactive({
-  name: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' },
-             { validator: validatePassword, trigger: 'blur' }
-            ],
-  authority: [{ required: true, message: '请选择用户权限', trigger: 'change' },],
-  img: [{ required: true, message: '请上传用户头像', trigger: 'change' },
-        ],
-  email: [{ required: true, message: '请输入邮箱', trigger: 'blur' },
-        { validator: validateEmail, trigger: 'blur' }
-        ]
-})
 
 const closeDialog = () => {
   emit('child-event', false)
@@ -367,6 +351,27 @@ const base64ToFile = (base64String: string, fileName: string = 'avatar.png'): Fi
     throw new Error(`base64字符串转换失败: ${errorMessage}`)
   }
 }
+
+// 表单校验
+const rules = reactive({
+  name: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+  password: [{ required: true, message: '请输入密码', trigger: 'blur' },
+             { validator: validatePassword, trigger: 'blur' }
+            ],
+  authority: [{ required: true, message: '请选择用户权限', trigger: 'change' },],
+  img: [{ required: true, message: '请上传用户头像', trigger: 'change' },
+        { validator: (rule: any, value: any, callback: any) => {
+            if (!value) {
+              callback(new Error('请上传用户头像'))
+            } else {
+              callback()
+            }
+          }, trigger: 'change' }
+        ],
+  email: [{ required: true, message: '请输入邮箱', trigger: 'blur' },
+        { validator: validateEmail, trigger: 'blur' }
+        ]
+})
 
 async function addUserCommit(){
   // 先进行表单校验

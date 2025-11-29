@@ -1,11 +1,17 @@
+import time
 from typing import Annotated
 
-from fastapi import FastAPI, Form, Query
+import logging
+from fastapi import FastAPI, Form, Query,Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+from config.log_config import logger
 
 from data.data_mods import AddMall, DeleteMall, UserOnLineUploading
 from services.verification_code import VerificationCode
 from data.redis_client import RedisClient
+from data.mongodb_client import mongodb_client
 from contextlib import asynccontextmanager
     
 from routes.verification_code import router as verification_router
@@ -48,7 +54,8 @@ from routes.buyer_user_select import router as buyer_user_select_router
 from routes.buyer_user_delete import router as buyer_user_delete_router
 from routes.buyer_amend_user import router as buyer_amend_user_router
 from routes.buyer_get_role import router as buyer_get_role_router
-
+from routes.buyter_role_code_get import router as buter_role_code_get_router
+from routes.buyer_role_add import router as buyer_role_add_router
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from routes.manage_sign_in import router as manage_sign_in_router
@@ -76,17 +83,24 @@ async def lifespan(app: FastAPI):
     try:
         # 应用启动时的逻辑
         await redis_client.connect()
+        await mongodb_client.connect()  # 连接MongoDB
         await verifier.connect()  # 连接验证码模块的 Redis 客户端
-        print("Redis 连接已建立")
+        # 连接日志已移至文件，减少终端输出
+        logger.info("Redis 连接已建立")
+        logger.info("MongoDB 连接已建立")
         yield
     except Exception as e:
         print(f"应用启动失败: {str(e)}")
     finally:
         # 应用关闭时的逻辑
         await redis_client.close()
+        await mongodb_client.close()  # 关闭MongoDB连接
         await verifier.close()  # 关闭验证码模块的 Redis 客户端
-        print("Redis 连接已关闭")
+        # 关闭日志已移至文件，减少终端输出
+        logger.info("Redis 连接已关闭")
+        logger.info("MongoDB 连接已关闭")
 
+logger = logging.getLogger("fastapi_logger")
 # 注册fatsApi应用
 app = FastAPI(lifespan=lifespan)
 
@@ -121,6 +135,27 @@ email_config = {
     "smtp_port": 465,
     "use_ssl": True
 }
+
+
+# 日志中间件
+@app.middleware("http")
+async def log_middleware(request: Request, call_next):
+    # 请求日志
+    start_time = time.time()
+    logger.info(f"INCOMING REQUEST: {request.method} {request.url} | Client: {request.client}")
+    
+    # 处理请求
+    response = await call_next(request)
+    
+    # 响应日志
+    process_time = time.time() - start_time
+    logger.info(
+        f"OUTGOING RESPONSE: {response.status_code} | "
+        f"Process Time: {process_time:.4f}s | "
+        f"Path: {request.url.path}"
+    )
+    
+    return response
 
 # 创建全局验证码实例
 verifier = VerificationCode(redis_url="redis://localhost",email_config=email_config)
@@ -281,6 +316,12 @@ app.include_router(buyer_amend_user_router,prefix='/api')
 # 买家端获取用户角色路由
 app.include_router(buyer_get_role_router,prefix='/api')
 
+# 买家端获取角色操作码路由
+app.include_router(buter_role_code_get_router,prefix='/api')
+
+# 买家端添加角色路由
+app.include_router(buyer_role_add_router,prefix='/api')
+
 
 
 # 商品添加路由
@@ -299,4 +340,4 @@ async def mall_delete(data:Annotated[DeleteMall,Form()])->dict:
     pass
 
 # cs路由
-app.include_router(cs_router,prefix='/api') 
+app.include_router(cs_router,prefix='/api')

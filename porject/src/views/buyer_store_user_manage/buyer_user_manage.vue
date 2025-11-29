@@ -79,21 +79,25 @@ defineOptions({
 
 onMounted(()=>{
    new BuyerTheme().toggleTheme(true)
+   // 初始化store
+   useBuyerManagementSelectStore().init()
 })
 
 // 跳转到用户列表页面
 function toUserList(){
     // TODO: 实现跳转到用户列表页面
+    const store = useBuyerManagementSelectStore()
+    store.setToUel('/buyer_user_list_id')
     router.push({name:'BuyerSelect'})
-    useBuyerManagementSelectStore().to_uel='/buyer_user_list_id'
 }
 
 // 跳转到角色管理页面
 function toRoleManage(){
     // TODO: 实现跳转到角色管理页面
     console.log('跳转到角色管理页面')
+    const store = useBuyerManagementSelectStore()
+    store.setToUel('/buyer_role_list')
     router.push({name:'BuyerSelect'})
-    useBuyerManagementSelectStore().to_uel='/buyer_role_list'
 }
 
 // 跳转到用户统计页面

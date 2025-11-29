@@ -121,9 +121,17 @@ const handleRefresh = async () => {
 }
 
 const selectStore = (id: number) => {
-  console.log(useBuyerManagementSelectStore().to_uel.toString()+`/${id}`);
+  const store = useBuyerManagementSelectStore()
+  let toUel = store.getToUel()
 
-  router.push(useBuyerManagementSelectStore().to_uel.toString()+`/${id}`)
+  // 如果toUel为空，提供一个默认值
+  if (!toUel) {
+    toUel = '/buyer_store_manage'
+  }
+
+  console.log(toUel);
+  console.log(toUel + `/${id}`);
+  router.push(toUel + `/${id}`)
 }
 
 const loadStoreData = async () => {
@@ -140,6 +148,8 @@ const loadStoreData = async () => {
 
 onMounted(() => {
   new BuyerTheme().toggleTheme(true)
+  // 初始化store
+  useBuyerManagementSelectStore().init()
   loadStoreData()
 })
 </script>

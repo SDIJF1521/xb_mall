@@ -1,0 +1,42 @@
+2025-11-29 11:32:59 - fastapi_logger - INFO - INCOMING REQUEST: POST http://127.0.0.1:8000/api/buyer_side_verify?token=Bearer%20eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiXHU1YzBmXHU3NjdkIiwic3RhdGlvbiI6IjEiLCJyb2xlIjotMSwiZXhwIjoiMTc2NDk1OTY2NiJ9.N2NCOd0H4XKTLynMLAFa5PrM2saHh26G6OZ10Bonb88 | Client: Address(host='127.0.0.1', port=52031)
+2025-11-29 11:32:59 - fastapi_logger - INFO - OUTGOING RESPONSE: 200 | Process Time: 0.0178s | Path: /api/buyer_side_verify
+2025-11-29 11:32:59 - fastapi_logger - INFO - INCOMING REQUEST: POST http://127.0.0.1:8000/api/buyer_get_role | Client: Address(host='127.0.0.1', port=52031)
+2025-11-29 11:32:59 - fastapi_logger - INFO - OUTGOING RESPONSE: 200 | Process Time: 0.0091s | Path: /api/buyer_get_role
+2025-11-29 11:33:16 - fastapi_logger - INFO - INCOMING REQUEST: POST http://127.0.0.1:8000/api/buyer_side_verify?token=Bearer%20eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiXHU1YzBmXHU3NjdkIiwic3RhdGlvbiI6IjEiLCJyb2xlIjotMSwiZXhwIjoiMTc2NDk1OTY2NiJ9.N2NCOd0H4XKTLynMLAFa5PrM2saHh26G6OZ10Bonb88 | Client: Address(host='127.0.0.1', port=62478)
+2025-11-29 11:33:16 - fastapi_logger - INFO - OUTGOING RESPONSE: 200 | Process Time: 0.0037s | Path: /api/buyer_side_verify
+2025-11-29 11:33:16 - fastapi_logger - INFO - INCOMING REQUEST: POST http://127.0.0.1:8000/api/buyer_get_role | Client: Address(host='127.0.0.1', port=62478)
+2025-11-29 11:33:16 - fastapi_logger - INFO - OUTGOING RESPONSE: 200 | Process Time: 0.0087s | Path: /api/buyer_get_role
+2025-11-29 11:33:21 - fastapi_logger - INFO - INCOMING REQUEST: POST http://127.0.0.1:8000/api/user_online_state | Client: Address(host='127.0.0.1', port=52128)
+2025-11-29 11:33:21 - fastapi_logger - INFO - OUTGOING RESPONSE: 200 | Process Time: 0.0062s | Path: /api/user_online_state
+2025-11-29 11:33:21 - fastapi_logger - INFO - INCOMING REQUEST: POST http://127.0.0.1:8000/api/online_user | Client: Address(host='127.0.0.1', port=52128)
+2025-11-29 11:33:21 - fastapi_logger - INFO - OUTGOING RESPONSE: 200 | Process Time: 0.0033s | Path: /api/online_user
+2025-11-29 11:33:21 - fastapi_logger - INFO - INCOMING REQUEST: OPTIONS http://127.0.0.1:8000/api/online_heartbeat | Client: Address(host='127.0.0.1', port=52128)
+2025-11-29 11:33:21 - fastapi_logger - INFO - OUTGOING RESPONSE: 200 | Process Time: 0.0000s | Path: /api/online_heartbeat
+2025-11-29 11:33:21 - fastapi_logger - INFO - INCOMING REQUEST: PATCH http://127.0.0.1:8000/api/online_heartbeat | Client: Address(host='127.0.0.1', port=52128)
+2025-11-29 11:33:21 - fastapi_logger - INFO - INCOMING REQUEST: POST http://127.0.0.1:8000/api/buyer_get_mall_info | Client: Address(host='127.0.0.1', port=63744)
+2025-11-29 11:33:21 - fastapi_logger - INFO - OUTGOING RESPONSE: 200 | Process Time: 0.0351s | Path: /api/online_heartbeat
+2025-11-29 11:33:21 - fastapi_logger - INFO - OUTGOING RESPONSE: 200 | Process Time: 0.0335s | Path: /api/buyer_get_mall_info
+2025-11-29 11:33:25 - fastapi_logger - INFO - INCOMING REQUEST: POST http://127.0.0.1:8000/api/buyer_get_mall_info | Client: Address(host='127.0.0.1', port=63744)
+2025-11-29 11:33:25 - fastapi_logger - INFO - OUTGOING RESPONSE: 200 | Process Time: 0.0308s | Path: /api/buyer_get_mall_info
+2025-11-29 11:33:27 - fastapi_logger - INFO - INCOMING REQUEST: POST http://127.0.0.1:8000/api/buyer_get_mall_info | Client: Address(host='127.0.0.1', port=63744)
+2025-11-29 11:33:27 - fastapi_logger - INFO - OUTGOING RESPONSE: 200 | Process Time: 0.0368s | Path: /api/buyer_get_mall_info
+2025-11-29 11:33:29 - fastapi_logger - INFO - INCOMING REQUEST: POST http://127.0.0.1:8000/api/user_online_state | Client: Address(host='127.0.0.1', port=63744)
+2025-11-29 11:33:29 - fastapi_logger - INFO - OUTGOING RESPONSE: 200 | Process Time: 0.0015s | Path: /api/user_online_state
+2025-11-29 11:33:29 - fastapi_logger - INFO - INCOMING REQUEST: POST http://127.0.0.1:8000/api/online_user | Client: Address(host='127.0.0.1', port=63744)
+2025-11-29 11:33:29 - fastapi_logger - INFO - OUTGOING RESPONSE: 200 | Process Time: 0.0036s | Path: /api/online_user
+2025-11-29 11:33:29 - fastapi_logger - INFO - INCOMING REQUEST: PATCH http://127.0.0.1:8000/api/online_heartbeat | Client: Address(host='127.0.0.1', port=63744)
+2025-11-29 11:33:29 - fastapi_logger - INFO - OUTGOING RESPONSE: 200 | Process Time: 0.0052s | Path: /api/online_heartbeat
+2025-11-29 11:33:29 - fastapi_logger - INFO - INCOMING REQUEST: POST http://127.0.0.1:8000/api/buyer_get_mall_info | Client: Address(host='127.0.0.1', port=63258)
+2025-11-29 11:33:29 - fastapi_logger - INFO - OUTGOING RESPONSE: 200 | Process Time: 0.0150s | Path: /api/buyer_get_mall_info
+2025-11-29 11:33:31 - fastapi_logger - INFO - INCOMING REQUEST: POST http://127.0.0.1:8000/api/buyer_get_mall_info | Client: Address(host='127.0.0.1', port=63258)
+2025-11-29 11:33:31 - fastapi_logger - INFO - OUTGOING RESPONSE: 200 | Process Time: 0.0140s | Path: /api/buyer_get_mall_info
+2025-11-29 11:33:35 - fastapi_logger - INFO - INCOMING REQUEST: POST http://127.0.0.1:8000/api/buyer_get_mall_info | Client: Address(host='127.0.0.1', port=63258)
+2025-11-29 11:33:35 - fastapi_logger - INFO - OUTGOING RESPONSE: 200 | Process Time: 0.0111s | Path: /api/buyer_get_mall_info
+2025-11-29 11:33:37 - fastapi_logger - INFO - INCOMING REQUEST: POST http://127.0.0.1:8000/api/buyer_side_verify?token=Bearer%20eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiXHU1YzBmXHU3NjdkIiwic3RhdGlvbiI6IjEiLCJyb2xlIjotMSwiZXhwIjoiMTc2NDk1OTY2NiJ9.N2NCOd0H4XKTLynMLAFa5PrM2saHh26G6OZ10Bonb88 | Client: Address(host='127.0.0.1', port=63258)
+2025-11-29 11:33:37 - fastapi_logger - INFO - OUTGOING RESPONSE: 200 | Process Time: 0.0072s | Path: /api/buyer_side_verify
+2025-11-29 11:33:38 - fastapi_logger - INFO - INCOMING REQUEST: POST http://127.0.0.1:8000/api/buyer_get_mall_info | Client: Address(host='127.0.0.1', port=63258)
+2025-11-29 11:33:38 - fastapi_logger - INFO - OUTGOING RESPONSE: 200 | Process Time: 0.0161s | Path: /api/buyer_get_mall_info
+2025-11-29 11:33:40 - fastapi_logger - INFO - INCOMING REQUEST: POST http://127.0.0.1:8000/api/buyer_side_verify?token=Bearer%20eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiXHU1YzBmXHU3NjdkIiwic3RhdGlvbiI6IjEiLCJyb2xlIjotMSwiZXhwIjoiMTc2NDk1OTY2NiJ9.N2NCOd0H4XKTLynMLAFa5PrM2saHh26G6OZ10Bonb88 | Client: Address(host='127.0.0.1', port=63258)
+2025-11-29 11:33:40 - fastapi_logger - INFO - OUTGOING RESPONSE: 200 | Process Time: 0.0203s | Path: /api/buyer_side_verify
+2025-11-29 11:33:40 - fastapi_logger - INFO - INCOMING REQUEST: POST http://127.0.0.1:8000/api/buyer_get_role | Client: Address(host='127.0.0.1', port=63258)
+2025-11-29 11:33:40 - fastapi_logger - INFO - OUTGOING RESPONSE: 200 | Process Time: 0.0085s | Path: /api/buyer_get_role

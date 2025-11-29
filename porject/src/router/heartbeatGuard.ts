@@ -24,6 +24,7 @@ const EXCLUDED_ROUTES = [
   "BuyerUserListId", // 买家端用户列表页——用户详情页
   "BuyerRoleList", // 买家端角色列表页
   "BuyerStoreManageIndex",  // 买家端店铺管理页
+  "BuyerSelectMall", // 买家端选择店铺页
 ];
 
 export function setupHeartbeatGuard(router: Router) {

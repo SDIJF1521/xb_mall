@@ -18,12 +18,19 @@ async def change_user_role(
 ):
     verify_duter_token = VerifyDuterToken(data.token,redis)
     token_data = await verify_duter_token.token_data()
-
-    async def execute(id):
-        query = """
-        SELECT * FROM store_role WHERE mall_id = %s OR mall_id is Null
-        """
-        result = await execute_db_query(db, query, (id))
+    print(data.select_data)
+    async def execute(id,select_data:str = None):
+        print(select_data)
+        if select_data is not None:
+            query = """
+            SELECT * FROM store_role WHERE (mall_id = %s OR mall_id is Null) AND (role = %s OR name = %s)
+            """
+            result = await execute_db_query(db, query, (id, select_data,select_data))
+        else:
+            query = """
+            SELECT * FROM store_role WHERE mall_id = %s OR mall_id is Null
+            """
+            result = await execute_db_query(db, query, (id))
         print(result)
         data = {}
         if result:
@@ -37,7 +44,7 @@ async def change_user_role(
         sql_data = await execute_db_query(db,'select user from seller_sing where user = %s',(token_data.get('user')))
         verify_data = await verify_duter_token.verify_token(sql_data)
         if verify_data:
-            return await execute(data.stroe_id)
+            return await execute(data.stroe_id,data.select_data)
     else:
         role_authority_service = RoleAuthorityService(token_data.get('role'),db)
         role_authority = await role_authority_service.get_authority(token_data.get('mall_id'))
@@ -45,7 +52,7 @@ async def change_user_role(
         sql_data = await execute_db_query(db,'select user from store_user where user = %s and store_id = %s',(token_data.get('user'),token_data.get('mall_id')))
         verify_data = await verify_duter_token.verify_token(sql_data)
         if execute_code[2]and verify_data:
-            return await execute(data.stroe_id)
+            return await execute(data.stroe_id,data.select_data)
         else:
             return {'code':400,'msg':'权限不足','data':data,'current':False}
         

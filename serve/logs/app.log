@@ -1,0 +1,28 @@
+2025-11-29 15:14:26 - fastapi_logger - INFO - log_config:52 - ==================================================
+2025-11-29 15:14:26 - fastapi_logger - INFO - log_config:53 - 日志系统启动成功
+2025-11-29 15:14:26 - fastapi_logger - INFO - log_config:54 - 日志文件路径：C:\Users\Lkpap\Desktop\porject\xb_mall\serve\logs\app.log
+2025-11-29 15:14:26 - fastapi_logger - INFO - log_config:55 - ==================================================
+2025-11-29 15:14:27 - fastapi_logger - INFO - log_config:52 - ==================================================
+2025-11-29 15:14:27 - fastapi_logger - INFO - log_config:53 - 日志系统启动成功
+2025-11-29 15:14:27 - fastapi_logger - INFO - log_config:54 - 日志文件路径：C:\Users\Lkpap\Desktop\porject\xb_mall\serve\logs\app.log
+2025-11-29 15:14:27 - fastapi_logger - INFO - log_config:55 - ==================================================
+2025-11-29 15:14:28 - fastapi_logger - INFO - main:89 - Redis 连接已建立
+2025-11-29 15:14:28 - fastapi_logger - INFO - main:90 - MongoDB 连接已建立
+2025-11-29 15:14:29 - fastapi_logger - INFO - main:145 - INCOMING REQUEST: PATCH http://127.0.0.1:8000/api/online_heartbeat | Client: Address(host='127.0.0.1', port=59602)
+2025-11-29 15:14:29 - fastapi_logger - INFO - main:152 - OUTGOING RESPONSE: 200 | Process Time: 0.0052s | Path: /api/online_heartbeat
+2025-11-29 15:14:47 - fastapi_logger - INFO - main:145 - INCOMING REQUEST: PATCH http://127.0.0.1:8000/api/online_heartbeat | Client: Address(host='127.0.0.1', port=52718)
+2025-11-29 15:14:47 - fastapi_logger - INFO - main:152 - OUTGOING RESPONSE: 200 | Process Time: 0.0040s | Path: /api/online_heartbeat
+2025-11-29 15:15:17 - fastapi_logger - INFO - main:145 - INCOMING REQUEST: PATCH http://127.0.0.1:8000/api/online_heartbeat | Client: Address(host='127.0.0.1', port=53854)
+2025-11-29 15:15:17 - fastapi_logger - INFO - main:152 - OUTGOING RESPONSE: 200 | Process Time: 0.0023s | Path: /api/online_heartbeat
+2025-11-29 15:15:47 - fastapi_logger - INFO - main:145 - INCOMING REQUEST: PATCH http://127.0.0.1:8000/api/online_heartbeat | Client: Address(host='127.0.0.1', port=65101)
+2025-11-29 15:15:47 - fastapi_logger - INFO - main:152 - OUTGOING RESPONSE: 200 | Process Time: 0.0030s | Path: /api/online_heartbeat
+2025-11-29 15:15:57 - fastapi_logger - INFO - main:145 - INCOMING REQUEST: POST http://127.0.0.1:8000/api/buyer_side_verify?token=Bearer%20eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiXHU1YzBmXHU3NjdkIiwic3RhdGlvbiI6IjEiLCJyb2xlIjotMSwiZXhwIjoiMTc2NDk1OTY2NiJ9.N2NCOd0H4XKTLynMLAFa5PrM2saHh26G6OZ10Bonb88 | Client: Address(host='127.0.0.1', port=59414)
+2025-11-29 15:15:57 - fastapi_logger - INFO - main:152 - OUTGOING RESPONSE: 200 | Process Time: 0.0258s | Path: /api/buyer_side_verify
+2025-11-29 15:16:07 - fastapi_logger - INFO - main:145 - INCOMING REQUEST: POST http://127.0.0.1:8000/api/buyer_side_verify?token=Bearer%20eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiXHU1YzBmXHU3NjdkIiwic3RhdGlvbiI6IjEiLCJyb2xlIjotMSwiZXhwIjoiMTc2NDk1OTY2NiJ9.N2NCOd0H4XKTLynMLAFa5PrM2saHh26G6OZ10Bonb88 | Client: Address(host='127.0.0.1', port=57030)
+2025-11-29 15:16:07 - fastapi_logger - INFO - main:152 - OUTGOING RESPONSE: 200 | Process Time: 0.0195s | Path: /api/buyer_side_verify
+2025-11-29 15:16:27 - fastapi_logger - INFO - main:145 - INCOMING REQUEST: POST http://127.0.0.1:8000/api/buyer_side_verify?token=Bearer%20eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiXHU1YzBmXHU3NjdkIiwic3RhdGlvbiI6IjEiLCJyb2xlIjotMSwiZXhwIjoiMTc2NDk1OTY2NiJ9.N2NCOd0H4XKTLynMLAFa5PrM2saHh26G6OZ10Bonb88 | Client: Address(host='127.0.0.1', port=49666)
+2025-11-29 15:16:27 - fastapi_logger - INFO - main:152 - OUTGOING RESPONSE: 200 | Process Time: 0.0070s | Path: /api/buyer_side_verify
+2025-11-29 15:16:34 - fastapi_logger - INFO - main:145 - INCOMING REQUEST: POST http://127.0.0.1:8000/api/buyer_side_verify?token=Bearer%20eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiXHU1YzBmXHU3NjdkIiwic3RhdGlvbiI6IjEiLCJyb2xlIjotMSwiZXhwIjoiMTc2NDk1OTY2NiJ9.N2NCOd0H4XKTLynMLAFa5PrM2saHh26G6OZ10Bonb88 | Client: Address(host='127.0.0.1', port=55028)
+2025-11-29 15:16:34 - fastapi_logger - INFO - main:152 - OUTGOING RESPONSE: 200 | Process Time: 0.0068s | Path: /api/buyer_side_verify
+2025-11-29 15:17:31 - fastapi_logger - INFO - main:100 - Redis 连接已关闭
+2025-11-29 15:17:31 - fastapi_logger - INFO - main:101 - MongoDB 连接已关闭

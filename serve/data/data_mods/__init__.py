@@ -200,3 +200,16 @@ class UpdateMallUser(BaseModel):
 class BuyerGetRole(BaseModel):
     token:str
     stroe_id:int
+    select_data :Optional[str] = None
+
+# 定义操作码查询路由数据模型
+class BuyerRoleCodeGet(BaseModel):
+    token:str
+
+# 定义角色添加路由数据模型
+class BuyerRoleAdd(BaseModel):
+    token:str
+    stroe_id:int
+    role_name:str
+    role:str
+    role_authority:int
