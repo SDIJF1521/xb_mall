@@ -92,6 +92,7 @@ import { User, Lock, Star, Right } from '@element-plus/icons-vue'
 import {ElMessage} from 'element-plus'
 import axios from 'axios';
 import router from '@/router'
+import { lo } from 'element-plus/es/locales.mjs';
 
 
 const Axios = axios.create({
@@ -130,7 +131,12 @@ const handleLogin = async () => {
     .then(async res=>{
         if (res.status ==200){
             if (res.data.current){
+                localStorage.setItem('buyer_user',res.data.info.user)
+                localStorage.setItem('img',res.data.info.img)
                 localStorage.setItem('buyer_access_token',`Bearer ${res.data.token}`)
+
+                console.log(localStorage.getItem('buyer_user_info'));
+
                 Axios.post('/buyer_side_verify?token='+localStorage.getItem('buyer_access_token'))
 
                 .then(res=>{

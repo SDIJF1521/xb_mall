@@ -133,11 +133,12 @@ const submitForm = async () => {
         if (res.status == 200){
           if (res.data.current){
             ElMessage.success('添加成功')
+            resetForm()
             closeDialog()
+          }else{
+            ElMessage.error(res.data.msg)
           }
         }
-
-
 
     }
 

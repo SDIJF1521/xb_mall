@@ -16,6 +16,7 @@
 import {ref,onMounted} from 'vue'
 import { useRoute } from 'vue-router'
 import BuyerTheme from '@/moon/buyer_theme';
+import RoleRatio from '@/views/buyer_user_statistics/content/role_ratio.vue'
 import UserListMain from '@/views/buyer_user_list_id/content/user_list_main.vue'
 import RoleListMain from '@/views/buyer_role_list/content/role_list_main.vue'
 
@@ -24,6 +25,7 @@ defineOptions({
     components: {
         BuyerTheme,
         UserListMain,
+        RoleRatio,
         RoleListMain,
     }
 })
@@ -54,7 +56,10 @@ onMounted(() => {
   } else if (route.path.startsWith('/buyer_role_list')) {
     title.value = '小白的商城-角色管理页';
     console.log('设置角色管理页标题，新值:', title.value);
-  } else {
+  } else if (route.path.startsWith('/buyer_user_statistics')) {
+    title.value = '小白的商城-用户统计页';
+    console.log('设置用户统计页标题，新值:', title.value);
+  }else {
     title.value = '小白的商城';
     console.log('设置默认标题，新值:', title.value);
   }

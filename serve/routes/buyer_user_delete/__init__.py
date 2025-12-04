@@ -21,13 +21,13 @@ async def buyer_user_delete(data:Annotated[DeleteMallUser,Form()],
     token_data = await verify_duter_token.token_data()    
 
     async def execute():
-            print(data.user_name)
-            for i in data.user_name:
-                await execute_db_query(db,'delete from store_user where store_id = %s and user=%s',(data.strore_id,i))
-                img = await execute_db_query(db,'select img from store_user where store_id = %s and user=%s',(data.strore_id,i))
-                if img:
-                    os.remove(img[0][0])
-            return {'code':200,'msg':'删除成功','current':True}
+        print(data.user_name)
+        for i in data.user_name:
+            await execute_db_query(db,'delete from store_user where store_id = %s and user=%s',(data.strore_id,i))
+            img = await execute_db_query(db,'select img from store_user where store_id = %s and user=%s',(data.strore_id,i))
+            if img:
+                os.remove(img[0][0])
+        return {'code':200,'msg':'删除成功','current':True}
         
         
     try:

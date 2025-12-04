@@ -79,8 +79,10 @@ onMounted(async ()=>{
   if (apply_address.status == 200){
     if (apply_address.data.current){
       console.log(12);
-      
-      data_list.value[1]['text'] = `${apply_address.data.data[2]}-${apply_address.data.data[3]}-${apply_address.data.data[4]}`||'***'
+
+      // oxlint-disable-next-line no-constant-binary-expression
+      data_list.value[1]['text'] = `${apply_address.data.data[2]}-${apply_address.data.data[3]}-${apply_address.data.data[4]}` || '***'
+      // oxlint-disable-next-line no-constant-binary-expression
       data_list.value[1]['select_val'] = `${apply_address.data.data[2]}-${apply_address.data.data[3]}-${apply_address.data.data[4]}`||'***'
     }
   }

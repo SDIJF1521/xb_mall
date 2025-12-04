@@ -95,7 +95,6 @@
 <script setup lang="ts">
 import {ref,onMounted,computed} from 'vue'
 import axios from 'axios'
-import router from '@/router'
 import { useRoute } from 'vue-router'
 import type { TableInstance } from 'element-plus'
 import { ElMessage, ElMessageBox } from 'element-plus'

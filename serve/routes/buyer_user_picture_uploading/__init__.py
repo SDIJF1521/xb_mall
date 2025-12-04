@@ -24,9 +24,9 @@ async def buyer_user_picture_uploading(token:str = Form(...),
     # 执行存储操作
     async def execute(user:str) ->dict:
         # 保存图片到本地
-        with open(f"./buyer_use_img/{name}.png", "wb") as f:
+        with open(f"./buyer_use_img/{stroe_id}_{name}.png", "wb") as f:
             f.write(await file.read())
-        await execute_db_query(db,'update store_user set img = %s where user = %s and store_id = %s',(f"./buyer_use_img/{name}.png",name,stroe_id))
+        await execute_db_query(db,'update store_user set img = %s where user = %s and store_id = %s',(f"./buyer_use_img/{stroe_id}_{name}.png",name,stroe_id))
         return {"code":200,"msg":"success","data":None,'current':True}
     
     # 权限判断

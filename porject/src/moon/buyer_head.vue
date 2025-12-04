@@ -4,7 +4,7 @@
         欢迎回来:{{ data.userName }}
     </div>
     <el-input
-        style="width: 240px;"    
+        style="width: 240px;"
         v-model="input"
         placeholder="搜索"
         :prefix-icon="Search"
@@ -36,7 +36,10 @@ defineOptions({
 })
 const input = ref('')
 const value = ref('')
- const data = ref({'img':'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png','userName':'小白'})
+const user = localStorage.getItem('buyer_user')
+// oxlint-disable-next-line no-constant-binary-expression
+const data = ref({'img':`data:image/png;base64,${localStorage.getItem('img')}`||'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png','userName':user||'小白'})
+
 </script>
 <style scoped>
     .header-content{

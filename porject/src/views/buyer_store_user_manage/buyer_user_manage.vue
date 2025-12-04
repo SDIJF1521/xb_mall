@@ -50,7 +50,7 @@
                                     <div class="card-content">
                                         <el-icon class="feature-icon" size="64"><DataAnalysis /></el-icon>
                                         <p class="card-description">查看用户数据统计分析</p>
-                                        <el-button type="warning" @click="toUserStats" plain>查看统计</el-button>
+                                        <el-button type="warning" @click="toUserStats"  plain>查看统计</el-button>
                                     </div>
                                 </el-card>
                             </div>
@@ -103,7 +103,10 @@ function toRoleManage(){
 // 跳转到用户统计页面
 function toUserStats(){
     // TODO: 实现跳转到用户统计页面
-    console.log('跳转到用户统计页面')
+    console.log('跳转到用户管理页面')
+    const store = useBuyerManagementSelectStore()
+    store.setToUel('/buyer_user_statistics')
+    router.push({name:'BuyerSelect'})
 }
 </script>
 <style scoped>

@@ -28,8 +28,6 @@ async def buyer_user_add(data:Annotated[AddMallUser,Form()],db:Connection = Depe
                                           "select id from store_role where mall_id is null or mall_id=%s",
                                           (data.strore_id))
         role_list = [item[0] for item in sql_role]
-        # 检查权限是否存在
-        print(sql_user)
         if data.authority not in role_list:
             return {"code":400,"msg":"用户权限不存在","data":None,'current':False}
         if not sql_user:

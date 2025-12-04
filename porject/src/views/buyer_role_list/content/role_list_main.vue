@@ -11,17 +11,23 @@
     @child-event="handleEvent"
     v-if="mod === 'RoleAdd'"
   />
+    <component
+    :is="mod"
+    @child-event="handleEvent"
+    v-if="mod === 'ChangeRole'"
+    :role_id="role_id"
+  />
   </el-dialog>
   <el-table
     ref="multipleTableRef"
     :data="sortedTableData"
     style="height: 80%;"
     @selection-change="handleSelectionChange"
-    row-key="authority"
+    row-key="role_id"
     :row-class-name="({row}: {row: Role}) => row.id === null ? 'disabled-row' : ''"
   >
     <el-table-column type="selection" width="55" :selectable="(row: Role) => row.id !== null" />
-    <el-table-column prop="authority" label="ID" ></el-table-column>
+    <el-table-column prop="role_id" label="ID" ></el-table-column>
     <el-table-column prop="role" label="权限标识" ></el-table-column>
     <el-table-column prop="name" label="权限名称" ></el-table-column>
     <el-table-column align="right"min-width="100">
@@ -44,6 +50,7 @@
               size="small"
               type="danger"
               :disabled="multipleSelection.length === 0"
+              @click="delete_roles"
               >
                 批量删除
             </el-button>
@@ -55,6 +62,7 @@
         <el-button size="small"
           type="primary"
           :disabled = "scope.row.id === null"
+          @click="Change(scope.row)"
         >
           修改
         </el-button>
@@ -63,6 +71,7 @@
           size="small"
           type="danger"
           :disabled = "scope.row.id === null"
+          @click="delete_role(scope.row)"
         >
           删除
         </el-button>
@@ -72,15 +81,18 @@
    </el-table>
 </template>
 <script setup lang="ts">
-import {ref,onMounted,computed} from 'vue'
+import {ref,onMounted,computed,nextTick} from 'vue'
 import { useRoute } from 'vue-router'
+import { ElMessage,ElMessageBox } from 'element-plus'
+import ChangeRole from './change_role.vue'
 import RoleAdd from './role_add.vue'
 import axios from 'axios';
 
 const mod = ref('RoleAdd')
 defineOptions({
   name: 'RoleListMain',
-  components: { RoleAdd }
+  components: { RoleAdd,
+                ChangeRole}
 })
 
 const Axios = axios.create({
@@ -94,11 +106,12 @@ const mall_id = ref<string>(Array.isArray(route.id) ? route.id[0] : route.id || 
 const search = ref('')
 const dialogVisible = ref(false)
 const dialog_title = ref('新增角色')
+const role_id = ref(0)
 
 interface Role {
   id?: number
   name: string
-  authority: number
+  role_id: number
   role: string
 }
 
@@ -126,10 +139,10 @@ async function all_role_list(){
             return null
           }
 
-          const authority = parseInt(keys[0]) // 获取键名作为authority
+          const role_id = parseInt(keys[0]) // 获取键名作为role_id
           const roleData = values[0] // 获取数组值
           return {
-            authority: authority,
+            role_id: role_id,
             id: roleData[2],
             role: roleData[0], // 权限标识，如 "user", "root"
             name: roleData[1]  // 权限名称，如 "用户", "超级管理员"
@@ -162,8 +175,9 @@ function Add(){
 
 const handleEvent = async (data:boolean)=>{
    dialogVisible.value = data
-   // 当对话框关闭时，重新加载用户列表
+   // 当对话框关闭时，重新加载用户列表并重置role_id
    if (!data) {
+     role_id.value = 0 // 重置role_id
      await all_role_list()
    }
 }
@@ -190,10 +204,10 @@ const select_role = ref(async ()=>{
               return null
             }
 
-            const authority = parseInt(keys[0]) // 获取键名作为authority
+            const role_id = parseInt(keys[0]) // 获取键名作为role_id
             const roleData = values[0] // 获取数组值
             return {
-              authority: authority,
+              role_id: role_id,
               id: roleData[2],
               role: roleData[0], // 权限标识，如 "user", "root"
               name: roleData[1]  // 权限名称，如 "用户", "超级管理员"
@@ -207,6 +221,96 @@ const select_role = ref(async ()=>{
     }
   }
 })
+
+
+async function delete_role(val: Role){
+  try {
+    await ElMessageBox.confirm(
+        `确定要删除角色 "${val.name}" 吗？此操作不可恢复。`,
+        '确认删除',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning',
+          center: true
+        }
+      )
+    console.log(val.role_id);
+
+
+    const DeleteFromData = new FormData()
+    DeleteFromData.append('token',token.value)
+    DeleteFromData.append('stroe_id',mall_id.value)
+    DeleteFromData.append('role_id',val.role_id.toString())
+    const res = await Axios.delete('/buyer_role_delete',{data:DeleteFromData})
+    if (res.status == 200){
+      if (res.data.current){
+        ElMessage.success('删除成功')
+        await all_role_list()
+      }else{
+        ElMessage.error('删除失败')
+      }
+    }
+  }catch (error) {
+    // 用户点击取消或删除失败
+    if (error !== 'cancel') {
+      console.error('删除角色失败:', error)
+      ElMessage.error('删除角色失败')
+    } else {
+      ElMessage.info('已取消删除操作')
+    }
+  }
+}
+
+async function delete_roles(){
+  console.log(multipleSelection.value.map(item => item.role_id));
+  try {
+    await ElMessageBox.confirm(
+        `确定要删除选中的 ${multipleSelection.value.length} 个角色吗？此操作不可恢复。`,
+        '确认删除',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning',
+          center: true
+        }
+      )
+    const DeleteFromData = new FormData()
+    DeleteFromData.append('token',token.value)
+    DeleteFromData.append('stroe_id',mall_id.value)
+    multipleSelection.value.forEach(item => {
+      DeleteFromData.append('role_id',item.role_id.toString())
+    })
+    const res = await Axios.delete('/buyer_role_delete',{data:DeleteFromData})
+    if (res.status == 200){
+      if (res.data.current){
+        ElMessage.success('删除成功')
+        await all_role_list()
+      }else{
+        ElMessage.error('删除失败')
+      }
+    }
+  }catch (error) {
+    // 用户点击取消或删除失败
+    if (error !== 'cancel') {
+      console.error('删除角色失败:', error)
+      ElMessage.error('删除角色失败')
+    } else {
+      ElMessage.info('已取消删除操作')
+    }
+  }
+}
+
+function Change(val: Role){
+  dialog_title.value = '修改角色'
+  // 先设置role_id，再显示对话框，确保子组件能正确获取数据
+  role_id.value = val.role_id
+  mod.value = 'ChangeRole'
+  // 使用nextTick确保role_id更新后再显示对话框
+  nextTick(() => {
+    dialogVisible.value = true
+  })
+}
 </script>
 
 <style scoped>

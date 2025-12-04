@@ -213,3 +213,27 @@ class BuyerRoleAdd(BaseModel):
     role_name:str
     role:str
     role_authority:int
+
+# 定义角色删除路由数据模型
+class BuyerRoleDelete(BaseModel):
+    token:str
+    stroe_id:int
+    role_id:List[str] = Field(..., min_items=1, description="要删除的角色id列表，至少一个")
+
+# 定义角色信息路由数据模型
+class BuyerRoleInfo(BaseModel):
+    stroe_id:int
+    role_id:str
+
+# 定义角色更新路由数据模型
+class BuyerRoleUpdate(BaseModel):
+    token:str
+    stroe_id:int
+    role_id:str
+    role_name:str
+    role:str
+    role_authority:int
+
+# 定义角色比例路由数据模型
+class RoleRatio(BaseModel):
+    stroe_id:int

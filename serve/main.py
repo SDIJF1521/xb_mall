@@ -13,6 +13,7 @@ from services.verification_code import VerificationCode
 from data.redis_client import RedisClient
 from data.mongodb_client import mongodb_client
 from contextlib import asynccontextmanager
+from starlette.middleware.base import BaseHTTPMiddleware
     
 from routes.verification_code import router as verification_router
 from routes.verify_code import router as verify_code_router
@@ -56,7 +57,10 @@ from routes.buyer_amend_user import router as buyer_amend_user_router
 from routes.buyer_get_role import router as buyer_get_role_router
 from routes.buyter_role_code_get import router as buter_role_code_get_router
 from routes.buyer_role_add import router as buyer_role_add_router
-from starlette.middleware.base import BaseHTTPMiddleware
+from routes.buyter_delete_role import router as buyter_delete_role_router
+from routes.buyer_role_info import router as buyer_role_info_router
+from routes.buyer_update_role import router as buyer_update_role_router
+from routes.buyer_role_ratio import router as buyer_role_ratio_router
 
 from routes.manage_sign_in import router as manage_sign_in_router
 from routes.management_verify import router as management_verify_router
@@ -321,6 +325,18 @@ app.include_router(buter_role_code_get_router,prefix='/api')
 
 # 买家端添加角色路由
 app.include_router(buyer_role_add_router,prefix='/api')
+
+# 买家端删除角色路由
+app.include_router(buyter_delete_role_router,prefix='/api')
+
+# 买家端获取角色信息路由
+app.include_router(buyer_role_info_router,prefix='/api')
+
+# 买家端更新角色路由
+app.include_router(buyer_update_role_router,prefix='/api')
+
+# 买家端角色比例路由
+app.include_router(buyer_role_ratio_router,prefix='/api')
 
 
 

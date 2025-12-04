@@ -1,3 +1,4 @@
+from base64 import b64encode
 from typing import Annotated
 from datetime import datetime, timedelta
 
@@ -41,11 +42,19 @@ async def  DuyerSideToken(data: Annotated[SellerSignIn,Form()], db: Connection =
                         'exp':str(expire_timestamp)
                     }
                 token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
+                info = {"user":sql_data[0][0]}
+                print(sql_data[0][2])
+                with open(sql_data[0][2] if sql_data[0][2] else './buyer_use_img/通用/通用.png', "rb") as image_file:
+                    encoded_string = b64encode(image_file.read()).decode('utf-8')
+                    info['img'] = encoded_string
+
+
+
                 
                 await redis.set(f'buyer_{data.user}',expire_timestamp)
 
 
-                return {'msg':'token生成成功','token':token,"token_type": "bearer",'current':True}
+                return {'msg':'token生成成功','token':token,"token_type": "bearer",'current':True,'info':info}
             else:
                 return {'msg':'用户名或密码错误','current':False}
 
@@ -64,8 +73,13 @@ async def  DuyerSideToken(data: Annotated[SellerSignIn,Form()], db: Connection =
                     }
                 token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
                 expire_timestamp = int(expire.timestamp())
+                info = {"user":sel_data[0][1]}
+                print(info)
+                with open(sel_data[0][5] if sel_data[0][5] else './buyer_use_img/通用/通用.png', "rb") as image_file:
+                    encoded_string = b64encode(image_file.read()).decode('utf-8')
+                    info['img'] = encoded_string
                 await redis.set(f'buyer_{data.user}',expire_timestamp)
-                return {'msg':'token生成成功','token':token,"token_type": "bearer",'current':True}
+                return {'msg':'token生成成功','token':token,"token_type": "bearer",'current':True,'info':info}
             else:
                 return {'msg':'用户名或密码错误','current':False}
 

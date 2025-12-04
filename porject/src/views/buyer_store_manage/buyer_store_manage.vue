@@ -17,8 +17,9 @@
               <el-row :gutter="10" style="width: 100%;">
                 <el-col :span="12">
                   <el-image
-                    :src="'data:image/png;base64,'+item.img"
-                    style="width: 100%; height: 200px; object-fit: cover;">
+                    :src="item.img ? 'data:image/png;base64,'+item.img : defaultStoreImg"
+                    style="width: 100%; height: 200px; object-fit: cover;"
+                    fit="cover">
                     <template #error>
                       <div class="image-slot">
                         <el-icon><Picture /></el-icon>
@@ -72,6 +73,7 @@
   defineOptions({
     name:'BuyerStoreManage',
   })
+  const defaultStoreImg = 'https://img2.baidu.com/it/u=3422222222,2822222222&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=500'
 
   const Axios = axios.create({
     baseURL: "http://127.0.0.1:8000/api"

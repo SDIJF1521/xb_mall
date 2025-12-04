@@ -27,6 +27,7 @@ import BuyerUserManage from '@/views/buyer_store_user_manage/buyer_user_manage.v
 import BuyerUserList from '@/views/buyer_select/buyer_select.vue';
 import BuyerUserListId from '@/views/buyer_user_list_id/buyer_user_list_id.vue'
 import BuyerRoleList from '@/views/buyer_role_list/buter_role_list.vue'
+import BuyerUserStatistics from '@/views/buyer_user_statistics/buyer_user_statistics.vue'
 
 
 
@@ -180,6 +181,12 @@ const routes: Array<RouteRecordRaw> = [
     path:'/buyer_role_list/:id',
     name:'BuyerRoleList',
     component:BuyerRoleList
+  },
+  // 买家端用户统计页
+  {
+    path:'/buyer_user_statistics/:id',
+    name:'BuyerUserStatistics',
+    component:BuyerUserStatistics
   },
   // 管理员管理页——商家审核
   {
