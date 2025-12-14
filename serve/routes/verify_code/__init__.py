@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException
 router = APIRouter()
 
 def get_verifier():
+    
     # 从 main.py 引入 verifier 实例
     from main import verifier
     return verifier

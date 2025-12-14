@@ -92,7 +92,6 @@ import { User, Lock, Star, Right } from '@element-plus/icons-vue'
 import {ElMessage} from 'element-plus'
 import axios from 'axios';
 import router from '@/router'
-import { lo } from 'element-plus/es/locales.mjs';
 
 
 const Axios = axios.create({
@@ -123,10 +122,10 @@ const handleLogin = async () => {
     const url_from_data = new FormData()
     url_from_data.append('user',from_data.user_name)
     url_from_data.append('password',from_data.password)
+    url_from_data.append('station',from_data.type)
     if (from_data.type == '2'){
         url_from_data.append('mall_id',from_data.mall_id)
     }
-    url_from_data.append('station',from_data.type)
     Axios.post('/buyer_side_token',url_from_data)
     .then(async res=>{
         if (res.status ==200){
@@ -288,6 +287,50 @@ defineOptions({ name: 'BuyerSideSing' })
         transform: translateY(-5%);
 
 
+    }
+    .custom-input {
+        background-color: white !important;
+    }
+
+    .custom-input :deep(.el-input__wrapper) {
+        background-color: white !important;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .custom-input :deep(.el-input__wrapper:hover) {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border-color: #667eea;
+    }
+
+    .custom-input :deep(.el-input__wrapper.is-focus) {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+
+    .custom-input:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+
+    .custom-select {
+        background-color: white !important;
+    }
+
+    .custom-select :deep(.el-select__wrapper) {
+        background-color: white !important;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .custom-select :deep(.el-select__wrapper:hover) {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border-color: #667eea;
+    }
+
+    .custom-select :deep(.el-select__wrapper.is-focused) {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
     }
 
     /* 响应式设计 */

@@ -11,8 +11,8 @@
           <template #header>
             <div class="card-header">
               <span class="store-name">{{ store.mall_name }}</span>
-              <el-tag :type="store.state === 1 ? 'success' : 'danger'" size="small">
-                {{ store.state === 1 ? '营业中' : '已关闭' }}
+              <el-tag :type="store.state === 1 && store.state_platform === 1 ? 'success' : 'danger'" size="small">
+                {{ store.state === 1 && store.state_platform === 1 ? '营业中' : '已关闭' }}
               </el-tag>
             </div>
           </template>
@@ -98,6 +98,7 @@ interface Store {
   site: string
   phone: string
   time: string
+  state_platform: number
 }
 
 const searchQuery = ref('')

@@ -22,14 +22,15 @@ class VerifyDuterToken:
         token_data = await self.token_data()
 
         if not token_data is None:
-            if token_data.get('station') == '1':
+            if token_data.get('station') == '1' and token_data.get('state') == 1:
 
                 if sql_data and token_data.get('exp') == str(await self.redis_client.get(f'buyer_{token_data.get("user")}')):
+
                     return [True,"admin"]
                 else:
                     return [False]
-            elif token_data['station'] == '2':
-                if sql_data and token_data.get('exp') == str(await self.redis_client.get(f'buyer_{token_data.get("user")}')):
+            elif token_data['station'] == '2' and token_data.get('state') == 1:
+                if sql_data and token_data.get('exp') == str(await self.redis_client.get(f'buyer_{token_data.get("mall_id")}_{token_data.get("user")}')):
                     return [True,"user"]
                 else:
                     return [False]

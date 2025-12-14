@@ -84,6 +84,9 @@ onMounted(()=>{
         case '/buyer_user_manage':
             selected.value = '5'
             break;
+        case '/buyer_commodity_management':
+            selected.value = '4'
+            break;
 
 
     }
@@ -98,6 +101,8 @@ const handleSelect = (index:string)=>{
         router.push('/buyer_store_management')
     }else if (index =='5'){
         router.push('/buyer_user_manage')
+    }else if (index =='4'){
+        router.push('/buyer_commodity_management')
     }
 }
 

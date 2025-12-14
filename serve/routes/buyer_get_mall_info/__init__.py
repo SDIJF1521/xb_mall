@@ -32,7 +32,7 @@ async def buyer_get_mall_info(data:Annotated[GetMallInfo,Form()],db: Connection 
         if sql_mall_info:
             # 假设数据库结构为：id, user, mall_name, phone, site, info, img_path, time
             # 注意：第6个字段(i[6])应该是img_path而不是img
-            rtn = [{"id":i[0],"user":i[1],"mall_name":i[2],"phone":i[3],"site":i[4],"info":i[5],"img":i[6],"time":i[7],'state':i[8]}for i in sql_mall_info]
+            rtn = [{"id":i[0],"user":i[1],"mall_name":i[2],"phone":i[3],"site":i[4],"info":i[5],"img":i[6],"time":i[7],'state':i[8],'state_platform':i[9]}for i in sql_mall_info]
             for i in rtn:
                 with open(i['img'], 'rb') as f:
                     i['img'] = base64.b64encode(f.read()).decode('utf-8')

@@ -19,6 +19,7 @@ import BuyerTheme from '@/moon/buyer_theme';
 import RoleRatio from '@/views/buyer_user_statistics/content/role_ratio.vue'
 import UserListMain from '@/views/buyer_user_list_id/content/user_list_main.vue'
 import RoleListMain from '@/views/buyer_role_list/content/role_list_main.vue'
+import CommodityAdd from '@/views/buyer_commodity_add/content/commodity_add.vue'
 
 defineOptions({
     name: 'BuyerTemplate',
@@ -27,6 +28,7 @@ defineOptions({
         UserListMain,
         RoleRatio,
         RoleListMain,
+        CommodityAdd,
     }
 })
 
@@ -59,6 +61,9 @@ onMounted(() => {
   } else if (route.path.startsWith('/buyer_user_statistics')) {
     title.value = '小白的商城-用户统计页';
     console.log('设置用户统计页标题，新值:', title.value);
+  }else if (route.path.startsWith('/buyer_commodity_add')) {
+    title.value = '小白的商城-商品添加页';
+    console.log('设置商品添加页标题，新值:', title.value);
   }else {
     title.value = '小白的商城';
     console.log('设置默认标题，新值:', title.value);

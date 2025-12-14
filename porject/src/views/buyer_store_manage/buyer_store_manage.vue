@@ -11,7 +11,9 @@
             <template #header>
               <div class="card-header">
                 <span class="mall-name">{{item.mall_name}}</span>
-                <el-tag :type="item.state==1?'success':'danger'" size="small">{{item.state==1?'营业中':'已关闭'}}</el-tag>
+                <el-tag :type="item.state===1 && item.state_platform === 1?'success':'danger'" size="small">
+                  {{item.state===1 && item.state_platform === 1?'营业中':'已关闭'}}
+                </el-tag>
               </div>
             </template>
               <el-row :gutter="10" style="width: 100%;">
@@ -87,7 +89,8 @@
     phone?:string,
     site?:string,
     time?:string,
-    state?:number
+    state?:number,
+    state_platform?:number
   }
   const store = ref<StoreInfoList[]>([])
   const token = localStorage.getItem('buyer_access_token')

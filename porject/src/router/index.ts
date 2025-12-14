@@ -28,6 +28,8 @@ import BuyerUserList from '@/views/buyer_select/buyer_select.vue';
 import BuyerUserListId from '@/views/buyer_user_list_id/buyer_user_list_id.vue'
 import BuyerRoleList from '@/views/buyer_role_list/buter_role_list.vue'
 import BuyerUserStatistics from '@/views/buyer_user_statistics/buyer_user_statistics.vue'
+import BuyerCommodityManagement from '@/views/buyer_commodity_management/buyer_commodity_management.vue'
+import BuyerCommodityAdd from '@/views/buyer_commodity_add/buyer_commodity_add.vue'
 
 
 
@@ -187,6 +189,18 @@ const routes: Array<RouteRecordRaw> = [
     path:'/buyer_user_statistics/:id',
     name:'BuyerUserStatistics',
     component:BuyerUserStatistics
+  },
+  // 买家端商品管理页
+  {
+    path:'/buyer_commodity_management',
+    name:'BuyerCommodityManagement',
+    component:BuyerCommodityManagement
+  },
+  // 买家端商品添加页
+  {
+    path:'/buyer_commodity_add/:id',
+    name:'BuyerCommodityAdd',
+    component:BuyerCommodityAdd
   },
   // 管理员管理页——商家审核
   {

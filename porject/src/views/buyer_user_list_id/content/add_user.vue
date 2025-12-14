@@ -240,6 +240,11 @@ const handlePictureChange = async (file: UploadFile) => {
       return
     }
 
+    // 验证图片大小（2MB限制）
+    if (!validateImageSize(file.raw)) {
+      return
+    }
+
     const base64String = await fileToBase64(file.raw)
     previewImage.value = base64String
     formData.img = file

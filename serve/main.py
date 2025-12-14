@@ -2,9 +2,12 @@ import time
 from typing import Annotated
 
 import logging
-from fastapi import FastAPI, Form, Query,Request
+from fastapi import FastAPI, Form, Query,Request,Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from contextlib import asynccontextmanager
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.interval import IntervalTrigger
 
 from config.log_config import logger
 
@@ -13,6 +16,8 @@ from services.verification_code import VerificationCode
 from data.redis_client import RedisClient
 from data.mongodb_client import mongodb_client
 from contextlib import asynccontextmanager
+from data.sql_client import get_db,execute_db_query
+from data.sql_client_pool import db_pool
 from starlette.middleware.base import BaseHTTPMiddleware
     
 from routes.verification_code import router as verification_router
@@ -61,10 +66,18 @@ from routes.buyter_delete_role import router as buyter_delete_role_router
 from routes.buyer_role_info import router as buyer_role_info_router
 from routes.buyer_update_role import router as buyer_update_role_router
 from routes.buyer_role_ratio import router as buyer_role_ratio_router
+from routes.buyer_commoidt_add import router as buyer_commoidt_add_router
+from routes.buter_get_classify import router as get_classify_router
 
 from routes.manage_sign_in import router as manage_sign_in_router
 from routes.management_verify import router as management_verify_router
 from routes.management_mall_info import router as management_mall_info_router
+from routes.manage_merchant_freeze import router as manage_merchant_freeze_router
+from routes.manage_merchant_unfreeze import router as manage_merchant_unfreeze_router
+from routes.manage_merchant_delete import router as manage_merchant_delete_router
+
+
+
 from routes.user_list import router as user_list_router
 from routes.today_user_list import router as today_user_list_router
 from routes.number_merchants import router as number_merchants_router
@@ -77,6 +90,46 @@ from routes.delete_token_time import router as delete_token_time_router
 from routes.cs import router as cs_router
 
 redis_client = RedisClient()
+scheduler = AsyncIOScheduler()
+
+# ---------------------- 定时任务----------------------
+async def user_sql_redis_state():
+    """定时任务函数：同步用户在线状态到数据库并清理过期数据"""
+    start_time = time.time()
+    try:
+        # 使用连接池执行查询，只查询状态不为1的用户
+        user_state_data1 = await db_pool.execute_query(
+            'select user,mall_state from mall_info where mall_state != 1')
+        user_state_data2 = await db_pool.execute_query(
+            'select store_id,user,state from store_user where state != 1')
+        
+        # 批量删除Redis键
+        redis_keys_to_delete = []
+        
+        if user_state_data1:
+            for user, mall_state in user_state_data1:
+                redis_keys_to_delete.append(f"buyer_{user}")
+        
+        if user_state_data2:
+            for store_id, user, state in user_state_data2:
+                redis_keys_to_delete.append(f"buyer_{store_id}_{user}")
+        
+        # 批量删除Redis键
+        if redis_keys_to_delete:
+            for key in redis_keys_to_delete:
+                await redis_client.delete(key)
+        
+        # 记录执行时间
+        execution_time = time.time() - start_time
+        if execution_time > 1.0:  # 如果执行时间超过1秒，记录警告
+            logger.warning(f"用户状态同步任务执行时间较长: {execution_time:.2f}秒")
+        elif execution_time > 0.1:  # 正常执行时间超过0.1秒也记录
+            logger.info(f"用户状态同步任务执行完成: {execution_time:.2f}秒")
+            
+    except Exception as e:
+        logger.error(f"用户状态同步任务执行失败: {str(e)}")
+    
+
 # 定义 lifespan 事件处理器
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -89,20 +142,30 @@ async def lifespan(app: FastAPI):
         await redis_client.connect()
         await mongodb_client.connect()  # 连接MongoDB
         await verifier.connect()  # 连接验证码模块的 Redis 客户端
+        await db_pool.create_pool()  # 创建数据库连接池
         # 连接日志已移至文件，减少终端输出
         logger.info("Redis 连接已建立")
         logger.info("MongoDB 连接已建立")
+        logger.info("数据库连接池已创建")
+        scheduler.add_job(user_sql_redis_state, IntervalTrigger(seconds=20))
+        scheduler.start()
+        logger.info("定时任务已启动-用户状态检测")
         yield
+        scheduler.shutdown()
+        logger.info("定时任务已停止-用户状态检测")
     except Exception as e:
         print(f"应用启动失败: {str(e)}")
+        logger.error(f"应用启动失败: {str(e)}")
     finally:
         # 应用关闭时的逻辑
         await redis_client.close()
         await mongodb_client.close()  # 关闭MongoDB连接
         await verifier.close()  # 关闭验证码模块的 Redis 客户端
+        await db_pool.close_pool()  # 关闭数据库连接池
         # 关闭日志已移至文件，减少终端输出
         logger.info("Redis 连接已关闭")
         logger.info("MongoDB 连接已关闭")
+        logger.info("数据库连接池已关闭")
 
 logger = logging.getLogger("fastapi_logger")
 # 注册fatsApi应用
@@ -248,6 +311,15 @@ app.include_router(manage_sign_in_router,prefix='/api')
 # 管理员验证路由
 app.include_router(management_verify_router,prefix='/api')
 
+# 冻结商家路由
+app.include_router(manage_merchant_freeze_router,prefix='/api')
+
+# 解冻商家路由
+app.include_router(manage_merchant_unfreeze_router,prefix='/api')
+
+# 删除商家路由
+app.include_router(manage_merchant_delete_router,prefix='/api')
+
 # 删除token时间戳路由
 app.include_router(delete_token_time_router,prefix='/api')
 
@@ -338,12 +410,13 @@ app.include_router(buyer_update_role_router,prefix='/api')
 # 买家端角色比例路由
 app.include_router(buyer_role_ratio_router,prefix='/api')
 
+# 获取分类路由
+app.include_router(get_classify_router,prefix='/api')
+
 
 
 # 商品添加路由
-@app.patch('/Product_upload')
-async def product_upload(data: Annotated[AddMall, Form()])->list:
-    pass
+app.include_router(buyer_commoidt_add_router,prefix='/api')
 
 # 商品查询路由
 @app.get('/select')

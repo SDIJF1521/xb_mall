@@ -34,11 +34,14 @@ async def  DuyerSideToken(data: Annotated[SellerSignIn,Form()], db: Connection =
     try:
         if data.station == '1':
             sql_data = await execute_db_query(db,'select * from seller_sing where user = %s and password = %s',(data.user,data.password))
-            if sql_data:
+            state = await execute_db_query(db,
+                                           "select mall_state from mall_info where user = %s",(data.user,))
+            if sql_data and state[0][0] == 1:
                 payload = {
                         'user': sql_data[0][0],
                         'station':data.station,
                         'role':-1,
+                        "state":state[0][0],
                         'exp':str(expire_timestamp)
                     }
                 token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
@@ -61,14 +64,15 @@ async def  DuyerSideToken(data: Annotated[SellerSignIn,Form()], db: Connection =
 
 
         elif data.station == '2':
-            print(data.mall_id)
+
             sel_data = await execute_db_query(db,'select * from store_user where user = %s and (password = %s and store_id = %s)',(data.user,data.password,data.mall_id))
-            if sel_data:
+            if sel_data and sel_data[0][6] == 1:
                 payload = {
                         'user': sel_data[0][1],
                         'station':data.station,
                         'role':sel_data[0][3],
                         'mall_id':sel_data[0][0],
+                        "state":sel_data[0][6],
                         'exp':str(expire_timestamp)
                     }
                 token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
@@ -78,7 +82,7 @@ async def  DuyerSideToken(data: Annotated[SellerSignIn,Form()], db: Connection =
                 with open(sel_data[0][5] if sel_data[0][5] else './buyer_use_img/通用/通用.png', "rb") as image_file:
                     encoded_string = b64encode(image_file.read()).decode('utf-8')
                     info['img'] = encoded_string
-                await redis.set(f'buyer_{data.user}',expire_timestamp)
+                await redis.set(f'buyer_{sel_data[0][0]}_{data.user}',expire_timestamp)
                 return {'msg':'token生成成功','token':token,"token_type": "bearer",'current':True,'info':info}
             else:
                 return {'msg':'用户名或密码错误','current':False}

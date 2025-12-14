@@ -15,7 +15,6 @@ async def VerifyToken(token:str,db: Connection = Depends(get_db),redis: RedisCli
     try:
         token_verify = VerifyDuterToken(token,redis)
         token_data = await token_verify.token_data()
-
         if not token_data is None:
             if token_data.get('station') == '1':
                 sql_data = await execute_db_query(db,'select user from seller_sing where user = %s',(token_data.get('user')))

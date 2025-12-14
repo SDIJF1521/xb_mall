@@ -1,10 +1,9 @@
-from typing import Optional,List
+from typing import Optional,List,Tuple
 from fastapi import File, UploadFile
 from pydantic import BaseModel,EmailStr
 from datetime import time
 
 from pydantic import Field
-
 # 定义商品添加数据模型
 class AddMall(BaseModel):
     Name: str
@@ -114,6 +113,16 @@ class ApplySellerReject(BaseModel):
 
 # 定义管理员获取商家信息路由数据模型
 class ManagementGetMall(BaseModel):
+    token:str
+    name:str
+
+# 定义冻结商家路由数据模型
+class FreezeMerchant(BaseModel):
+    token:str
+    name:str
+
+# 定义删除商家路由数据模型
+class DeleteMerchant(BaseModel):
     token:str
     name:str
 
@@ -237,3 +246,15 @@ class BuyerRoleUpdate(BaseModel):
 # 定义角色比例路由数据模型
 class RoleRatio(BaseModel):
     stroe_id:int
+
+# 定义商品添加路由数据模型
+class CommodityAdd(BaseModel):
+    token:str
+    stroe_id:int
+    name:str
+    type:Optional[Tuple[str]] = Field(None, description="商品类型，可选参数") 
+    img_list:List[UploadFile] = Field(..., min_items=1, description="商品图片列表，至少一个")
+    price:float
+    classify_categorize:int
+    stock:int
+    info:str

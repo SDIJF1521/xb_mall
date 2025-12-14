@@ -20,6 +20,7 @@ const AUTH_REQUIRED_ROUTES = ['BuyerIndex',
                               "BuyerUserListId",
                               "BuyerStoreManageIndex",
                               "BuyerUserStatistics",
+                              "BuyerCommodityAdd",
                             ];
 
 // 验证令牌有效性

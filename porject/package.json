@@ -21,10 +21,10 @@
     "element-plus": "^2.10.1",
     "file-saver": "^2.0.5",
     "pinia": "^3.0.3",
+    "sheetjs-style": "^0.15.8",
     "vue": "^3.5.13",
     "vue-echarts": "^7.0.3",
-    "vue-router": "^4.5.1",
-    "xlsx": "^0.18.5"
+    "vue-router": "^4.5.1"
   },
   "devDependencies": {
     "@tsconfig/node22": "^22.0.1",

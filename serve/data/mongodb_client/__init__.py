@@ -1,6 +1,7 @@
 import motor.motor_asyncio
 from typing import Optional, Dict, Any, List
 from pymongo import MongoClient
+from bson import ObjectId
 from config.mongodb_config import settings
 import logging
 
@@ -76,6 +77,37 @@ class MongoDBClient:
             raise RuntimeError("MongoDB客户端未连接")
         return self.database[collection_name]
     
+    def _convert_objectid_to_str(self, doc: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        """将文档中的ObjectId转换为字符串"""
+        if doc is None:
+            return None
+        
+        # 创建文档的副本，避免修改原始数据
+        converted_doc = doc.copy()
+        
+        # 转换 _id 字段
+        if '_id' in converted_doc and isinstance(converted_doc['_id'], ObjectId):
+            converted_doc['_id'] = str(converted_doc['_id'])
+        
+        # 递归转换嵌套文档中的ObjectId
+        for key, value in converted_doc.items():
+            if isinstance(value, ObjectId):
+                converted_doc[key] = str(value)
+            elif isinstance(value, dict):
+                converted_doc[key] = self._convert_objectid_to_str(value)
+            elif isinstance(value, list):
+                converted_doc[key] = [
+                    self._convert_objectid_to_str(item) if isinstance(item, dict) else 
+                    str(item) if isinstance(item, ObjectId) else item
+                    for item in value
+                ]
+        
+        return converted_doc
+    
+    def _convert_docs_objectid_to_str(self, docs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """将多个文档中的ObjectId转换为字符串"""
+        return [self._convert_objectid_to_str(doc) for doc in docs]
+    
     async def insert_one(self, collection_name: str, document: Dict[str, Any]) -> str:
         """插入单个文档"""
         collection = self.get_collection(collection_name)
@@ -91,7 +123,8 @@ class MongoDBClient:
     async def find_one(self, collection_name: str, filter_dict: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """查询单个文档"""
         collection = self.get_collection(collection_name)
-        return await collection.find_one(filter_dict)
+        result = await collection.find_one(filter_dict)
+        return self._convert_objectid_to_str(result)
     
     async def find_many(self, collection_name: str, filter_dict: Dict[str, Any] = None, 
                        limit: int = None, skip: int = None, sort: List[tuple] = None) -> List[Dict[str, Any]]:
@@ -108,7 +141,8 @@ class MongoDBClient:
         if sort:
             cursor = cursor.sort(sort)
         
-        return await cursor.to_list(length=None)
+        results = await cursor.to_list(length=None)
+        return self._convert_docs_objectid_to_str(results)
     
     async def update_one(self, collection_name: str, filter_dict: Dict[str, Any], 
                         update_dict: Dict[str, Any], upsert: bool = False) -> int:
