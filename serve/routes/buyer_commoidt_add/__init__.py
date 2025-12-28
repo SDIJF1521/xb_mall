@@ -1,4 +1,5 @@
 import os
+import json
 from datetime import date
 from typing import Annotated,List
 from pydantic import Field
@@ -23,8 +24,14 @@ async def commodity_add(data:Annotated[CommodityAdd,Form(),File()],
     
     verify_duter_token = VerifyDuterToken(data.token,redis)
     token_data = await verify_duter_token.token_data()
+
+    # Check if token_data is valid
+    if token_data is None:
+        return {"code":403,"msg":"无效的token",'current':False}
+
     async def execute():
         sql_data = await execute_db_query(db,'select MAX(shopping_id) from shopping where mall_id = %s',(data.stroe_id))
+        specification_sql = await execute_db_query(db,'select MAX(specification_id) from specification where mall_id = %s',(data.stroe_id))
         img = []
         print(sql_data)
         if not sql_data[0][0] is None:
@@ -35,8 +42,22 @@ async def commodity_add(data:Annotated[CommodityAdd,Form(),File()],
         
 
         await execute_db_query(db,
-                               'insert into shopping(mall_id,shopping_id,stock,money,classify_categorize,time) values(%s,%s,%s,%s,%s,%s)',
-                               (data.stroe_id,shopping_id,data.stock,data.price,data.classify_categorize,date.today().strftime("%Y-%m-%d")))
+                               'insert into shopping(mall_id,shopping_id,classify_categorize,time) values(%s,%s,%s,%s)',
+                               (data.stroe_id,shopping_id,data.classify_categorize,date.today().strftime("%Y-%m-%d")))
+        if not specification_sql[0][0] is None:
+            specification_id = int(specification_sql[0][0])
+        else:
+            specification_id = 0
+
+        sku_list = json.loads(data.sku_list) if data.sku_list else []
+
+        for i in sku_list:
+           specification_id+=1
+           await execute_db_query(db,
+                                'insert into specification(mall_id,shopping_id,specification_id,price,stock) values (%s,%s,%s,%s,%s)',
+                                (data.stroe_id,shopping_id,specification_id,i.get('price'),i.get('stock'))
+           )
+           i.update({'specification_id':specification_id})
         
         path = f'./shopping_img/{data.stroe_id}_{shopping_id}'
         if not os.path.exists(path):
@@ -51,12 +72,11 @@ async def commodity_add(data:Annotated[CommodityAdd,Form(),File()],
                         "shopping_id":shopping_id,
                         "name":data.name,
                         "type":data.type,
-                        "price":data.price,
-                        "classify_categorize":data.classify_categorize,
-                        "stock":data.stock,
                         "info":data.info,
                         "img_list":img,
-                        "time":date.today().strftime("%Y-%m-%d")
+                        "specification_list":sku_list,
+                        "time":date.today().strftime("%Y-%m-%d"),
+                        "audit":0
                         }
         await mongodb.insert_one('shopping',mongodb_data)
 

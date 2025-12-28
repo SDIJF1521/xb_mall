@@ -16,13 +16,14 @@ async def get_apply_seller_list(token:str=Form(min_length=6), db:aiomysql.Connec
         admin_tokrn_content = await verify.token_admin()
         if admin_tokrn_content['current']:
             data = await execute_db_query(db,'select user from manage_user where user = %s',admin_tokrn_content['user'])
-
+            
             Verify_data = await verify.run(data)
             if Verify_data['current']:
                 sql_data = await execute_db_query(db,'select * from shop_apply where state = 1')
+                page = await execute_db_query(db,'select count(*) from shop_apply where state = 1')
                 if sql_data:
                     user_list = [list(i) for i in sql_data]
-                    return {'apply_list':user_list,'current':True}
+                    return {'apply_list':user_list,'current':True,'page':page[0][0]}
                 else:
                     return {'apply_list':[],'current':True}
             else:

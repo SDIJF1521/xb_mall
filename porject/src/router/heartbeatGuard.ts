@@ -19,7 +19,7 @@ const EXCLUDED_ROUTES = [
   "BuyerAddMallSuccess",  // 买家端创建店铺页
   "BuyerDeleteMall", // 买家端删除店铺页
   "BuyerStoreManage", // 买家端店铺管理页
-  "BuyerUserManage", // 买家端用户管理页
+  'BuyerUserManage', // 买家端用户管理页
   "BuyerUserList", // 买家端用户列表页
   "BuyerUserListId", // 买家端用户列表页——用户详情页
   "BuyerRoleList", // 买家端角色列表页
@@ -29,6 +29,9 @@ const EXCLUDED_ROUTES = [
   "BuyerRoleList", // 买家端角色列表页
   "BuyerUserStatistics", // 买家端用户统计页
   "BuyerCommodityAdd", // 买家端商品添加页
+  "BuyerCommodityList", // 买家端商品列表页
+  "ManagementCommodity", // 管理员端商品管理页
+  "BuyerCommodityManagement" //卖家端商品管理页
 ];
 
 export function setupHeartbeatGuard(router: Router) {

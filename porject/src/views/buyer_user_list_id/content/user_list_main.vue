@@ -91,12 +91,21 @@
     </el-table-column>
 
    </el-table>
+   <div style="display: flex; justify-content: center; margin-top: 20px;">
+    <el-pagination
+    v-if="page !== null"
+    :page-size="20"
+    :pager-count="11"
+    layout="prev, pager, next"
+    :total="page"
+    @current-change="handleCurrentChange"
+  />
+   </div>
 </template>
 <script setup lang="ts">
-import {ref,onMounted,computed} from 'vue'
+import {ref,onMounted} from 'vue'
 import axios from 'axios'
 import { useRoute } from 'vue-router'
-import type { TableInstance } from 'element-plus'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import AddUser from '@/views/buyer_user_list_id/content/add_user.vue'
 import ChangeUser from '@/views/buyer_user_list_id/content/change_user.vue'
@@ -108,7 +117,7 @@ defineOptions({
         ChangeUser
     }
 })
-
+const page = ref(null)
 const route = useRoute().params
 
 const Axios = axios.create({
@@ -137,7 +146,6 @@ const dialog_title = ref('')
 const selectedUser = ref<User | null>(null)
 const roleOptions = ref<RoleOption[]>([])
 
-const multipleTableRef = ref<TableInstance>()
 const multipleSelection = ref<User[]>([])
 const dialogVisible = ref(false)
 
@@ -157,6 +165,12 @@ const getAuthorityTagType = (authority: number): string => {
 const getAuthorityName = (authority: number): string => {
   const role = roleOptions.value.find(role => role.id === authority)
   return role ? role.name : '未知权限'
+}
+
+// 处理分页变化
+const handleCurrentChange = (val: number) => {
+  console.log(`当前页: ${val}`)
+  all_user_list(val)
 }
 
 // 获取权限列表
@@ -217,17 +231,19 @@ const tableData = ref<User[]>([
 ])
 
 
-async function all_user_list(){
+async function all_user_list(api_page:number=1){
   try{
     const formdata = new FormData()
     formdata.append('token',token||'')
     formdata.append('id',id.value.toString())
+    formdata.append('page',api_page.toString())
     const res = await Axios.post('/buyer_mall_user_list',formdata)
 
     // 验证响应数据结构
     if(res.data && res.data.code === 200){
       if (res.data.current === true && Array.isArray(res.data.data)){
         tableData.value = res.data.data
+        page.value = res.data.page
       } else {
         console.warn('API返回数据格式异常:', res.data)
         tableData.value = []

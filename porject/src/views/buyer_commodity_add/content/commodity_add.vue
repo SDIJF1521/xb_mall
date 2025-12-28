@@ -35,37 +35,6 @@
                 </el-input>
               </el-form-item>
 
-              <el-form-item label="商品价格" prop="price">
-                <el-input-number
-                  v-model="formData.price"
-                  :min="0"
-                  :precision="2"
-                  :step="0.1"
-                  placeholder="请输入商品价格"
-                  size="large"
-                  style="width: 100%"
-                >
-                  <template #prefix>
-                    <span style="color: #f56c6c">¥</span>
-                  </template>
-                </el-input-number>
-              </el-form-item>
-
-              <el-form-item label="商品库存" prop="stock">
-                <el-input-number
-                  v-model="formData.stock"
-                  :min="0"
-                  :step="1"
-                  placeholder="请输入商品库存数量"
-                  size="large"
-                  style="width: 100%"
-                >
-                  <template #prefix>
-                    <el-icon><Box /></el-icon>
-                  </template>
-                </el-input-number>
-              </el-form-item>
-
               <el-form-item label="商品分类" prop="category_id">
                 <el-select
                   v-model="formData.category_id"
@@ -128,6 +97,140 @@
                   </el-button>
                 </div>
                 <div class="tag-tip">最多可添加8个标签，按回车确认</div>
+              </el-form-item>
+
+              <!-- 商品规格 -->
+              <el-form-item label="商品规格" prop="specifications" required>
+                <div class="specifications-container">
+                  <div v-if="formData.specifications.length === 0" class="spec-empty-tip">
+                    <el-alert
+                      type="warning"
+                      :closable="false"
+                      show-icon
+                    >
+                      <template #title>
+                        <span>请至少添加一个商品规格（如：颜色、尺寸等）</span>
+                      </template>
+                    </el-alert>
+                  </div>
+                  <div v-for="(spec, specIndex) in formData.specifications" :key="specIndex" class="spec-item">
+                    <div class="spec-header">
+                      <el-input
+                        v-model="spec.name"
+                        placeholder="规格名称（如：颜色、尺寸）"
+                        size="default"
+                        class="spec-name-input"
+                        @blur="handleSpecNameBlur"
+                      />
+                      <el-button
+                        type="danger"
+                        size="small"
+                        :icon="Close"
+                        circle
+                        @click="removeSpecification(specIndex)"
+                        class="remove-spec-btn"
+                      />
+                    </div>
+                    <div class="spec-values">
+                      <el-tag
+                        v-for="(value, valueIndex) in spec.values"
+                        :key="valueIndex"
+                        closable
+                        @close="removeSpecValue(specIndex, valueIndex)"
+                        class="spec-value-tag"
+                        effect="plain"
+                      >
+                        {{ value }}
+                      </el-tag>
+                      <el-input
+                        v-if="spec.inputVisible"
+                        ref="specValueInputRef"
+                        v-model="spec.inputValue"
+                        class="spec-value-input"
+                        size="small"
+                        @keyup.enter="handleSpecValueConfirm(specIndex)"
+                        @blur="handleSpecValueConfirm(specIndex)"
+                        placeholder="输入规格值"
+                      />
+                      <el-button
+                        v-else
+                        class="add-spec-value-btn"
+                        size="small"
+                        @click="showSpecValueInput(specIndex)"
+                      >
+                        <el-icon><Plus /></el-icon>
+                        添加值
+                      </el-button>
+                    </div>
+                    <div v-if="spec.name && spec.values.length === 0" class="spec-value-warning">
+                      <el-text type="warning" size="small">请为该规格添加至少一个值</el-text>
+                    </div>
+                  </div>
+                  <el-button
+                    v-if="formData.specifications.length < 3"
+                    type="primary"
+                    plain
+                    size="default"
+                    @click="addSpecification"
+                    class="add-spec-btn"
+                  >
+                    <el-icon><Plus /></el-icon>
+                    添加规格
+                  </el-button>
+                  <div v-if="formData.specifications.length > 0" class="spec-tip">
+                    最多可添加3个规格，每个规格可添加多个值
+                  </div>
+                </div>
+              </el-form-item>
+
+              <!-- 规格组合（SKU） -->
+              <el-form-item
+                v-if="skuList.length > 0"
+                label="规格组合"
+                prop="skuList"
+              >
+                <div class="sku-container">
+                  <el-table :data="skuList" border stripe class="sku-table">
+                    <el-table-column prop="specs" label="规格组合" width="300">
+                      <template #default="{ row }">
+                        <el-tag
+                          v-for="(spec, index) in row.specs"
+                          :key="index"
+                          class="sku-tag"
+                          type="info"
+                          effect="plain"
+                        >
+                          {{ spec }}
+                        </el-tag>
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="价格" width="200">
+                      <template #default="{ row, $index }">
+                        <el-input-number
+                          v-model="row.price"
+                          :min="0"
+                          :precision="2"
+                          :step="0.1"
+                          size="default"
+                          style="width: 100%"
+                          @change="updateSkuPrice($index, $event)"
+                        />
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="库存" width="200">
+                      <template #default="{ row, $index }">
+                        <el-input-number
+                          v-model="row.stock"
+                          :min="0"
+                          :step="1"
+                          size="default"
+                          style="width: 100%"
+                          @change="updateSkuStock($index, $event)"
+                        />
+                      </template>
+                    </el-table-column>
+                  </el-table>
+                </div>
               </el-form-item>
             </div>
           </el-col>
@@ -213,13 +316,13 @@ import {
   Plus,
   Refresh,
   Check,
-
-  Close
+  Close,
+  Delete
 } from '@element-plus/icons-vue'
 
 import { useRoute } from 'vue-router'
 import axios from 'axios';
-
+const file_name = ['png', 'jpg', 'jpeg']
 
 defineOptions({
     name: 'CommodityAdd',
@@ -239,6 +342,19 @@ interface ClassifyOption {
 
 const classifyList = ref<ClassifyOption[]>([])
 
+interface Specification {
+    name: string;
+    values: string[];
+    inputVisible: boolean;
+    inputValue: string;
+}
+
+interface SkuItem {
+    specs: string[];
+    price: number;
+    stock: number;
+}
+
 interface CommodityAddFormData {
     name: string;
     price: number;
@@ -248,15 +364,19 @@ interface CommodityAddFormData {
     image: (File | string)[];
     imageUrls: string[];
     tags: string[];
+    specifications: Specification[];
+    skuList: SkuItem[];
 }
 
 const formRef = ref()
 const tagInputRef = ref()
+const specValueInputRef = ref()
 const submitLoading = ref(false)
 const previewDialogVisible = ref(false)
 const previewImageUrl = ref('')
 const inputVisible = ref(false)
 const inputValue = ref('')
+const skuList = ref<SkuItem[]>([])
 
 const formData = ref<CommodityAddFormData>({
     name: '',
@@ -267,20 +387,27 @@ const formData = ref<CommodityAddFormData>({
     image: [],
     imageUrls: [],
     tags: [],
+    specifications: [],
+    skuList: [],
 })
+
+// 验证规格的自定义验证函数
+const validateSpecifications = (rule: any, value: any, callback: any) => {
+    const validSpecs = formData.value.specifications.filter(spec => 
+        spec.name.trim() && spec.values.length > 0
+    )
+    
+    if (validSpecs.length === 0) {
+        callback(new Error('请至少添加一个商品规格，并为每个规格添加至少一个值'))
+    } else {
+        callback()
+    }
+}
 
 const rules = ref({
     name: [
         { required: true, message: '请输入商品名称', trigger: 'blur' },
         { min: 2, max: 50, message: '商品名称长度应在 2 到 50 个字符之间', trigger: 'blur' }
-    ],
-    price: [
-        { required: true, message: '请输入商品价格', trigger: 'blur' },
-        { type: 'number', min: 0, message: '价格不能为负数', trigger: 'blur' }
-    ],
-    stock: [
-        { required: true, message: '请输入商品库存', trigger: 'blur' },
-        { type: 'number', min: 0, message: '库存不能为负数', trigger: 'blur' }
     ],
     description: [
         { required: true, message: '请输入商品描述', trigger: 'blur' },
@@ -289,6 +416,9 @@ const rules = ref({
     category_id: [{ required: true, message: '请选择商品分类', trigger: 'change' }],
     image: [{ required: true, message: '请上传商品图片', trigger: 'change' }],
     tags: [{ type: 'array', max: 8, message: '最多只能添加8个标签', trigger: 'change' }],
+    specifications: [
+        { validator: validateSpecifications, trigger: 'change' }
+    ],
 })
 
 onMounted(async () =>{
@@ -320,6 +450,13 @@ onMounted(async () =>{
 
 // 文件选择变化处理
 const handleImageChange = (uploadFile: any) => {
+    // 检查文件类型是否为图片
+    const fileExtension = uploadFile.name.split('.').pop().toLowerCase()
+    if (!file_name.includes(fileExtension)) {
+        ElMessage.error('只能上传图片文件!')
+        return false
+    }
+
     // Element Plus 会自动处理文件列表，这里只需要验证文件类型和大小
     if (uploadFile.raw) {
         const isImage = uploadFile.raw.type.startsWith('image/')
@@ -404,19 +541,93 @@ const handleReset = () => {
 const handleSubmit = async () => {
     if (!formRef.value) return
 
-    await formRef.value.validate((valid: boolean) => {
+    await formRef.value.validate(async (valid: boolean) => {
         if (valid) {
             submitLoading.value = true
+            const commitFormData = new FormData()
+            commitFormData.append('token', token||'')
+            commitFormData.append('stroe_id', id.toString())
+            commitFormData.append('name', formData.value.name)
 
-            // 模拟提交过程
-            setTimeout(() => {
-                ElMessage.success('商品添加成功！')
+            // Send only the first tag as type (since backend expects Tuple[str])
+            if (formData.value.tags.length > 0) {
+                commitFormData.append('type', formData.value.tags.join(','))
+            }
+
+            formData.value.image.forEach((file: any) => {
+                commitFormData.append('img_list', file.raw)
+            })
+
+            // 验证至少有一个有效的规格
+            const validSpecs = formData.value.specifications.filter(spec => 
+                spec.name.trim() && spec.values.length > 0
+            )
+            
+            if (validSpecs.length === 0) {
+                ElMessage.error('请至少添加一个商品规格，并为每个规格添加至少一个值！')
                 submitLoading.value = false
-                // 这里可以添加实际的API调用逻辑
-                console.log('提交的数据:', formData.value)
-            }, 2000)
+                return false
+            }
+            
+            // 验证SKU列表是否存在
+            if (skuList.value.length === 0) {
+                ElMessage.error('规格组合生成失败，请检查规格设置！')
+                submitLoading.value = false
+                return false
+            }
+            
+            // 验证SKU列表中的价格和库存
+            const invalidSku = skuList.value.find(sku => sku.price <= 0 || sku.stock < 0)
+            if (invalidSku) {
+                ElMessage.error('请为所有规格组合设置有效的价格（>0）和库存（≥0）！')
+                submitLoading.value = false
+                return false
+            }
+            
+            // 将SKU列表转换为JSON字符串发送
+            commitFormData.append('sku_list', JSON.stringify(skuList.value))
+            commitFormData.append('classify_categorize', formData.value.category_id.toString())
+            commitFormData.append('info', formData.value.description)
+
+            console.log(formData.value.image);
+            try{
+              const res = await Axios.post('/buyer_commodity_add',commitFormData)
+              if (res.status == 200){
+                if (res.data.current){
+                  ElMessage.success('商品添加成功！')
+                  formData.value = {
+                    name: '',
+                    price: 0,
+                    stock: 0,
+                    description: '',
+                    category_id: 0,
+                    image: [],
+                    imageUrls: [],
+                    tags: [],
+                    specifications: [],
+                    skuList: [],
+                  }
+                  skuList.value = []
+                  submitLoading.value = false
+                  return true
+                }else{
+                  ElMessage.error('商品添加失败！')
+                  submitLoading.value = false
+                  return false
+                }
+              }else{
+                  ElMessage.error('商品添加失败！')
+                  submitLoading.value = false
+                  return false
+              }
+            } catch (error) {
+                ElMessage.error('商品添加失败！')
+                submitLoading.value = false
+                return false
+            }
         } else {
             ElMessage.error('请完善表单信息')
+            submitLoading.value = false
             return false
         }
     })
@@ -447,6 +658,136 @@ const handleTagInputConfirm = () => {
 
 const removeTag = (index: number) => {
     formData.value.tags.splice(index, 1)
+}
+
+// 规格相关函数
+const addSpecification = () => {
+    if (formData.value.specifications.length >= 3) {
+        ElMessage.warning('最多只能添加3个规格!')
+        return
+    }
+    formData.value.specifications.push({
+        name: '',
+        values: [],
+        inputVisible: false,
+        inputValue: ''
+    })
+}
+
+const removeSpecification = (index: number) => {
+    formData.value.specifications.splice(index, 1)
+    generateSkuCombinations()
+    // 触发验证
+    nextTick(() => {
+        formRef.value?.validateField('specifications')
+    })
+}
+
+const showSpecValueInput = (specIndex: number) => {
+    formData.value.specifications[specIndex].inputVisible = true
+    nextTick(() => {
+        // 聚焦到输入框
+        const inputs = document.querySelectorAll('.spec-value-input')
+        if (inputs[specIndex]) {
+            (inputs[specIndex] as HTMLInputElement).focus()
+        }
+    })
+}
+
+const handleSpecValueConfirm = (specIndex: number) => {
+    const spec = formData.value.specifications[specIndex]
+    if (spec.inputValue) {
+        const value = spec.inputValue.trim()
+        if (value && !spec.values.includes(value)) {
+            spec.values.push(value)
+            generateSkuCombinations()
+            // 触发验证
+            nextTick(() => {
+                formRef.value?.validateField('specifications')
+            })
+        } else if (spec.values.includes(value)) {
+            ElMessage.warning('该规格值已存在!')
+        }
+    }
+    spec.inputVisible = false
+    spec.inputValue = ''
+}
+
+const removeSpecValue = (specIndex: number, valueIndex: number) => {
+    formData.value.specifications[specIndex].values.splice(valueIndex, 1)
+    generateSkuCombinations()
+    // 触发验证
+    nextTick(() => {
+        formRef.value?.validateField('specifications')
+    })
+}
+
+// 处理规格名称失焦
+const handleSpecNameBlur = () => {
+    generateSkuCombinations()
+    // 触发验证
+    nextTick(() => {
+        formRef.value?.validateField('specifications')
+    })
+}
+
+// 生成SKU组合
+const generateSkuCombinations = () => {
+    const specs = formData.value.specifications.filter(spec => 
+        spec.name.trim() && spec.values.length > 0
+    )
+    
+    if (specs.length === 0) {
+        skuList.value = []
+        return
+    }
+
+    // 生成所有可能的组合
+    const combinations: string[][] = []
+    
+    function generateCombinations(index: number, current: string[]) {
+        if (index === specs.length) {
+            combinations.push([...current])
+            return
+        }
+        
+        for (const value of specs[index].values) {
+            current.push(`${specs[index].name}:${value}`)
+            generateCombinations(index + 1, current)
+            current.pop()
+        }
+    }
+    
+    generateCombinations(0, [])
+    
+    // 更新SKU列表，保留已有的价格和库存
+    const existingSkus = new Map<string, SkuItem>()
+    skuList.value.forEach(sku => {
+        const key = sku.specs.join('|')
+        existingSkus.set(key, sku)
+    })
+    
+    skuList.value = combinations.map(combo => {
+        const key = combo.join('|')
+        const existing = existingSkus.get(key)
+        return existing || {
+            specs: combo,
+            price: 0,
+            stock: 0
+        }
+    })
+}
+
+const updateSkuPrice = (index: number, price: number) => {
+    if (skuList.value[index]) {
+        skuList.value[index].price = price || 0
+    }
+}
+
+const updateSkuStock = (index: number, stock: number) => {
+    if (skuList.value[index]) {
+        skuList.value[index].stock = stock || 0
+    }
 }
 
 // 组件卸载时清理资源
@@ -806,5 +1147,105 @@ onUnmounted(() => {
 :deep(.el-dialog__footer) {
   padding: 16px 20px;
   border-top: 1px solid #e4e7ed;
+}
+
+/* 规格相关样式 */
+.specifications-container {
+  width: 100%;
+}
+
+.spec-item {
+  margin-bottom: 20px;
+  padding: 16px;
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  background: #fafafa;
+  transition: all 0.3s ease;
+}
+
+.spec-item:hover {
+  border-color: #409eff;
+  background: #f0f7ff;
+}
+
+.spec-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.spec-name-input {
+  flex: 1;
+}
+
+.remove-spec-btn {
+  flex-shrink: 0;
+}
+
+.spec-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.spec-value-tag {
+  margin: 0;
+}
+
+.spec-value-input {
+  width: 120px;
+}
+
+.add-spec-value-btn {
+  border-style: dashed;
+}
+
+.add-spec-btn {
+  width: 100%;
+  margin-top: 12px;
+  border-style: dashed;
+}
+
+.spec-tip {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #909399;
+}
+
+.spec-empty-tip {
+  margin-bottom: 16px;
+}
+
+.spec-value-warning {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #fef0f0;
+  border: 1px solid #fde2e2;
+  border-radius: 4px;
+}
+
+/* SKU表格样式 */
+.sku-container {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.sku-table {
+  width: 100%;
+}
+
+.sku-tag {
+  margin-right: 8px;
+  margin-bottom: 4px;
+}
+
+:deep(.sku-table .el-table__header) {
+  background-color: #f5f7fa;
+}
+
+:deep(.sku-table .el-table__row:hover) {
+  background-color: #f0f7ff;
 }
 </style>

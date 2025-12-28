@@ -68,6 +68,7 @@ from routes.buyer_update_role import router as buyer_update_role_router
 from routes.buyer_role_ratio import router as buyer_role_ratio_router
 from routes.buyer_commoidt_add import router as buyer_commoidt_add_router
 from routes.buter_get_classify import router as get_classify_router
+from routes.buyer_get_commoidt import router as buyer_get_commoidt_router
 
 from routes.manage_sign_in import router as manage_sign_in_router
 from routes.management_verify import router as management_verify_router
@@ -75,7 +76,7 @@ from routes.management_mall_info import router as management_mall_info_router
 from routes.manage_merchant_freeze import router as manage_merchant_freeze_router
 from routes.manage_merchant_unfreeze import router as manage_merchant_unfreeze_router
 from routes.manage_merchant_delete import router as manage_merchant_delete_router
-
+from routes.manage_get_commoidt_apply import router as manage_get_commoidt_apply_router
 
 
 from routes.user_list import router as user_list_router
@@ -147,7 +148,7 @@ async def lifespan(app: FastAPI):
         logger.info("Redis 连接已建立")
         logger.info("MongoDB 连接已建立")
         logger.info("数据库连接池已创建")
-        scheduler.add_job(user_sql_redis_state, IntervalTrigger(seconds=20))
+        scheduler.add_job(user_sql_redis_state, IntervalTrigger(seconds=10))
         scheduler.start()
         logger.info("定时任务已启动-用户状态检测")
         yield
@@ -311,6 +312,9 @@ app.include_router(manage_sign_in_router,prefix='/api')
 # 管理员验证路由
 app.include_router(management_verify_router,prefix='/api')
 
+# 管理员获取商品申请路由
+app.include_router(manage_get_commoidt_apply_router,prefix='/api')
+
 # 冻结商家路由
 app.include_router(manage_merchant_freeze_router,prefix='/api')
 
@@ -412,6 +416,9 @@ app.include_router(buyer_role_ratio_router,prefix='/api')
 
 # 获取分类路由
 app.include_router(get_classify_router,prefix='/api')
+
+# 买家端获取商品路由
+app.include_router(buyer_get_commoidt_router,prefix='/api')
 
 
 

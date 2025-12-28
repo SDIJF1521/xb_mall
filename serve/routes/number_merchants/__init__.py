@@ -19,11 +19,12 @@ async def NumberMerchants(token:str=Form(min_length=6),db:aiomysql.Connection = 
             verify_data = await verify.run(data)
             if verify_data['current']:
                 merchant = await execute_db_query(db,'select user from user where merchant = 1')
+                page = await execute_db_query(db,'select count(*) from user where merchant = 1')
                 if not merchant:
                     return {'merchant_list':[],'current':True}
                 else:
                     merchant_list = [i[0] for i in merchant]
-                    return {'merchant_list':merchant_list,'current':True}
+                    return {'merchant_list':merchant_list,'current':True,'page':page[0][0]}
             else:
                 return {'msg':'不是管理员用户','current':False}
         else:

@@ -1,0 +1,64 @@
+import aiomysql
+from fastapi import HTTPException
+from config.sql_config import settings
+import logging
+
+logger = logging.getLogger(__name__)
+
+class DatabasePool:
+    """数据库连接池管理器"""
+    
+    def __init__(self):
+        self.pool = None
+    
+    async def create_pool(self):
+        """创建数据库连接池"""
+        try:
+            self.pool = await aiomysql.create_pool(
+                host=settings.DB_HOST,
+                user=settings.DB_USER,
+                password=settings.DB_PASSWORD,
+                db=settings.DB_NAME,
+                autocommit=True,
+                minsize=1,  # 最小连接数
+                maxsize=10,  # 最大连接数
+                pool_recycle=3600  # 连接回收时间
+            )
+            logger.info("数据库连接池创建成功")
+        except Exception as e:
+            logger.error(f"数据库连接池创建失败: {str(e)}")
+            raise
+    
+    async def close_pool(self):
+        """关闭数据库连接池"""
+        if self.pool:
+            self.pool.close()
+            await self.pool.wait_closed()
+            logger.info("数据库连接池已关闭")
+    
+    async def execute_query(self, query, params=None):
+        """执行数据库查询"""
+        if not self.pool:
+            await self.create_pool()
+        
+        async with self.pool.acquire() as conn:
+            try:
+                async with conn.cursor() as cursor:
+                    await cursor.execute(query, params)
+                    if query.strip().lower().startswith("select"):
+                        return await cursor.fetchall()
+                    else:
+                        await conn.commit()
+                        return None
+            except aiomysql.Error as e:
+                logger.error(f"数据库查询错误: {str(e)}")
+                raise HTTPException(status_code=500, detail=f"数据库错误: {str(e)}")
+
+# 创建全局数据库连接池实例
+db_pool = DatabasePool()
+
+async def get_db_pool():
+    """获取数据库连接池"""
+    if not db_pool.pool:
+        await db_pool.create_pool()
+    return db_pool

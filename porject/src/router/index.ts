@@ -10,6 +10,7 @@ import PersonalDetailsChange from '@/views/personal_details_change/personal_deta
 import ApplySeller from '@/views/apply_seller/apply_seller.vue'
 import PasswordReset from '@/views/password_reset/password_reset.vue'
 import Management from '@/views/management/management.vue'
+import ManagementCommodity from '@/views/management_commodity/management_commodity.vue'
 import NotFound from '@/views/errors/NotFound.vue'
 import BuyerSideIdex from '@/views/buyer_side_index/BuyerSideIdex.vue'
 import ManagementLogin from '@/views/management_login/management_login.vue'
@@ -30,6 +31,7 @@ import BuyerRoleList from '@/views/buyer_role_list/buter_role_list.vue'
 import BuyerUserStatistics from '@/views/buyer_user_statistics/buyer_user_statistics.vue'
 import BuyerCommodityManagement from '@/views/buyer_commodity_management/buyer_commodity_management.vue'
 import BuyerCommodityAdd from '@/views/buyer_commodity_add/buyer_commodity_add.vue'
+import BuyerCommodityList from '@/views/buyer_commodity_list/buyer_commodity_list.vue'
 
 
 
@@ -154,6 +156,12 @@ const routes: Array<RouteRecordRaw> = [
     name:'UserManagement',
     component:UserManagement
   },
+  // 管理员管理页——商品管理
+  {
+    path:'/management_commodity',
+    name:'ManagementCommodity',
+    component:ManagementCommodity
+  },
   {
     // 用户管理页
     path:'/business_management/:id',
@@ -201,6 +209,12 @@ const routes: Array<RouteRecordRaw> = [
     path:'/buyer_commodity_add/:id',
     name:'BuyerCommodityAdd',
     component:BuyerCommodityAdd
+  },
+  // 买家端商品列表页
+  {
+    path:'/buyer_commodity_list/:id',
+    name:'BuyerCommodityList',
+    component:BuyerCommodityList
   },
   // 管理员管理页——商家审核
   {

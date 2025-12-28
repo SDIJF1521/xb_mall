@@ -72,13 +72,19 @@ class MongoDBClient:
             self._sync_client.close()
     
     def get_collection(self, collection_name: str) -> motor.motor_asyncio.AsyncIOMotorCollection:
-        """获取集合实例"""
+        """获取集合实例
+        :param collection_name: 集合名称
+        :return: 集合实例
+        """
         if self.database is None:
             raise RuntimeError("MongoDB客户端未连接")
         return self.database[collection_name]
     
     def _convert_objectid_to_str(self, doc: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
-        """将文档中的ObjectId转换为字符串"""
+        """将文档中的ObjectId转换为字符串
+        :param doc: 要转换的文档
+        :return: 转换后的文档或None
+        """
         if doc is None:
             return None
         
@@ -105,30 +111,52 @@ class MongoDBClient:
         return converted_doc
     
     def _convert_docs_objectid_to_str(self, docs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """将多个文档中的ObjectId转换为字符串"""
+        """将多个文档中的ObjectId转换为字符串
+        :param docs: 要转换的文档列表
+        :return: 转换后的文档列表
+        """
         return [self._convert_objectid_to_str(doc) for doc in docs]
     
     async def insert_one(self, collection_name: str, document: Dict[str, Any]) -> str:
-        """插入单个文档"""
+        """插入单个文档
+        :param collection_name: 集合名称
+        :param document: 要插入的文档
+        :return: 插入的文档ID
+        """
         collection = self.get_collection(collection_name)
         result = await collection.insert_one(document)
         return str(result.inserted_id)
     
     async def insert_many(self, collection_name: str, documents: List[Dict[str, Any]]) -> List[str]:
-        """插入多个文档"""
+        """插入多个文档
+        :param collection_name: 集合名称
+        :param documents: 要插入的文档列表
+        :return: 插入的文档ID列表
+        """
         collection = self.get_collection(collection_name)
         result = await collection.insert_many(documents)
         return [str(doc_id) for doc_id in result.inserted_ids]
     
     async def find_one(self, collection_name: str, filter_dict: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """查询单个文档"""
+        """查询单个文档
+        :param collection_name: 集合名称
+        :param filter_dict: 查询条件
+        :return: 转换后的文档或None
+        """
         collection = self.get_collection(collection_name)
         result = await collection.find_one(filter_dict)
         return self._convert_objectid_to_str(result)
     
     async def find_many(self, collection_name: str, filter_dict: Dict[str, Any] = None, 
                        limit: int = None, skip: int = None, sort: List[tuple] = None) -> List[Dict[str, Any]]:
-        """查询多个文档"""
+        """查询多个文档
+        :param collection_name: 集合名称
+        :param filter_dict: 查询条件
+        :param limit: 限制返回文档数量
+        :param skip: 跳过文档数量
+        :param sort: 排序字段列表，每个元素为 (字段名, 排序方向) 元组
+        :return: 转换后的文档列表
+        """
         collection = self.get_collection(collection_name)
         filter_dict = filter_dict or {}
         
@@ -146,44 +174,75 @@ class MongoDBClient:
     
     async def update_one(self, collection_name: str, filter_dict: Dict[str, Any], 
                         update_dict: Dict[str, Any], upsert: bool = False) -> int:
-        """更新单个文档"""
+        """更新单个文档
+        :param collection_name: 集合名称
+        :param filter_dict: 查询条件
+        :param update_dict: 更新操作
+        :param upsert: 是否插入新文档
+        :return: 更新的文档数量
+        """
         collection = self.get_collection(collection_name)
         result = await collection.update_one(filter_dict, update_dict, upsert=upsert)
         return result.modified_count
     
     async def update_many(self, collection_name: str, filter_dict: Dict[str, Any], 
                          update_dict: Dict[str, Any], upsert: bool = False) -> int:
-        """更新多个文档"""
+        """更新多个文档
+        :param collection_name: 集合名称
+        :param filter_dict: 查询条件
+        :param update_dict: 更新操作
+        :param upsert: 是否插入新文档
+        :return: 更新的文档数量
+        """
         collection = self.get_collection(collection_name)
         result = await collection.update_many(filter_dict, update_dict, upsert=upsert)
         return result.modified_count
     
     async def delete_one(self, collection_name: str, filter_dict: Dict[str, Any]) -> int:
-        """删除单个文档"""
+        """删除单个文档
+        :param collection_name: 集合名称
+        :param filter_dict: 查询条件
+        :return: 删除的文档数量
+        """
         collection = self.get_collection(collection_name)
         result = await collection.delete_one(filter_dict)
         return result.deleted_count
     
     async def delete_many(self, collection_name: str, filter_dict: Dict[str, Any]) -> int:
-        """删除多个文档"""
+        """删除多个文档
+        :param collection_name: 集合名称
+        :param filter_dict: 查询条件
+        :return: 删除的文档数量
+        """
         collection = self.get_collection(collection_name)
         result = await collection.delete_many(filter_dict)
         return result.deleted_count
     
     async def count_documents(self, collection_name: str, filter_dict: Dict[str, Any] = None) -> int:
-        """统计文档数量"""
+        """统计文档数量
+        :param collection_name: 集合名称
+        :param filter_dict: 查询条件
+        :return: 文档数量
+        """
         collection = self.get_collection(collection_name)
         filter_dict = filter_dict or {}
         return await collection.count_documents(filter_dict)
     
     async def create_index(self, collection_name: str, keys: List[tuple], unique: bool = False) -> str:
-        """创建索引"""
+        """创建索引
+        :param collection_name: 集合名称
+        :param keys: 索引字段列表，每个元素为 (字段名, 排序方向) 元组
+        :param unique: 是否唯一索引
+        :return: 索引名称
+        """
         collection = self.get_collection(collection_name)
         result = await collection.create_index(keys, unique=unique)
         return result
     
     async def drop_collection(self, collection_name: str) -> None:
-        """删除集合"""
+        """删除集合
+        :param collection_name: 集合名称
+        """
         collection = self.get_collection(collection_name)
         await collection.drop()
         logger.info(f"集合 {collection_name} 已删除")

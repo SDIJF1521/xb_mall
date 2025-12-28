@@ -1,7 +1,7 @@
 <template>
   <div class="management-navigation">
     <h2 :class="titleColor">小白的个人商城后台</h2>
-    
+
     <el-menu
       :default-active="activeIndex"
       class="el-menu-center"
@@ -43,6 +43,8 @@ const handleSelect = (index: string) => {
   console.log('选中的菜单 index:', index);
   if (index =='1'){
     router.push('/management')
+  }else if (index =='2'){
+    router.push('/management_commodity')
   }else if (index =='4'){
     router.push('/user_management')
   }
@@ -60,17 +62,20 @@ const value = ref(true)
 onMounted(()=>{
   const route = useRoute()
   // 修正导航栏选项
-  
+
     switch (route.path) {
-      
+
       case '/management':
         activeIndex.value = '1'
+        break
+      case '/management_commodity':
+        activeIndex.value = '2'
         break
       case '/user_management':
         activeIndex.value = '4'
         break
     }
-    
+
     const savedTheme =  localStorage.getItem('management_theme')
     if (savedTheme === 'dark') {
         value.value = true;

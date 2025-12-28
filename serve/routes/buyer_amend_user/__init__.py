@@ -1,3 +1,4 @@
+import os
 from typing import  Annotated
 
 from aiomysql import Connection
@@ -24,6 +25,7 @@ async def buyer_user_amend(
     async def execute():
         await execute_db_query(db,'update store_user set user = %s,password = %s,authority = %s,email = %s where user = %s AND store_id = %s',
                                    (data.user_name,data.user_password,data.authority,data.email,data.user,data.stroe_id))
+        os.remove(f'./buyer_use_img/{data.stroe_id}_{data.user_name}.png')
         return {"code":200,"msg":"success","data":None,'current':True}
 
     try:

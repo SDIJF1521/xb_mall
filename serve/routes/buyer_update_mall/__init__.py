@@ -1,4 +1,5 @@
 from typing import Annotated
+import os
 
 from aiomysql import Connection
 from fastapi import APIRouter,Depends,Form
@@ -24,6 +25,7 @@ async def buyer_update_mall(data:Annotated[UpdateMall,Form()],db:Connection=Depe
         if sel_mall_id:
             await execute_db_query(db,'update store set mall_name=%s,mall_phone=%s,mall_site=%s,mall_describe=%s,state=%s where mall_id=%s',
                                 (data.mall_name,data.mall_site,data.mall_phone,data.info,data.state,data.id))
+            os.remove(f'./mall_img/{data.id}.png')
             return {"code":200,"msg":"操作成功","data":None,'current':True}
         else:
             return {"code":400,"msg":"mall_id不存在","data":None,'current':False}

@@ -173,6 +173,7 @@ class UpdateMall(BaseModel):
 class GetMallUserList(BaseModel):
     token:str
     id:int
+    page:Optional[int] = 1
 
 # 定义买家添加店铺用户路由数据模型
 class AddMallUser(BaseModel):
@@ -254,7 +255,16 @@ class CommodityAdd(BaseModel):
     name:str
     type:Optional[Tuple[str]] = Field(None, description="商品类型，可选参数") 
     img_list:List[UploadFile] = Field(..., min_items=1, description="商品图片列表，至少一个")
-    price:float
     classify_categorize:int
-    stock:int
     info:str
+    sku_list:Optional[str] = Field(None, description="SKU列表，JSON字符串格式，包含规格组合、价格和库存")
+
+# 定义商品列表路由数据模型
+class CommodityList(BaseModel):
+    stroe_id:int
+    page:Optional[int] = 1
+
+# 定义管理员获取商品列表路由数据模型
+class ManageGetCommodityApply(BaseModel):
+    select_data:Optional[str] = None
+    page:Optional[int] = 1

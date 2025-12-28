@@ -1,6 +1,7 @@
 from typing import Annotated
 
 import aiomysql
+from pydantic import EmailStr
 
 from data.data_mods import UserRegister
 from data.sql_client import get_db, execute_db_query
@@ -10,8 +11,21 @@ from services.register import Register
 router = APIRouter()
 
 @router.post('/register')
-async def register(data:Annotated[UserRegister,Form()], db:aiomysql.Connection = Depends(get_db)) -> dict:
+async def register(
+    email: EmailStr = Form(...),
+    user_name: str = Form(...),
+    user_password: str = Form(...),
+    captcha: str = Form(...),
+    db: aiomysql.Connection = Depends(get_db)
+) -> dict:
     try:
+        # 创建 UserRegister 对象以保持代码一致性
+        data = UserRegister(
+            email=email,
+            user_name=user_name,
+            user_password=user_password,
+            captcha=captcha
+        )
         print(data.captcha)
         user_list = await execute_db_query(db,'select user FROM user')
         email_list = await execute_db_query(db,'select email FROM user')

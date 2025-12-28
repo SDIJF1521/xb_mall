@@ -1,9 +1,19 @@
 <template>
     <div class="list-container">
         <div v-if="loading" class="loading">加载中...</div>
-        <ul v-else-if="mall_apply.length > 0">
+        <div v-else-if="mall_apply.length > 0">
+          <ul>
             <li v-for="(item, index) in mall_apply" :key="index" @click="skip(item[0])">{{ item[0] }}</li>
-        </ul>
+          </ul>
+          <div style="display: flex; justify-content: center; margin-top: 20px;">
+            <el-pagination
+              :page-size="20"
+              :pager-count="11"
+              layout="prev, pager, next"
+              :total="page"
+            />
+          </div>
+        </div>
         <el-empty v-else description="暂无数据" />
     </div>
 </template>
@@ -13,7 +23,7 @@ import axios from 'axios';
 import { ElMessage } from 'element-plus';
 import router from '@/router';
 
-
+const page = ref(1)
 defineOptions({name:'MallApplyManagement'})
 // 定义接口类型
 interface ApplyItem {
@@ -24,6 +34,7 @@ interface ApiResponse {
   current: boolean;
   apply_list: ApplyItem[];
   msg?: string;
+  page: number;
 }
 
 const Axios = axios.create({
@@ -61,6 +72,7 @@ onMounted(async() =>{
 
       if (response.data.current && Array.isArray(response.data.apply_list)) {
         mall_apply.value = response.data.apply_list;
+        page.value = response.data.page;
       } else {
         ElMessage.warning(response.data.msg || '获取数据失败');
         mall_apply.value = [];
