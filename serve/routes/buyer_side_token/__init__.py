@@ -36,12 +36,16 @@ async def  DuyerSideToken(data: Annotated[SellerSignIn,Form()], db: Connection =
             sql_data = await execute_db_query(db,'select * from seller_sing where user = %s and password = %s',(data.user,data.password))
             state = await execute_db_query(db,
                                            "select mall_state from mall_info where user = %s",(data.user,))
+                                           
             if sql_data and state[0][0] == 1:
+                mall_id = await execute_db_query(db,'select mall_id from store where user = %s',(data.user))
+                mall_id_list = [i[0]for i in mall_id]
                 payload = {
                         'user': sql_data[0][0],
                         'station':data.station,
                         'role':-1,
                         "state":state[0][0],
+                        'state_id_list':mall_id_list,
                         'exp':str(expire_timestamp)
                     }
                 token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")

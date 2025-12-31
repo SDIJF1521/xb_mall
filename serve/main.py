@@ -69,6 +69,8 @@ from routes.buyer_role_ratio import router as buyer_role_ratio_router
 from routes.buyer_commoidt_add import router as buyer_commoidt_add_router
 from routes.buter_get_classify import router as get_classify_router
 from routes.buyer_get_commoidt import router as buyer_get_commoidt_router
+from routes.buyer_commodity_inform import router as buyer_commodity_inform_router
+from routes.buyer_commodity_inform_read import router as buyer_r_commodity_inform_read_router
 
 from routes.manage_sign_in import router as manage_sign_in_router
 from routes.management_verify import router as management_verify_router
@@ -76,7 +78,9 @@ from routes.management_mall_info import router as management_mall_info_router
 from routes.manage_merchant_freeze import router as manage_merchant_freeze_router
 from routes.manage_merchant_unfreeze import router as manage_merchant_unfreeze_router
 from routes.manage_merchant_delete import router as manage_merchant_delete_router
+from routes.manage_get_commoidt_apply_list import router as manage_get_commoidt_apply_list_router
 from routes.manage_get_commoidt_apply import router as manage_get_commoidt_apply_router
+from routes.manage_commodity_rejectAudit import router as manage_commodity_rejectAudit_router
 
 
 from routes.user_list import router as user_list_router
@@ -313,6 +317,12 @@ app.include_router(manage_sign_in_router,prefix='/api')
 app.include_router(management_verify_router,prefix='/api')
 
 # 管理员获取商品申请路由
+app.include_router(manage_get_commoidt_apply_list_router,prefix='/api')
+
+# 管理员驳回商品上架申请路由
+app.include_router(manage_commodity_rejectAudit_router,prefix='/api')
+
+# 管理员获取商品上架申请详情路由
 app.include_router(manage_get_commoidt_apply_router,prefix='/api')
 
 # 冻结商家路由
@@ -420,7 +430,11 @@ app.include_router(get_classify_router,prefix='/api')
 # 买家端获取商品路由
 app.include_router(buyer_get_commoidt_router,prefix='/api')
 
+# 买家端获取商品通知路由
+app.include_router(buyer_commodity_inform_router,prefix='/api')
 
+# 买家端标记商品通知为已读路由
+app.include_router(buyer_r_commodity_inform_read_router,prefix='/api')
 
 # 商品添加路由
 app.include_router(buyer_commoidt_add_router,prefix='/api')

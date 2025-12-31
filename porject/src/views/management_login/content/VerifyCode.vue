@@ -11,7 +11,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, defineProps, defineEmits } from 'vue';
+import { ref, onMounted } from 'vue';
 
 const props = defineProps<{
   // 可以添加需要的props

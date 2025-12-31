@@ -13,7 +13,7 @@
         <el-empty description="暂无数据" />
     </div>
     <div v-else>
-        <el-card v-for="item in commodity_audit_list" :key="item.shopping_id" class="glow-card">
+        <el-card v-for="item in commodity_audit_list" :key="item.shopping_id" class="glow-card" @click="skip(item.mall_id,item.shopping_id)">
             <el-descriptions title="商品信息" direction="vertical" border>
                 <el-descriptions-item label="商品名称">{{ item.name }}</el-descriptions-item>
                 <el-descriptions-item label="店铺id">{{ item.mall_id }}</el-descriptions-item>
@@ -34,6 +34,7 @@
 </template>
 <script setup lang="ts">
     import {ref,onMounted} from 'vue'
+    import router from '@/router'
     import axios from 'axios'
     import { Search } from '@element-plus/icons-vue'
     import { ElMessage } from 'element-plus'
@@ -62,7 +63,7 @@
     async function getCommodityAudit(page: number) {
         console.log(select.value)
         if (select.value) {
-            const res = await Axios.get('/manage_get_commoidt_apply',{
+            const res = await Axios.get('/manage_get_commoidt_apply_list',{
                 params:{
                     select_data:select.value,
                     page:page
@@ -83,7 +84,7 @@
                 }
             }
         } else {
-            const res = await Axios.get('/manage_get_commoidt_apply',{
+            const res = await Axios.get('/manage_get_commoidt_apply_list',{
                 params:{
                     page:page
                 },
@@ -108,6 +109,9 @@
 onMounted(async () => {
     await getCommodityAudit(1)
 })
+function skip(mall_id:number,shopping_id:number){
+    router.push({name:'ManagementCommodityApply',params:{mall_id:mall_id,shopping_id:shopping_id}})
+}
 </script>
 <style scoped>
     :deep(.el-input__wrapper) {
@@ -124,6 +128,7 @@ onMounted(async () => {
         border: 1px solid rgba(64, 158, 255, 0.1);
         position: relative;
         overflow: hidden;
+        cursor: pointer;
     }
     
     .glow-card::before {

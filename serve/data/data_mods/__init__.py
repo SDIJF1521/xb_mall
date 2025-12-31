@@ -253,7 +253,7 @@ class CommodityAdd(BaseModel):
     token:str
     stroe_id:int
     name:str
-    type:Optional[Tuple[str]] = Field(None, description="商品类型，可选参数") 
+    type:Optional[List[str]] = Field(None, description="商品类型，可选参数") 
     img_list:List[UploadFile] = Field(..., min_items=1, description="商品图片列表，至少一个")
     classify_categorize:int
     info:str
@@ -264,7 +264,31 @@ class CommodityList(BaseModel):
     stroe_id:int
     page:Optional[int] = 1
 
-# 定义管理员获取商品列表路由数据模型
-class ManageGetCommodityApply(BaseModel):
+# 定义管理员获取商品上架申请列表路由数据模型
+class ManageGetCommodityApplyList(BaseModel):
     select_data:Optional[str] = None
     page:Optional[int] = 1
+
+# 定义管理员获取商品上架申请详情路由数据模型
+class ManageGetCommodityApplyDetail(BaseModel):
+    mall_id:int
+    shopping_id:int
+
+# 定义管理员拒绝商品上架申请路由数据模型
+class ManageRejectCommodityApply(BaseModel):
+    token:str
+    mall_id:int
+    shopping_id:int
+    reason:str
+
+
+# 定义买家获取商品信息路由数据模型
+class BuyerGetCommodityInfo(BaseModel):
+    token:str
+    shopping_id:int
+
+# 定义已读商品通知路由数据模型
+class BuyerReadCommodityInform(BaseModel):
+    token:str
+    mall_id:Optional[int] = None
+    shopping_id:Optional[int] = None

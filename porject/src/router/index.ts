@@ -32,6 +32,7 @@ import BuyerUserStatistics from '@/views/buyer_user_statistics/buyer_user_statis
 import BuyerCommodityManagement from '@/views/buyer_commodity_management/buyer_commodity_management.vue'
 import BuyerCommodityAdd from '@/views/buyer_commodity_add/buyer_commodity_add.vue'
 import BuyerCommodityList from '@/views/buyer_commodity_list/buyer_commodity_list.vue'
+import ManagementCommodityApply from '@/views/management_commodity_apply/management_commodity_apply.vue'
 
 
 
@@ -161,6 +162,12 @@ const routes: Array<RouteRecordRaw> = [
     path:'/management_commodity',
     name:'ManagementCommodity',
     component:ManagementCommodity
+  },
+  // 管理员管理页——商品审核页
+  {
+    path:'/management_commodity_apply/:mall_id/:shopping_id',
+    name:'ManagementCommodityApply',
+    component:ManagementCommodityApply
   },
   {
     // 用户管理页

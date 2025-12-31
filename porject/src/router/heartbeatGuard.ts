@@ -31,7 +31,8 @@ const EXCLUDED_ROUTES = [
   "BuyerCommodityAdd", // 买家端商品添加页
   "BuyerCommodityList", // 买家端商品列表页
   "ManagementCommodity", // 管理员端商品管理页
-  "BuyerCommodityManagement" //卖家端商品管理页
+  "BuyerCommodityManagement", //卖家端商品管理页
+  "ManagementCommodityApply" //管理员端商品审核页
 ];
 
 export function setupHeartbeatGuard(router: Router) {
