@@ -5,8 +5,8 @@
   <el-table-column prop="name" label="商品名称"/>
   <el-table-column prop="audit" label="商品状态">
     <template #default="scope">
-      <el-tag :type="scope.row.audit === 1 ? 'primary' : 'danger'">
-        {{ scope.row.audit === 1 ? '审核通过' : '审核未通过' }}
+      <el-tag :type="scope.row.audit === 1 ? 'primary' : scope.row.audit === 0 ? 'warning' : scope.row.audit === 3 ? 'danger' : 'danger'">
+        {{ scope.row.audit === 1 ? '审核通过' : scope.row.audit === 0 ? '待审核' : scope.row.audit === 3 ? '已下架' : '审核未通过' }}
       </el-tag>
     </template>
   </el-table-column>
@@ -18,6 +18,8 @@
     <template #default="scope">
       <el-button type="primary" size="small">修改</el-button>
       <el-button type="info" size="small">查看详情</el-button>
+      <el-button v-if="scope.row.audit === 1" type="warning" size="small">下架</el-button>
+      <el-button v-if="scope.row.audit === 3" type="success" size="small">上架</el-button>
       <el-button type="danger" size="small">删除</el-button>
     </template>
   </el-table-column>

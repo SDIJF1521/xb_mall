@@ -33,9 +33,13 @@ async def freeze_merchant(data:Annotated[FreezeMerchant,Form()],
             return {"code":404,"msg":"用户不存在或已被冻结","success":False}
         
     try:
-        if admin_tokrn_content['current']:
+        sql_data = await execute_db_query(db,'select user from manage_user where user = %s',admin_tokrn_content['user'])
+        Verify_data = await verify.run(sql_data)
+        if Verify_data['current']:
             return await execute()
         else:
-            return {"code":403,"msg":"token错误","success":False}
+            return {'current':False,'msg':'验证失败','code':401}
     except Exception as e:
         raise HTTPException(status_code=500,detail=str(e))
+    except HTTPException as e:
+        return {'current':False,'msg':e.detail,'code':e.status_code}

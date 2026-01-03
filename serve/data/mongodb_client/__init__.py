@@ -1,5 +1,4 @@
-import motor.motor_asyncio
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, TYPE_CHECKING
 from pymongo import MongoClient
 from bson import ObjectId
 from config.mongodb_config import settings
@@ -7,18 +6,36 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# 延迟导入 motor，避免 Windows 多进程导入问题
+_motor_asyncio = None
+
+def _get_motor_asyncio():
+    """延迟导入 motor.motor_asyncio 模块"""
+    global _motor_asyncio
+    if _motor_asyncio is None:
+        import motor.motor_asyncio
+        _motor_asyncio = motor.motor_asyncio
+    return _motor_asyncio
+
+# 类型提示（不影响运行时）
+if TYPE_CHECKING:
+    import motor.motor_asyncio
+
 class MongoDBClient:
     """MongoDB异步客户端连接池"""
     
     def __init__(self):
         """初始化MongoDB客户端"""
-        self.client: Optional[motor.motor_asyncio.AsyncIOMotorClient] = None
-        self.database: Optional[motor.motor_asyncio.AsyncIOMotorDatabase] = None
+        self.client: Optional[Any] = None  # motor.motor_asyncio.AsyncIOMotorClient
+        self.database: Optional[Any] = None  # motor.motor_asyncio.AsyncIOMotorDatabase
         self._sync_client: Optional[MongoClient] = None
         
     async def connect(self) -> None:
         """异步连接到MongoDB服务器"""
         try:
+            # 延迟导入 motor，避免 Windows 多进程导入问题
+            motor_asyncio = _get_motor_asyncio()
+            
             # 构建连接参数
             connection_params = {
                 "maxPoolSize": settings.MONGODB_MAX_POOL_SIZE,
@@ -31,7 +48,7 @@ class MongoDBClient:
             }
             
             # 创建异步客户端
-            self.client = motor.motor_asyncio.AsyncIOMotorClient(
+            self.client = motor_asyncio.AsyncIOMotorClient(
                 settings.MONGODB_URL,
                 **connection_params
             )
@@ -71,7 +88,7 @@ class MongoDBClient:
         if self._sync_client:
             self._sync_client.close()
     
-    def get_collection(self, collection_name: str) -> motor.motor_asyncio.AsyncIOMotorCollection:
+    def get_collection(self, collection_name: str):
         """获取集合实例
         :param collection_name: 集合名称
         :return: 集合实例

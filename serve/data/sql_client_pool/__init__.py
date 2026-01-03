@@ -1,4 +1,5 @@
 import aiomysql
+import asyncio
 from fastapi import HTTPException
 from config.sql_config import settings
 import logging
@@ -41,18 +42,23 @@ class DatabasePool:
         if not self.pool:
             await self.create_pool()
         
-        async with self.pool.acquire() as conn:
-            try:
-                async with conn.cursor() as cursor:
-                    await cursor.execute(query, params)
-                    if query.strip().lower().startswith("select"):
-                        return await cursor.fetchall()
-                    else:
-                        await conn.commit()
-                        return None
-            except aiomysql.Error as e:
-                logger.error(f"数据库查询错误: {str(e)}")
-                raise HTTPException(status_code=500, detail=f"数据库错误: {str(e)}")
+        try:
+            async with self.pool.acquire() as conn:
+                try:
+                    async with conn.cursor() as cursor:
+                        await cursor.execute(query, params)
+                        if query.strip().lower().startswith("select"):
+                            return await cursor.fetchall()
+                        else:
+                            await conn.commit()
+                            return None
+                except aiomysql.Error as e:
+                    logger.error(f"数据库查询错误: {str(e)}")
+                    raise HTTPException(status_code=500, detail=f"数据库错误: {str(e)}")
+        except asyncio.CancelledError:
+            # 如果任务被取消，重新抛出 CancelledError
+            logger.debug("数据库查询被取消")
+            raise
 
 # 创建全局数据库连接池实例
 db_pool = DatabasePool()

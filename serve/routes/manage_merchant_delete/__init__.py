@@ -26,9 +26,11 @@ async def manage_merchant_delete(data:Annotated[DeleteMerchant,Form()],
         else:
             return {"code":404,"msg":"用户不存在","success":False}
     try:    
-        if admin_tokrn_content['current']:
+        sql_data = await execute_db_query(db,'select user from manage_user where user = %s',admin_tokrn_content['user'])
+        Verify_data = await verify.run(sql_data)
+        if Verify_data['current']:
             return await execute()
         else:
-            return {"code":403,"msg":"token错误","success":False}
-    except HTTPException as e:
-        return {"code":500,"msg":str(e),"success":False}
+            return {'current':False,'msg':'验证失败','code':401}
+    except Exception as e:
+        raise HTTPException(status_code=500,detail=str(e))

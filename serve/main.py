@@ -1,5 +1,19 @@
+import os
+import sys
 import time
+import asyncio
 from typing import Annotated
+
+# Windows 多进程兼容性修复
+if sys.platform == 'win32':
+    # 设置环境变量，避免 Windows 多进程导入问题
+    os.environ['PYTHONIOENCODING'] = 'utf-8'
+    # 确保使用 spawn 模式（Windows 默认）
+    if hasattr(os, 'setpgrp'):
+        try:
+            os.setpgrp()
+        except (AttributeError, OSError):
+            pass
 
 import logging
 from fastapi import FastAPI, Form, Query,Request,Depends
@@ -10,6 +24,9 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
 from config.log_config import logger
+from config.redis_config import settings as redis_settings
+from config.mongodb_config import settings as mongodb_settings
+from config.sql_config import settings as sql_settings
 
 from data.data_mods import AddMall, DeleteMall, UserOnLineUploading
 from services.verification_code import VerificationCode
@@ -81,7 +98,7 @@ from routes.manage_merchant_delete import router as manage_merchant_delete_route
 from routes.manage_get_commoidt_apply_list import router as manage_get_commoidt_apply_list_router
 from routes.manage_get_commoidt_apply import router as manage_get_commoidt_apply_router
 from routes.manage_commodity_rejectAudit import router as manage_commodity_rejectAudit_router
-
+from routes.manage_commodity_passAudit import router as manage_commodity_passAudit_router
 
 from routes.user_list import router as user_list_router
 from routes.today_user_list import router as today_user_list_router
@@ -120,19 +137,58 @@ async def user_sql_redis_state():
                 redis_keys_to_delete.append(f"buyer_{store_id}_{user}")
         
         # 批量删除Redis键
+        deleted_count = 0
         if redis_keys_to_delete:
+            logger.info(f"定时任务: 发现 {len(redis_keys_to_delete)} 个需要清理的Redis键")
             for key in redis_keys_to_delete:
-                await redis_client.delete(key)
+                try:
+                    result = await redis_client.delete(key)
+                    if result:
+                        deleted_count += 1
+                except Exception as e:
+                    logger.warning(f"定时任务: 删除Redis键失败 | Key: {key} | 错误: {str(e)}")
         
         # 记录执行时间
         execution_time = time.time() - start_time
+        query_count1 = len(user_state_data1) if user_state_data1 else 0
+        query_count2 = len(user_state_data2) if user_state_data2 else 0
+        
         if execution_time > 1.0:  # 如果执行时间超过1秒，记录警告
-            logger.warning(f"用户状态同步任务执行时间较长: {execution_time:.2f}秒")
+            logger.warning(
+                f"用户状态同步任务执行时间较长: {execution_time:.2f}秒 | "
+                f"查询mall_info记录数: {query_count1} | "
+                f"查询store_user记录数: {query_count2} | "
+                f"删除Redis键数: {deleted_count}"
+            )
         elif execution_time > 0.1:  # 正常执行时间超过0.1秒也记录
-            logger.info(f"用户状态同步任务执行完成: {execution_time:.2f}秒")
+            logger.info(
+                f"用户状态同步任务执行完成: {execution_time:.2f}秒 | "
+                f"查询mall_info记录数: {query_count1} | "
+                f"查询store_user记录数: {query_count2} | "
+                f"删除Redis键数: {deleted_count}"
+            )
+        else:
+            # 快速执行时也记录关键信息
+            logger.debug(
+                f"用户状态同步任务快速完成: {execution_time:.3f}秒 | "
+                f"删除Redis键数: {deleted_count}"
+            )
             
+    except asyncio.CancelledError:
+        # 任务被取消时（如应用关闭），记录日志但不抛出异常
+        execution_time = time.time() - start_time
+        logger.info(f"用户状态同步任务被取消（可能是应用正在关闭）| 已执行时间: {execution_time:.2f}秒")
+        raise  # 重新抛出 CancelledError，让调度器知道任务被取消
     except Exception as e:
-        logger.error(f"用户状态同步任务执行失败: {str(e)}")
+        import traceback
+        execution_time = time.time() - start_time
+        error_traceback = traceback.format_exc()
+        logger.error("=" * 60)
+        logger.error(f"用户状态同步任务执行失败 | 执行时间: {execution_time:.2f}秒")
+        logger.error(f"错误类型: {type(e).__name__}")
+        logger.error(f"错误信息: {str(e)}")
+        logger.error(f"错误堆栈:\n{error_traceback}")
+        logger.error("=" * 60)
     
 
 # 定义 lifespan 事件处理器
@@ -140,37 +196,109 @@ async def user_sql_redis_state():
 async def lifespan(app: FastAPI):
     """
     应用生命周期管理，处理启动和关闭事件。
-    在应用启动时连接 Redis，关闭时断开连接。
+    在应用启动时连接 Redis ，MongoDB ，验证码Redis客户端，数据库连接池，关闭时断开连接。
     """
     try:
+        # 应用启动信息
+        logger.info("=" * 60)
+        logger.info("应用启动中...")
+        logger.info(f"Python版本: {sys.version}")
+        logger.info(f"运行平台: {sys.platform}")
+        logger.info(f"工作目录: {os.getcwd()}")
+        logger.info(f"进程ID: {os.getpid()}")
+        
         # 应用启动时的逻辑
+        logger.info("正在连接Redis...")
         await redis_client.connect()
-        await mongodb_client.connect()  # 连接MongoDB
-        await verifier.connect()  # 连接验证码模块的 Redis 客户端
-        await db_pool.create_pool()  # 创建数据库连接池
-        # 连接日志已移至文件，减少终端输出
-        logger.info("Redis 连接已建立")
-        logger.info("MongoDB 连接已建立")
-        logger.info("数据库连接池已创建")
-        scheduler.add_job(user_sql_redis_state, IntervalTrigger(seconds=10))
+        logger.info(f"Redis 连接已建立 | URL: {redis_client.redis_url} | DB: {redis_client.db}")
+        
+        logger.info("正在连接MongoDB...")
+        await mongodb_client.connect()
+        logger.info(f"MongoDB 连接已建立 | URL: {mongodb_settings.MONGODB_URL}")
+        
+        logger.info("正在连接验证码Redis客户端...")
+        await verifier.connect()
+        logger.info("验证码Redis客户端连接已建立")
+        
+        logger.info("正在创建数据库连接池...")
+        await db_pool.create_pool()
+        logger.info(f"数据库连接池已创建 | 配置: {sql_settings.DATABASE_URL}")
+        
+        # 配置定时任务：防止重叠执行，最多1个实例
+        logger.info("正在配置定时任务...")
+        scheduler.add_job(
+            user_sql_redis_state, 
+            IntervalTrigger(seconds=10),
+            id='user_sql_redis_state',
+            max_instances=1,  # 最多1个并发实例，防止重叠执行
+            coalesce=True,    # 如果任务被延迟，合并执行
+            misfire_grace_time=30  # 允许30秒的容错时间
+        )
         scheduler.start()
-        logger.info("定时任务已启动-用户状态检测")
+        logger.info("定时任务已启动 | 任务ID: user_sql_redis_state | 执行间隔: 10秒")
+        logger.info("=" * 60)
+        logger.info("应用启动完成，所有服务已就绪")
         yield
-        scheduler.shutdown()
-        logger.info("定时任务已停止-用户状态检测")
+        # 关闭定时任务：等待正在运行的任务完成
+        try:
+            scheduler.shutdown(wait=True)
+            logger.info("定时任务已停止-用户状态检测")
+        except asyncio.CancelledError:
+            logger.info("定时任务关闭被取消（应用正在关闭）")
+            raise
+        except Exception as e:
+            logger.warning(f"关闭定时任务时出错: {str(e)}")
+    except asyncio.CancelledError:
+        # 应用关闭时取消是正常的，不需要记录为错误
+        logger.info("应用生命周期被取消（正常关闭）")
+        raise
     except Exception as e:
+        import traceback
+        error_traceback = traceback.format_exc()
         print(f"应用启动失败: {str(e)}")
+        logger.error("=" * 60)
         logger.error(f"应用启动失败: {str(e)}")
+        logger.error(f"错误类型: {type(e).__name__}")
+        logger.error(f"错误详情:\n{error_traceback}")
+        logger.error("=" * 60)
     finally:
         # 应用关闭时的逻辑
-        await redis_client.close()
-        await mongodb_client.close()  # 关闭MongoDB连接
-        await verifier.close()  # 关闭验证码模块的 Redis 客户端
-        await db_pool.close_pool()  # 关闭数据库连接池
-        # 关闭日志已移至文件，减少终端输出
-        logger.info("Redis 连接已关闭")
-        logger.info("MongoDB 连接已关闭")
-        logger.info("数据库连接池已关闭")
+        logger.info("=" * 60)
+        logger.info("应用正在关闭，清理资源...")
+        try:
+            await redis_client.close()
+            logger.info("Redis 连接已关闭")
+        except asyncio.CancelledError:
+            logger.info("Redis 连接关闭被取消")
+        except Exception as e:
+            logger.error(f"关闭Redis连接时出错: {str(e)}")
+        
+        try:
+            await mongodb_client.close()
+            logger.info("MongoDB 连接已关闭")
+        except asyncio.CancelledError:
+            logger.info("MongoDB 连接关闭被取消")
+        except Exception as e:
+            logger.error(f"关闭MongoDB连接时出错: {str(e)}")
+        
+        try:
+            await verifier.close()
+            logger.info("验证码Redis客户端连接已关闭")
+        except asyncio.CancelledError:
+            logger.info("验证码Redis客户端连接关闭被取消")
+        except Exception as e:
+            logger.error(f"关闭验证码Redis客户端连接时出错: {str(e)}")
+        
+        try:
+            await db_pool.close_pool()
+            logger.info("数据库连接池已关闭")
+        except asyncio.CancelledError:
+            logger.info("数据库连接池关闭被取消")
+        except Exception as e:
+            logger.error(f"关闭数据库连接池时出错: {str(e)}")
+        
+        logger.info("=" * 60)
+        logger.info("应用已完全关闭")
 
 logger = logging.getLogger("fastapi_logger")
 # 注册fatsApi应用
@@ -214,23 +342,85 @@ email_config = {
 async def log_middleware(request: Request, call_next):
     # 请求日志
     start_time = time.time()
-    logger.info(f"INCOMING REQUEST: {request.method} {request.url} | Client: {request.client}")
+    client_ip = request.client.host if request.client else "Unknown"
+    client_port = request.client.port if request.client else None
     
-    # 处理请求
-    response = await call_next(request)
+    # 获取请求参数
+    query_params = dict(request.query_params) if request.query_params else {}
     
-    # 响应日志
-    process_time = time.time() - start_time
+    # 获取User-Agent和Referer（有用的请求头信息）
+    user_agent = request.headers.get('user-agent', 'N/A')
+    referer = request.headers.get('referer', 'N/A')
+    content_type = request.headers.get('content-type', 'N/A')
+    
     logger.info(
-        f"OUTGOING RESPONSE: {response.status_code} | "
-        f"Process Time: {process_time:.4f}s | "
-        f"Path: {request.url.path}"
+        f"请求接收 | "
+        f"方法: {request.method} | "
+        f"路径: {request.url.path} | "
+        f"查询参数: {query_params if query_params else '无'} | "
+        f"客户端IP: {client_ip}:{client_port} | "
+        f"Content-Type: {content_type} | "
+        f"User-Agent: {user_agent[:100]} | "
+        f"Referer: {referer[:100]}"
     )
     
-    return response
+    # 处理请求
+    try:
+        response = await call_next(request)
+        process_time = time.time() - start_time
+        
+        # 获取响应大小
+        response_body_size = 0
+        if hasattr(response, 'body'):
+            try:
+                response_body_size = len(response.body) if response.body else 0
+            except:
+                pass
+        
+        # 响应日志
+        log_level = logger.warning if process_time > 1.0 else logger.info
+        log_level(
+            f"请求完成 | "
+            f"方法: {request.method} | "
+            f"路径: {request.url.path} | "
+            f"状态码: {response.status_code} | "
+            f"处理时间: {process_time:.4f}秒 | "
+            f"响应大小: {response_body_size} 字节 | "
+            f"客户端IP: {client_ip}"
+        )
+        
+        return response
+        
+    except Exception as e:
+        import traceback
+        process_time = time.time() - start_time
+        error_traceback = traceback.format_exc()
+        
+        logger.error("=" * 60)
+        logger.error(
+            f"请求处理异常 | "
+            f"方法: {request.method} | "
+            f"路径: {request.url.path} | "
+            f"处理时间: {process_time:.4f}秒 | "
+            f"客户端IP: {client_ip}"
+        )
+        logger.error(f"错误类型: {type(e).__name__}")
+        logger.error(f"错误信息: {str(e)}")
+        logger.error(f"错误堆栈:\n{error_traceback}")
+        logger.error("=" * 60)
+        
+        # 返回错误响应
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Internal server error"}
+        )
 
-# 创建全局验证码实例
-verifier = VerificationCode(redis_url="redis://localhost",email_config=email_config)
+# 创建全局验证码实例（使用配置文件中的Redis配置）
+verifier = VerificationCode(
+    redis_url=redis_settings.REDIS_URL, 
+    db=redis_settings.REDIS_DB,
+    email_config=email_config
+)
 
 # 验证码申请路由
 app.include_router(verification_router, prefix="/api")
@@ -324,6 +514,9 @@ app.include_router(manage_commodity_rejectAudit_router,prefix='/api')
 
 # 管理员获取商品上架申请详情路由
 app.include_router(manage_get_commoidt_apply_router,prefix='/api')
+
+# 管理员通过商品上架申请路由
+app.include_router(manage_commodity_passAudit_router,prefix='/api')
 
 # 冻结商家路由
 app.include_router(manage_merchant_freeze_router,prefix='/api')

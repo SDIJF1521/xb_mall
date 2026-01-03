@@ -1,22 +1,41 @@
-import aioredis
 from typing import List, Tuple, Optional, Dict, Any
 from typing import List, Tuple, Optional
+from config.redis_config import settings
+
+# 延迟导入 aioredis，避免 Windows 多进程导入问题
+_aioredis = None
+
+def _get_aioredis():
+    """延迟导入 aioredis 模块"""
+    global _aioredis
+    if _aioredis is None:
+        import aioredis
+        _aioredis = aioredis
+    return _aioredis
 
 class RedisClient:
-    def __init__(self, redis_url: str = "redis://localhost", db: int = 0):
+    def __init__(self, redis_url: Optional[str] = None, db: Optional[int] = None):
         """初始化Redis客户端"""
-        self.redis_url = redis_url
-        self.db = db
+        # 如果未提供参数，则使用配置文件中的默认值
+        self.redis_url = redis_url or settings.REDIS_URL
+        self.db = db if db is not None else settings.REDIS_DB
         self.redis = None
 
         
     async def connect(self) -> None:
         """异步连接到Redis服务器"""
+        # 延迟导入 aioredis，避免 Windows 多进程导入问题
+        aioredis = _get_aioredis()
         self.redis = await aioredis.from_url(
             self.redis_url,
             db=self.db,
-            encoding="utf-8",
-            decode_responses=True
+            encoding=settings.REDIS_ENCODING,
+            decode_responses=settings.REDIS_DECODE_RESPONSES,
+            max_connections=settings.REDIS_MAX_CONNECTIONS,
+            socket_timeout=settings.REDIS_SOCKET_TIMEOUT,
+            socket_connect_timeout=settings.REDIS_SOCKET_CONNECT_TIMEOUT,
+            retry_on_timeout=settings.REDIS_RETRY_ON_TIMEOUT,
+            health_check_interval=settings.REDIS_HEALTH_CHECK_INTERVAL
         )
 
     async def close(self) -> None:

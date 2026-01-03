@@ -406,19 +406,36 @@ function triggerPass() {
     }
 }
 
-function handlePass(remark?: string) {
+async function handlePass(remark?: string) {
+    const trimedRemark = String(remark || '').trim();
     submitting.value = true
 
     // TODO: 实现通过审核的API调用逻辑
     console.log('审核通过备注:', remark)
 
     // 模拟API调用
-    setTimeout(() => {
-        ElMessage.success('审核通过成功')
+    const formdata = new FormData()
+    formdata.append('token', token.value)
+    formdata.append('mall_id', mall_id.value)
+    formdata.append('shopping_id', shopping_id.value)
+    if (trimedRemark !== '') {
+        formdata.append('remark', trimedRemark)
+    }
+    const res = await Axios.post('/manage_commodity_passAudit', formdata)
+    if (res.status == 200) {
+        if (res.data.current) {
+            ElMessage.success(res.data.msg || '审核通过成功')
+            submitting.value = false
+            dialogVisible.value = false
+            router.push('/management_commodity')
+        } else {
+            ElMessage.error(res.data.msg || '审核通过失败')
+            submitting.value = false
+        }
+    }else{
+        ElMessage.error(res.data.msg || '审核通过失败')
         submitting.value = false
-        dialogVisible.value = false
-        // 可以在这里添加页面刷新或其他后续操作
-    }, 1500)
+    }
 }
 
 onMounted(async () => {

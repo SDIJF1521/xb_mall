@@ -46,14 +46,14 @@ async def manage_get_commoidt_apply_detail(data:Annotated[ManageGetCommodityAppl
                     with open(i,'rb') as f:
                         img_list.append(base64.b64encode(f.read()).decode('utf-8'))
                 out['img_list'] = img_list
-                return out
+                return {'current':True,'data':out}
             else:
                 return {'current':False,'msg':'未查询到该商品上架申请'}
-
-        if admin_tokrn_content['current']:
-            out = await execute()
-            return {'current':True,'data':out,'code':200}
+        sel_data = await execute_db_query(db,'select user from manage_user where user = %s',admin_tokrn_content['user'])
+        Verify_data = await verify.run(sel_data)
+        if Verify_data['current']:
+            return await execute()
         else:
-            return {'current':False,'msg':'token验证失败','code':401}
+            return {'current':False,'msg':'验证失败','code':401}
     except Exception as e:
         raise HTTPException(status_code=500,detail=str(e))

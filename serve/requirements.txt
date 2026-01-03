@@ -1,0 +1,14 @@
+aioredis>=2.0.0
+fastapi
+uvicorn[standard]
+aiofiles
+aiomysql
+motor
+pymongo
+apscheduler
+python-jose[cryptography]
+python-multipart
+email-validator
+pydantic
+pydantic-settings
+

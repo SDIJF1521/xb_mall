@@ -62,7 +62,12 @@ async def manage_get_commoidt_apply(data:Annotated[ManageGetCommodityApplyList,Q
             else:
                 return {'current':False,'msg':'暂无数据'}
 
-    if admin_tokrn_content['current']:
-        return await execute()
-    else:
-        return {'current':False,'msg':'token验证失败'}
+    try:
+        sql_data = await execute_db_query(db,'select user from manage_user where user = %s',admin_tokrn_content['user'])
+        Verify_data = await verify.run(sql_data)
+        if Verify_data['current']:
+            return await execute()
+        else:
+            return {'current':False,'msg':'验证失败','code':401}    
+    except Exception as e:
+        raise HTTPException(status_code=500,detail=str(e))

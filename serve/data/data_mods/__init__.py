@@ -292,3 +292,10 @@ class BuyerReadCommodityInform(BaseModel):
     token:str
     mall_id:Optional[int] = None
     shopping_id:Optional[int] = None
+
+# 定义管理员通过商品上架申请路由数据模型
+class ManageCommodityPassAudit(BaseModel):
+    token:str
+    mall_id:int
+    shopping_id:int
+    remark:Optional[str] = None
