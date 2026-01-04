@@ -11,9 +11,14 @@ from data.sql_client import get_db,execute_db_query
 
 
 router = APIRouter()
-# 买家端重复店铺检测路由
+
 @router.post('/buyer_repeat_show')
 async def check_mall_name(data:Annotated[AddMallData,Form()],db:Connection=Depends(get_db),redis:RedisClient=Depends(get_redis)):
+    """
+    检查店铺是否重复接口（创建店铺前验证）
+    流程：主商户Token验证 -> 检查店铺信息是否已存在（名称、电话、地址、描述）
+    权限：仅主商户(station=1)可操作
+    """
     try:
         verify = VerifyDuterToken(token=data.token,redis_client=redis)
         verify_data = await verify.token_data()
@@ -21,6 +26,7 @@ async def check_mall_name(data:Annotated[AddMallData,Form()],db:Connection=Depen
         verify_val = await verify.verify_token(sql_data)
         if verify_data.get('station') == '1':
             if verify_val[0]:
+                # 检查店铺信息是否完全重复（名称、电话、地址、描述）
                 sql_mall_data = await execute_db_query(db,
                                                     "select user from store where user = %s and mall_name = %s and mall_phone = %s and mall_site = %s and mall_describe = %s",
                                                     (data.user,data.mall_name,data.mall_phone,data.mall_site,data.info))

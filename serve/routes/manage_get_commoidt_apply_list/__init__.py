@@ -11,20 +11,24 @@ from data.redis_client import RedisClient,get_redis
 from data.mongodb_client import MongoDBClient,get_mongodb_client
 from data.data_mods import ManageGetCommodityApplyList
 
-# 管理员获取商品上架申请列表路由
 router = APIRouter()
+
 @router.get('/manage_get_commoidt_apply_list')
 async def manage_get_commoidt_apply(data:Annotated[ManageGetCommodityApplyList,Query(...)],
                                     access_token:str = Header(...),
                                     db:Connection=Depends(get_db),
                                     redis:RedisClient=Depends(get_redis),
                                     mongodb:MongoDBClient=Depends(get_mongodb_client)):
-
+    """
+    管理员获取商品上架申请列表接口（支持搜索和分页）
+    流程：管理员Token验证 -> 查询待审核商品（audit=0）-> 返回列表
+    """
     verify = ManagementTokenVerify(token=access_token,redis_client=redis)
     admin_tokrn_content = await verify.token_admin()
 
     async def execute():
         if data.select_data is None:
+            # 无搜索条件：分页查询所有待审核商品
             offset = (data.page - 1) * 20
             mongodb_data = await mongodb.find_many('shopping',{'audit':0},limit=data.page,skip=offset)
             n = await execute_db_query(db,'select count(*) from shopping where audit = 0')

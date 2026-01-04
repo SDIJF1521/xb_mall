@@ -8,15 +8,20 @@ from services.on_line import OnLine
 router = APIRouter()
 
 def get_redis():
-    # 从 main.py 引入 verifier 实例
     from main import redis_client
     return redis_client
 
 @router.post('/user_online_state')
 async def user_online_state(data:Annotated[UserOnLineUploading,Form()],redis_client=Depends(get_redis)):
+    """
+    查询用户在线状态接口
+    流程：解析Token -> 查询Redis中的在线状态
+    用途：检查用户当前是否在线
+    """
     try:
         online = OnLine(redis_client=redis_client,token=data.token)
         await online.wait_init()
+        # 查询用户在线状态
         return await online.on_line_state()
     except Exception as e:
         raise HTTPException(status_code=500,detail='服务器内部错误')

@@ -116,27 +116,34 @@ scheduler = AsyncIOScheduler()
 
 # ---------------------- 定时任务----------------------
 async def user_sql_redis_state():
-    """定时任务函数：同步用户在线状态到数据库并清理过期数据"""
+    """
+    定时任务：清理离线用户的Redis在线状态缓存
+    每10秒执行一次，同步数据库中的用户状态，删除已离线用户的Redis键
+    目的：防止Redis中积累过多无效的在线状态数据
+    """
     start_time = time.time()
     try:
-        # 使用连接池执行查询，只查询状态不为1的用户
+        # 查询主商户表中状态不为1（已离线）的用户
         user_state_data1 = await db_pool.execute_query(
             'select user,mall_state from mall_info where mall_state != 1')
+        # 查询店铺用户表中状态不为1（已离线）的用户
         user_state_data2 = await db_pool.execute_query(
             'select store_id,user,state from store_user where state != 1')
         
-        # 批量删除Redis键
+        # 收集需要删除的Redis键
         redis_keys_to_delete = []
         
+        # 主商户Redis键格式：buyer_{用户名}
         if user_state_data1:
             for user, mall_state in user_state_data1:
                 redis_keys_to_delete.append(f"buyer_{user}")
         
+        # 店铺用户Redis键格式：buyer_{店铺ID}_{用户名}
         if user_state_data2:
             for store_id, user, state in user_state_data2:
                 redis_keys_to_delete.append(f"buyer_{store_id}_{user}")
         
-        # 批量删除Redis键
+        # 批量删除Redis键，清理离线用户的状态缓存
         deleted_count = 0
         if redis_keys_to_delete:
             logger.info(f"定时任务: 发现 {len(redis_keys_to_delete)} 个需要清理的Redis键")

@@ -119,6 +119,7 @@ async def buyer_r_commodity_inform_read(
         )
         verify_data = await verify_duter_token.verify_token(sql_data)
         
+        # 需要查询权限[2]
         if execute_code[2] and verify_data:
             mall_id = token_data.get('state_id')
             if not mall_id:

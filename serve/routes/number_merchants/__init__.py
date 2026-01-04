@@ -9,8 +9,14 @@ def get_redis():
     return redis_client
 
 router = APIRouter()
+
 @router.post('/number_merchants')
 async def NumberMerchants(token:str=Form(min_length=6),db:aiomysql.Connection = Depends(get_db),redis_client=Depends(get_redis)):
+    """
+    获取商户数量列表接口
+    流程：管理员Token验证 -> 查询所有商户（merchant=1）-> 返回商户列表和总数
+    权限：仅管理员可访问
+    """
     try:
         verify = ManagementTokenVerify(token=token,redis_client=redis_client)
         admin_tokrn_content = await verify.token_admin()
@@ -18,6 +24,7 @@ async def NumberMerchants(token:str=Form(min_length=6),db:aiomysql.Connection = 
             data = await execute_db_query(db,'select user from manage_user where user = %s',admin_tokrn_content['user'])
             verify_data = await verify.run(data)
             if verify_data['current']:
+                # 查询所有商户（merchant=1表示商户）
                 merchant = await execute_db_query(db,'select user from user where merchant = 1')
                 page = await execute_db_query(db,'select count(*) from user where merchant = 1')
                 if not merchant:

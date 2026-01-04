@@ -12,20 +12,28 @@ from data.redis_client import RedisClient,get_redis
 
 
 router = APIRouter()
+
 @router.patch('/buyer_update_role')
 async def update_role(data:Annotated[BuyerRoleUpdate,Form()],
                       db:Connection = Depends(get_db),
                       redis:RedisClient = Depends(get_redis)):
-    
+    """
+    更新角色信息接口
+    流程：Token验证 -> 权限检查 -> 更新角色信息和权限码
+    权限：主商户直接通过，店铺用户需要写入权限[1]和分配权限[4]
+    """
     verify_duter_token = VerifyDuterToken(data.token,redis)
     token_data = await verify_duter_token.token_data()
 
     async def execute():
+        # 检查角色是否存在
         select_sql = "select role from store_role where id = %s and mall_id = %s"
         role_data = await execute_db_query(db,select_sql,(data.role_id,data.stroe_id))
         if role_data:
+            # 更新角色基本信息（角色标识和名称）
             sql = "update store_role set role = %s,name=%s where id = %s and mall_id = %s"
             await execute_db_query(db,sql,(data.role,data.role_name,data.role_id,data.stroe_id))
+            # 更新角色权限码
             sql_authority = "update role_authority set authority = %s where role_id = %s and mall_id = %s"
             await execute_db_query(db,sql_authority,(data.role_authority,data.role_id,data.stroe_id))
             return {'code':200,'msg':'更新成功','current':True}
@@ -45,6 +53,7 @@ async def update_role(data:Annotated[BuyerRoleUpdate,Form()],
         execute_code = await role_authority_service.authority_resolver(int(role_authority[0][0]))
         sql_data = await execute_db_query(db,'select user from store_user where user = %s and store_id = %s',(token_data.get('user'),token_data.get('mall_id')))
         verify_data = await verify_duter_token.verify_token(sql_data)
+        # 需要写入权限[1]和分配权限[4]
         if execute_code[1] and execute_code[4] and verify_data:
             return await execute()
         else:

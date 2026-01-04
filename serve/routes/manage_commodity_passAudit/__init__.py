@@ -11,48 +11,51 @@ from data.redis_client import RedisClient,get_redis
 from data.mongodb_client import MongoDBClient,get_mongodb_client
 
 router = APIRouter()
+
 @router.post('/manage_commodity_passAudit')
 async def manage_commodity_passAudit(data:Annotated[ManageCommodityPassAudit,Form(...)],
                                      db:Connection=Depends(get_db),
                                      redis:RedisClient = Depends(get_redis),
                                      mongodb:MongoDBClient = Depends(get_mongodb_client)):
+    """
+    管理员审核商品通过接口
+    流程：管理员Token验证 -> 更新MySQL和MongoDB审核状态 -> 创建审核消息通知商户
+    """
     verify = ManagementTokenVerify(token=data.token,redis_client=redis)
     admin_tokrn_content = await verify.token_admin()
+    
     async def execute():
+        """执行审核通过的核心逻辑"""
         sql_commodity_data = await execute_db_query(db,
                                                     'select * from shopping where mall_id = %s and shopping_id = %s',
                                                     (data.mall_id,data.shopping_id))
         if sql_commodity_data:
+            # 更新MySQL中的审核状态（audit=1表示审核通过）
             await execute_db_query(db,
                                    'update shopping set audit = %s where mall_id = %s and shopping_id = %s',
                                    (1,data.mall_id,data.shopping_id))
+            # 更新MongoDB中的审核状态
             await mongodb.update_one('shopping',{'shopping_id':data.shopping_id},
                                     {'$set':{'audit':1}})
-            # 获取mongodb数据库中相关数据
+            
+            # 获取商品信息用于生成审核消息
             mongodb_commodity_data = await mongodb.find_one('shopping',{'mall_id':data.mall_id,'shopping_id':data.shopping_id})
             mongodb_sql = await mongodb.find_one('commodity_msg',{'mall_id':data.mall_id,'shopping_id':data.shopping_id})
-            # 获取商品名称
             commodity_name = mongodb_commodity_data.get('name', '未知商品')
             
+            # 生成审核消息（包含备注信息）
             if not data.remark is None:
-                # 无备注情况
                 msg_content = f'商品 {commodity_name} 审核通过，审核备注：\n无'
-                if mongodb_sql:
-                    await mongodb.update_one('commodity_msg',{'mall_id':data.mall_id,'shopping_id':data.shopping_id},
-                                        {'$set':{'msg':msg_content,
-                                        'pass':1,'audit':admin_tokrn_content['user'],'read':0}})
-                else:
-                    await mongodb.insert_one('commodity_msg',{'mall_id':data.mall_id,'shopping_id':data.shopping_id,'msg':msg_content,
-                                        'pass':1,'audit':admin_tokrn_content['user'],'read':0})
             else:
-                # 有备注情况
                 msg_content = f'商品 {commodity_name} 审核通过，审核备注：\n{data.remark}'
-                if mongodb_sql:
-                    await mongodb.update_one('commodity_msg',{'mall_id':data.mall_id,'shopping_id':data.shopping_id},
+            
+            # 创建或更新审核消息（pass=1表示通过，read=0表示未读）
+            if mongodb_sql:
+                await mongodb.update_one('commodity_msg',{'mall_id':data.mall_id,'shopping_id':data.shopping_id},
                                         {'$set':{'msg':msg_content,
                                         'pass':1,'audit':admin_tokrn_content['user'],'read':0}})
-                else:
-                    await mongodb.insert_one('commodity_msg',{'mall_id':data.mall_id,'shopping_id':data.shopping_id,'msg':msg_content,
+            else:
+                await mongodb.insert_one('commodity_msg',{'mall_id':data.mall_id,'shopping_id':data.shopping_id,'msg':msg_content,
                                         'pass':1,'audit':admin_tokrn_content['user'],'read':0})
 
             return {'msg':'审核通过','current':True}
@@ -63,7 +66,6 @@ async def manage_commodity_passAudit(data:Annotated[ManageCommodityPassAudit,For
     sql_data = await execute_db_query(db,'select user from manage_user where user = %s',admin_tokrn_content['user'])
     verify_data = await verify.run(sql_data)
     if verify_data['current']:
-        # 验证通过，执行审核操作
         return await execute()
     else:
         return {'msg':'验证失败','current':False}

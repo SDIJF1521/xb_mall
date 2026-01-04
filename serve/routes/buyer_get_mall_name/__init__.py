@@ -13,13 +13,14 @@ from data.data_mods import GetMallName
 
 router = APIRouter()
 
-
-    
 @router.post('/get_mall_name')
 async def buyer_get_mall_name(data:Annotated[GetMallName,Form()] ,db: Connection = Depends(get_db),redis: RedisClient = Depends(get_redis)):
-    
+    """
+    获取店铺名称列表接口（支持搜索）
+    流程：Token验证 -> 权限检查 -> 查询店铺列表
+    权限：主商户可查询所有店铺或按名称搜索，店铺用户需要查询权限[2]且只能查询当前店铺
+    """
     try:
-        # 验证 token
         verify_duter_token = VerifyDuterToken(data.token,redis)
         token_data = await verify_duter_token.token_data()
         if token_data.get('station') == '1':
@@ -27,20 +28,19 @@ async def buyer_get_mall_name(data:Annotated[GetMallName,Form()] ,db: Connection
             verify_data = await verify_duter_token.verify_token(sql_data)
             mall_name = []
             if data.mall_name is None:
+                # 查询主商户的所有店铺
                 if verify_data:
                     sql_data = await execute_db_query(db,'select mall_id,mall_name,creation_time from store where user = %s',(token_data.get('user')))
                     if sql_data:
-                        print(2)
-                        print(sql_data)
                         for i in sql_data:
                             mall_name.append({'id':i[0],'mall_name':i[1],'creation_time':i[2]})
                     return {'mall_name':mall_name,'current':True}
                 else:
                     return {'error':'token 验证失败','current':False}
             else:
+                # 按店铺名称搜索
                 sql_data = await execute_db_query(db,'select mall_id,mall_name,creation_time from store where user = %s and mall_name = %s',(token_data.get('user'),data.mall_name))
                 if sql_data:
-                    print(sql_data)
                     for i in sql_data:
                         mall_name.append({'id':i[0],'mall_name':i[1],'creation_time':i[2]})
                     return {'mall_name':mall_name,'current':True}
@@ -54,11 +54,10 @@ async def buyer_get_mall_name(data:Annotated[GetMallName,Form()] ,db: Connection
             verify_data = await verify_duter_token.verify_token(sql_data)
             mall_name = []
             if data.mall_name is None:
+                # 店铺用户只能查询当前店铺
                 if execute_code[2] and verify_data:
                     sql_data = await execute_db_query(db,'select mall_id,mall_name,creation_time from store where mall_id = %s',(token_data.get('mall_id')))
                     if sql_data:
-                        print(2)
-                        print(sql_data)
                         for i in sql_data:
                             mall_name.append({'id':i[0],'mall_name':i[1],'creation_time':i[2]})
                     return {'mall_name':mall_name,'current':True}

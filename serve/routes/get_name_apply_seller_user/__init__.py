@@ -13,13 +13,20 @@ def get_redis():
     return redis_client
 
 router = APIRouter()
+
 @router.post('/get_apply_seller_user')
 async def get_apply_seller_user(data:Annotated[GetApplySellerUser,Form()],db:aiomysql.Connection = Depends(get_db),redis_client=Depends(get_redis)):
+    """
+    管理员按名称查询商户申请接口
+    流程：管理员Token验证 -> 按名称查询申请记录
+    权限：仅管理员可访问
+    """
     try:
         verify = ManagementTokenVerify(token=data.token,redis_client=redis_client)
         sql_data = await execute_db_query(db,'select user from manage_user')
         verify_data = await verify.run(sql_data)
         if verify_data['current']:
+            # 按名称查询商户申请
             result = await execute_db_query(db,'select * from shop_apply where name=%s',data.name)
             if result:
                 return {'current':True,'apply_list':[list(i) for i in result]}

@@ -15,12 +15,18 @@ router = APIRouter()
 async def manage_merchant_delete(data:Annotated[DeleteMerchant,Form()],
                                  db:Connection = Depends(get_db),
                                  redis:RedisClient=Depends(get_redis)):
+    """
+    管理员删除商户接口
+    流程：管理员Token验证 -> 检查商户是否存在 -> 删除商户记录
+    注意：删除操作不可逆，会删除商户的所有数据
+    """
     verify = ManagementTokenVerify(token=data.token,redis_client=redis)
     admin_tokrn_content = await verify.token_admin()
 
     async def execute():
         sql_data= await execute_db_query(db,'select * from mall_info where user = %s',(data.name))
         if sql_data:
+            # 删除商户记录（级联删除相关数据）
             await execute_db_query(db,"DELETE FROM mall_info WHERE user = %s",(data.name))
             return {"code":200,"msg":"删除成功","success":True}
         else:

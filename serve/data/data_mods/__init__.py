@@ -263,6 +263,7 @@ class CommodityAdd(BaseModel):
 class CommodityList(BaseModel):
     stroe_id:int
     page:Optional[int] = 1
+    select:Optional[str] = None
 
 # 定义管理员获取商品上架申请列表路由数据模型
 class ManageGetCommodityApplyList(BaseModel):

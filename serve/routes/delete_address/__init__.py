@@ -8,16 +8,25 @@ from data.data_mods import UserDeleteAddress
 from data.sql_client import get_db,execute_db_query
 
 router = APIRouter()
+
 @router.delete('/delete_address')
 async def delete_address(data:Annotated[UserDeleteAddress,Form()],db:aiomysql.Connection=Depends(get_db)):
+    """
+    删除用户收货地址接口
+    流程：Token验证 -> 验证地址归属 -> 删除地址记录
+    安全：验证地址是否属于当前用户，防止删除他人地址
+    """
     try:
         user_info = UserInfo(data.token)
         user = await user_info.token_analysis()
         if not user['current']:
             raise HTTPException(status_code=401,detail='用户不存在')
+        
+        # 验证地址是否属于当前用户（防止越权删除）
         sql_data = await execute_db_query(db,'select * from user_address where address_id = %s and user = %s',(data.id,user['user']))
 
         if sql_data:
+            # 删除地址记录
             await execute_db_query(db,'delete from user_address where address_id = %s and user = %s',(data.id,user['user']))
             return {'msg':'删除成功','current':True}
         else:

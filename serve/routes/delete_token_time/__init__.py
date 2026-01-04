@@ -9,8 +9,15 @@ from data.data_mods import DeleteToken
 
 
 router = APIRouter()
+
 @router.delete('/delete_token_time')
 async def delete_token_time(data:Annotated[DeleteToken,Form()],redis_cli:RedisClient=Depends(get_redis)):
+    """
+    删除Token过期时间接口（强制登出）
+    流程：根据用户类型解析Token -> 删除Redis中的Token过期时间记录
+    用途：主动登出，使Token失效
+    类型：genre=1普通用户，genre=2商户，genre=3管理员
+    """
     identity_dic = {
         "1":'user',
         "2":'seller',
@@ -23,11 +30,12 @@ async def delete_token_time(data:Annotated[DeleteToken,Form()],redis_cli:RedisCl
     }
     token = data.token.split(" ")[1]
 
+    # 普通用户Token删除
     if data.genre == '1':
         try:
-            
             payload:dict = jwt.decode(token,secret_key_dic[identity_dic[data.genre]],algorithms=['HS256'])
             user = payload.get("user")
+            # 删除Redis中的Token过期时间（使Token失效）
             await redis_cli.delete(f"user_{user}")
             return {'msg':'删除成功','current':True}
         except jwt.InvalidTokenError:
@@ -36,6 +44,7 @@ async def delete_token_time(data:Annotated[DeleteToken,Form()],redis_cli:RedisCl
             return {'msg':'token已过期','current':False}
         except Exception as e:
             return {'msg':str(e),'current':False}
+    # 商户Token删除
     elif data.genre == "2":
         try:
             payload:dict = jwt.decode(token,secret_key_dic[identity_dic[data.genre]],algorithms=['HS256'])
@@ -48,6 +57,7 @@ async def delete_token_time(data:Annotated[DeleteToken,Form()],redis_cli:RedisCl
             return {'msg':'token已过期','current':False}
         except Exception as e:
             return {'msg':str(e),'current':False}
+    # 管理员Token删除
     elif data.genre == "3":
         try:
             payload:dict = jwt.decode(token,secret_key_dic[identity_dic[data.genre]],algorithms=['HS256'])

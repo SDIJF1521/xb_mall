@@ -8,12 +8,20 @@ from data.sql_client import get_db, execute_db_query
 from services.user_info_amend import UserInfoAmend
 
 router = APIRouter()
+
 @router.patch('/user_data_amend')
 async def user_data_amend(data:Annotated[UserInformation,Form()], db:aiomysql.Connection = Depends(get_db)) -> dict:
+    """
+    修改用户个人信息接口
+    流程：Token验证 -> 更新用户信息（昵称、年龄、性别）
+    用途：用户修改个人资料
+    """
     try:
         uploading = UserInfoAmend(nickname = data.nickname,age=data.age,sex=data.sex)
+        # 验证Token并准备更新数据
         data = await uploading.wrute(data.token)
         if data['current']:
+            # 更新用户个人信息
             await execute_db_query(db,data['query'],data['params'])
             return {'msg':'信息更改成功','current':True}
         else:

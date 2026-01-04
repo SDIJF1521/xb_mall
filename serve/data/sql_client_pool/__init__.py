@@ -38,7 +38,10 @@ class DatabasePool:
             logger.info("数据库连接池已关闭")
     
     async def execute_query(self, query, params=None):
-        """执行数据库查询"""
+        """
+        执行数据库查询（使用连接池管理连接）
+        自动区分SELECT查询和写操作，SELECT返回结果，写操作自动提交
+        """
         if not self.pool:
             await self.create_pool()
         
@@ -47,16 +50,17 @@ class DatabasePool:
                 try:
                     async with conn.cursor() as cursor:
                         await cursor.execute(query, params)
+                        # 根据SQL类型决定是否返回结果
                         if query.strip().lower().startswith("select"):
                             return await cursor.fetchall()
                         else:
-                            await conn.commit()
+                            await conn.commit()  # 写操作需要提交
                             return None
                 except aiomysql.Error as e:
                     logger.error(f"数据库查询错误: {str(e)}")
                     raise HTTPException(status_code=500, detail=f"数据库错误: {str(e)}")
         except asyncio.CancelledError:
-            # 如果任务被取消，重新抛出 CancelledError
+            # 任务被取消时重新抛出，让上层处理
             logger.debug("数据库查询被取消")
             raise
 

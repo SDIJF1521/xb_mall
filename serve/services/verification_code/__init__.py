@@ -71,7 +71,7 @@ class VerificationCode:
         
     async def send_code(self, user_id: str) -> Tuple[bool, Optional[str], int]:
         """
-        为指定用户生成并存储验证码（使用Redis Pipeline优化）
+        为指定用户生成并存储验证码（使用Redis Pipeline优化性能）
         
         Returns:
             (是否成功, 验证码, 剩余冷却时间)
@@ -83,20 +83,24 @@ class VerificationCode:
             
         code = self.generate_code()
         
-        # 使用Pipeline批量执行Redis命令
+        # 使用Redis Pipeline批量执行命令，减少网络往返次数
+        # 同时存储验证码和最后生成时间，保证原子性操作
         commands = [
-            ("setex", (user_id, self.expiry, code)),
-            ("setex", (f"{user_id}:last_generated", self.cooldown, str(time.time())))
+            ("setex", (user_id, self.expiry, code)),  # 验证码，5分钟过期
+            ("setex", (f"{user_id}:last_generated", self.cooldown, str(time.time())))  # 冷却时间记录，1分钟过期
         ]
-        await self.redis_client.execute_pipeline(commands)  # 调用新方法
+        await self.redis_client.execute_pipeline(commands)
         
         return True, code, 0
 
     async def verify_code(self, user_id: str, code: str) -> bool:
-        """验证用户输入的验证码（验证后删除防止重复使用）"""
+        """
+        验证用户输入的验证码
+        验证成功后立即删除，确保验证码只能使用一次（防止重放攻击）
+        """
         stored_code = await self.redis_client.get(user_id)
         if stored_code and stored_code == code:
-            await self.redis_client.delete(user_id)  # 一次性使用
+            await self.redis_client.delete(user_id)  # 一次性使用，验证后立即删除
             return True
         return False
 

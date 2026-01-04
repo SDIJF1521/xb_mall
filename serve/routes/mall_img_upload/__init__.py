@@ -18,7 +18,6 @@ def get_redis():
 
 router = APIRouter()
 
-#  定义卖家上传店铺图片路由
 @router.post('/mall_img_upload')
 async def mall_img_upload(
     token: str = Form(...),
@@ -27,30 +26,25 @@ async def mall_img_upload(
     db: aiomysql.Connection = Depends(get_db),
     redis: RedisClient = Depends(get_redis)
 ):
-    # 验证 token
+    """
+    上传店铺图片接口
+    流程：Token验证 -> 权限检查（仅主商户）-> 检测图片格式 -> 保存图片文件 -> 更新数据库路径
+    权限：仅主商户可操作
+    """
     verify = VerifyDuterToken(token,redis)
     token_data = await verify.token_data()
     sql_data = await execute_db_query(db,'select user from seller_sing where user = %s',(token_data.get('user')))
     verify_val = await verify.verify_token(sql_data=sql_data)
     if verify_val[0]:
-        # 检查用户权限
-        print(verify_val[1])
+        # 检查用户权限（仅主商户可上传）
         if verify_val[1] in ['seller', 'admin']:
-            # 卖家和管理员权限，允许上传
-            # 读取文件内容
+            # 读取文件内容并检测图片格式
             contents = await mall_img.read()
-            
-            # 首先检测图片格式
             image_format = imghdr.what(None, contents)
             if not image_format:
-                # 如果无法检测格式，默认使用jpg
                 image_format = 'jpeg'
             
-            print(f"检测到图片格式: {image_format}")
-            print(f"店铺ID: {id}")
-            print(f"图片数据大小: {len(contents)} 字节")
-            
-            # 根据检测到的格式创建文件路径
+            # 保存图片文件（文件命名：店铺ID.png）
             img_path = f'./mall_img/{id}.png'
             
             # 如果文件已存在，先删除旧文件
@@ -59,9 +53,7 @@ async def mall_img_upload(
             
             with open(img_path,'wb') as f:
                 f.write(contents)
-                # 上传到数据库
-                print(f'上传图片路径: {img_path}')
-                # 同时更新img_path和img字段
+                # 更新数据库中的图片路径
                 await execute_db_query(db,'UPDATE store SET img_path=%s WHERE mall_id=%s', (img_path, id))
             return {'code':200,'msg':'上传成功','current':True}
         else:

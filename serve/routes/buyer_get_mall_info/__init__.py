@@ -13,26 +13,31 @@ from data.data_mods import GetMallInfo
 
 
 router = APIRouter()
+
 @router.post("/buyer_get_mall_info")
 async def buyer_get_mall_info(data:Annotated[GetMallInfo,Form()],db: Connection = Depends(get_db),redis: RedisClient = Depends(get_redis)):
-    # 验证 token
+    """
+    获取店铺信息接口
+    流程：Token验证 -> 权限检查 -> 查询店铺信息 -> 图片转Base64编码
+    权限：主商户可查询所有店铺，店铺用户需要查询权限[2]且只能查询当前店铺
+    """
     verify_duter_token = VerifyDuterToken(data.token,redis)
     token_data = await verify_duter_token.token_data()
 
-
     async def execute(mall_id:int=None):
+        # 根据参数决定查询方式：主商户查询所有店铺或指定店铺，店铺用户查询当前店铺
         if data.id is None and mall_id is None:
             sql_mall_info = await execute_db_query(db,"select * from store where user = %s",(token_data.get("user")))
         elif data.id is not None:
             sql_mall_info = await execute_db_query(db,"select * from store where mall_id = %s",(data.id))
         else:
              sql_mall_info = await execute_db_query(db,"select * from store where mall_id = %s",(mall_id))
-        # 返回字段处理表达式
+        
         rtn = []
         if sql_mall_info:
-            # 假设数据库结构为：id, user, mall_name, phone, site, info, img_path, time
-            # 注意：第6个字段(i[6])应该是img_path而不是img
+            # 构建店铺信息列表（包含状态字段）
             rtn = [{"id":i[0],"user":i[1],"mall_name":i[2],"phone":i[3],"site":i[4],"info":i[5],"img":i[6],"time":i[7],'state':i[8],'state_platform':i[9]}for i in sql_mall_info]
+            # 将店铺图片转为Base64编码
             for i in rtn:
                 with open(i['img'], 'rb') as f:
                     i['img'] = base64.b64encode(f.read()).decode('utf-8')
@@ -50,6 +55,7 @@ async def buyer_get_mall_info(data:Annotated[GetMallInfo,Form()],db: Connection 
         role_authority_service = RoleAuthorityService(token_data.get('role'),db)
         role_authority = await role_authority_service.get_authority(token_data.get('mall_id'))
         execute_code = await role_authority_service.authority_resolver(int(role_authority[0][0]))
+        # 需要查询权限[2]，且只能查询当前店铺
         if execute_code[2]:
                 return await execute(token_data.get('mall_id'))
         else:

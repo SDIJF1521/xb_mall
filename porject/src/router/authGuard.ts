@@ -12,7 +12,7 @@ const AUTH_REQUIRED_ROUTES = [
 // API基础URL
 const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
-// 验证令牌有效性
+// 验证令牌有效性 - 向后端API验证Token是否有效
 async function verifyToken(token: string): Promise<boolean> {
   try {
     const formData = new FormData();
@@ -27,7 +27,7 @@ async function verifyToken(token: string): Promise<boolean> {
   }
 }
 
-// 导出路由守卫函数
+// 路由守卫：保护需要登录才能访问的页面
 export function setupAuthGuard(router: Router) {
   router.beforeEach(async (to: RouteLocationNormalized, from: RouteLocationNormalized, next) => {
     const token = localStorage.getItem('access_token');
@@ -35,10 +35,9 @@ export function setupAuthGuard(router: Router) {
     // 检查是否为需要认证的路由
     const requiresAuth = AUTH_REQUIRED_ROUTES.includes(String(to.name));
 
-    // 登录页面的特殊处理
+    // 登录页面的特殊处理：已登录用户访问登录页时重定向到个人中心
     if (to.name === 'Register') {
       if (token && await verifyToken(token)) {
-        // 已登录用户访问登录页，重定向到个人中心
         return next('/personal_center');
       }
       return next();
@@ -51,15 +50,16 @@ export function setupAuthGuard(router: Router) {
         return next('/register');
       }
 
+      // 验证Token有效性
       const isTokenValid = await verifyToken(token);
 
       if (!isTokenValid) {
-        // 令牌无效，清除并重定向到登录页
+        // 令牌无效，清除本地存储并重定向到登录页
         localStorage.removeItem('access_token');
         return next('/register');
       }
 
-      // 认证通过，继续路由
+      // 认证通过，允许访问
       return next();
     }
 

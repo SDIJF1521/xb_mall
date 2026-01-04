@@ -15,15 +15,20 @@ def get_verifier():
     return verifier
 @router.post('/verify_code')
 async def verify_code(email: EmailStr, code: str,verifier = Depends(get_verifier)) -> dict:
-    """验证验证码"""
+    """
+    验证邮箱验证码接口
+    流程：验证验证码 -> 验证成功则生成临时Token（5分钟有效）-> 返回Token用于密码重置等操作
+    用途：密码重置、邮箱验证等场景
+    """
     try:
         # 使用邮箱作为用户ID
         user_id=f"email:{email}"
         
-        # 验证验证码
+        # 验证验证码（验证后自动删除，防止重复使用）
         is_valid=await verifier.verify_code(user_id, code)
         
         if is_valid:
+            # 验证成功，生成临时Token（5分钟有效）
             expire_minutes = 5
             expire = datetime.utcnow() + timedelta(minutes=expire_minutes)
             payload = {

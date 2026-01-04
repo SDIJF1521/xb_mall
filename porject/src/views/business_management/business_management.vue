@@ -58,7 +58,7 @@
 <script setup lang="ts">
 import { ref,onMounted } from 'vue';
 import { useRoute} from 'vue-router';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { Lock, Delete } from '@element-plus/icons-vue';
 import axios from 'axios';
 import ManagementNavigation from '@/moon/management_navigation.vue'
@@ -166,32 +166,73 @@ async function thaw_merchant () {
 }
 
 // 处理商家状态切换
-const handleMerchantStatus = () => {
-  if (from_data.value[3] == '1') {
-    freeze_merchant()
-  } else {
-    thaw_merchant()
+const handleMerchantStatus = async () => {
+  const isNormal = from_data.value[3] == '1'
+  const action = isNormal ? '冻结' : '解冻'
+  const merchantName = from_data.value[2] || from_data.value[0]
+  
+  try {
+    await ElMessageBox.confirm(
+      `确定要${action}商家"${merchantName}"吗？${isNormal ? '冻结后商家将无法正常使用系统。' : '解冻后商家可以正常使用系统。'}`,
+      `${action}商家确认`,
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: isNormal ? 'warning' : 'info',
+        confirmButtonClass: isNormal ? 'el-button--warning' : '',
+      }
+    )
+    
+    // 用户确认后执行操作
+    if (isNormal) {
+      await freeze_merchant()
+    } else {
+      await thaw_merchant()
+    }
+  } catch (error) {
+    // 用户取消操作
+    ElMessage.info('已取消操作')
   }
 }
 
 async function delete_merchant () {
-  const commit = new FormData();
-  commit.append('token',localStorage.getItem('admin_access_token')||'');
-  commit.append('name',String(route.params.id)||'')
-  const res = await Axios.delete('/manage_merchant_delete',{
-    data:commit
-  })
+  const merchantName = from_data.value[2] || from_data.value[0]
+  
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除商家"${merchantName}"吗？此操作不可恢复，将永久删除该商家及其所有相关数据！`,
+      '删除商家确认',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'error',
+        confirmButtonClass: 'el-button--danger',
+        distinguishCancelAndClose: true,
+      }
+    )
+    
+    // 用户确认后执行删除操作
+    const commit = new FormData();
+    commit.append('token',localStorage.getItem('admin_access_token')||'');
+    commit.append('name',String(route.params.id)||'')
+    
+    const res = await Axios.delete('/manage_merchant_delete',{
+      data:commit
+    })
 
-  if (res.status == 200){
-    if (res.data.success){
-      ElMessage.success('删除成功')
-      // 刷新路由以更新页面数据
-      router.push('/user_management')
-    }else{
-      ElMessage.error('删除失败')
+    if (res.status == 200){
+      if (res.data.success){
+        ElMessage.success('删除成功')
+        // 刷新路由以更新页面数据
+        router.push('/user_management')
+      }else{
+        ElMessage.error('删除失败')
+      }
     }
+  } catch (error) {
+    // 用户取消操作
+    ElMessage.info('已取消删除操作')
   }
-
 }
 
 </script>

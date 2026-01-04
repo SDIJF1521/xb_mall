@@ -9,8 +9,14 @@ def get_redis():
     return redis_client
 
 router = APIRouter()
+
 @router.post('/get_apply_seller_list')
 async def get_apply_seller_list(token:str=Form(min_length=6), db:aiomysql.Connection = Depends(get_db),redis_client=Depends(get_redis)):
+    """
+    管理员获取商户申请列表接口
+    流程：管理员Token验证 -> 查询待审核申请（state=1）-> 返回申请列表和总数
+    权限：仅管理员可访问
+    """
     try:
         verify = ManagementTokenVerify(token=token,redis_client=redis_client)
         admin_tokrn_content = await verify.token_admin()
@@ -19,6 +25,7 @@ async def get_apply_seller_list(token:str=Form(min_length=6), db:aiomysql.Connec
             
             Verify_data = await verify.run(data)
             if Verify_data['current']:
+                # 查询待审核的商户申请（state=1表示待审核）
                 sql_data = await execute_db_query(db,'select * from shop_apply where state = 1')
                 page = await execute_db_query(db,'select count(*) from shop_apply where state = 1')
                 if sql_data:
