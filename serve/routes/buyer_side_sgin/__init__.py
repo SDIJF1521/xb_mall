@@ -14,15 +14,13 @@ router = APIRouter()
 @router.post('/buyer_side_verify')
 async def VerifyToken(token:str,db: Connection = Depends(get_db),redis: RedisClient = Depends(get_redis)):
     """
-    商户端Token验证接口
-    流程：解析Token -> 根据station类型验证 -> 返回验证结果和用户类型
+    商户端Token验证
     返回：station='admin'表示主商户，station='user'表示店铺用户
     """
     try:
         token_verify = VerifyDuterToken(token,redis)
         token_data = await token_verify.token_data()
         if not token_data is None:
-            # 主商户验证（station=1）
             if token_data.get('station') == '1':
                 sql_data = await execute_db_query(db,'select user from seller_sing where user = %s',(token_data.get('user')))
                 verify_data = await token_verify.verify_token(sql_data)
@@ -31,7 +29,6 @@ async def VerifyToken(token:str,db: Connection = Depends(get_db),redis: RedisCli
                 else:
                     return {'msg':'token错误或已过期','current':False}
 
-            # 店铺用户验证（station=2）
             elif token_data.get('station') == '2':
                 sql_data = await execute_db_query(db,'select user from store_user where user = %s',(token_data.get('user')))
                 verify_data = await token_verify.verify_token(sql_data)

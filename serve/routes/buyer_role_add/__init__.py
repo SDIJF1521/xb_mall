@@ -6,6 +6,7 @@ from fastapi import APIRouter,Depends,Form,HTTPException
 
 from services.verify_duter_token import VerifyDuterToken
 from services.buyer_role_authority import RoleAuthorityService
+from services.cache_service import CacheService
 
 from data.data_mods import BuyerRoleAdd
 from data.sql_client import get_db,execute_db_query
@@ -18,30 +19,27 @@ async def buyer_role_add(data:Annotated[BuyerRoleAdd,Form()],
                               db:Connection =Depends(get_db),
                               redis:RedisClient=Depends(get_redis)):
     """
-    添加角色接口
-    流程：Token验证 -> 权限检查 -> 检查角色是否重复 -> 生成新角色ID -> 插入角色和权限记录
-    权限：主商户直接通过，店铺用户需要添加权限[0]、写入权限[1]和分配权限[4]
+    添加角色
     """
     verify_duter_token = VerifyDuterToken(data.token,redis)
     token_data = await verify_duter_token.token_data()
     
     async def execute():
-        # 检查角色是否已存在（检查店铺角色和全局角色）
         sql_select = 'select role from store_role where (mall_id = %s OR mall_id is Null) and role = %s'
         sql_data = await execute_db_query(db,sql_select,(data.stroe_id,data.role))
         
-        # 获取最大角色ID（用于生成新ID）
         sql_id_select = 'select max(id) from store_role where mall_id = %s or mall_id is Null'
         max_id = await execute_db_query(db,sql_id_select,(data.stroe_id))
         
         if not sql_data:
-            # 插入新角色记录
             insert_sql = 'insert into store_role (id,role,mall_id,name) values (%s,%s,%s,%s)'
             await execute_db_query(db,insert_sql,(max_id[0][0]+1,data.role,data.stroe_id,data.role_name))
             
-            # 插入角色权限记录（权限码存储在authority字段）
             insert_authority_sql = 'insert into role_authority (mall_id,role_id,authority) values (%s,%s,%s)'
             await execute_db_query(db,insert_authority_sql,(data.stroe_id,max_id[0][0]+1,data.role_authority))
+            cache = CacheService(redis)
+            await cache.delete_pattern(f'role:list:{data.stroe_id}:*')
+            await cache.delete_pattern(f'role:ratio:{data.stroe_id}')
             return {"code":200,"msg":"添加成功","data":None,'current':True}
         else:
             return {"code":400,"msg":"角色已存在","data":None,'current':False}
@@ -58,7 +56,6 @@ async def buyer_role_add(data:Annotated[BuyerRoleAdd,Form()],
             execute_code = await role_authority_service.authority_resolver(int(role_authority[0][0]))
             sql_data = await execute_db_query(db,'select user from store_user where user = %s and store_id = %s',(token_data.get('user'),token_data.get('mall_id')))
             verify_data = await verify_duter_token.verify_token(sql_data)
-            # 需要添加权限[0]、写入权限[1]和分配权限[4]
             if execute_code[0] and execute_code[1] and execute_code[4] and verify_data:
                 return await execute()
             else:

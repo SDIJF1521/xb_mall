@@ -4,17 +4,6 @@ import time
 import asyncio
 from typing import Annotated
 
-# Windows 多进程兼容性修复
-if sys.platform == 'win32':
-    # 设置环境变量，避免 Windows 多进程导入问题
-    os.environ['PYTHONIOENCODING'] = 'utf-8'
-    # 确保使用 spawn 模式（Windows 默认）
-    if hasattr(os, 'setpgrp'):
-        try:
-            os.setpgrp()
-        except (AttributeError, OSError):
-            pass
-
 import logging
 from fastapi import FastAPI, Form, Query,Request,Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -88,6 +77,8 @@ from routes.buter_get_classify import router as get_classify_router
 from routes.buyer_get_commoidt import router as buyer_get_commoidt_router
 from routes.buyer_commodity_inform import router as buyer_commodity_inform_router
 from routes.buyer_commodity_inform_read import router as buyer_r_commodity_inform_read_router
+from routes.buyer_commodity_edit import router as buyer_commodity_edit_router
+from routes.buyer_commodity_delete import router as buyer_commodity_delete_router
 
 from routes.manage_sign_in import router as manage_sign_in_router
 from routes.management_verify import router as management_verify_router
@@ -206,7 +197,9 @@ async def lifespan(app: FastAPI):
     在应用启动时连接 Redis ，MongoDB ，验证码Redis客户端，数据库连接池，关闭时断开连接。
     """
     try:
-        # 应用启动信息
+        # 应用启动信息（延迟写入，避免触发热重载）
+        # 使用 asyncio.sleep(0.1) 延迟写入，确保应用已完全启动
+        await asyncio.sleep(0.1)
         logger.info("=" * 60)
         logger.info("应用启动中...")
         logger.info(f"Python版本: {sys.version}")
@@ -231,15 +224,15 @@ async def lifespan(app: FastAPI):
         await db_pool.create_pool()
         logger.info(f"数据库连接池已创建 | 配置: {sql_settings.DATABASE_URL}")
         
-        # 配置定时任务：防止重叠执行，最多1个实例
+        # 时任务
         logger.info("正在配置定时任务...")
         scheduler.add_job(
             user_sql_redis_state, 
             IntervalTrigger(seconds=10),
             id='user_sql_redis_state',
-            max_instances=1,  # 最多1个并发实例，防止重叠执行
-            coalesce=True,    # 如果任务被延迟，合并执行
-            misfire_grace_time=30  # 允许30秒的容错时间
+            max_instances=1, 
+            coalesce=True,    
+            misfire_grace_time=30  
         )
         scheduler.start()
         logger.info("定时任务已启动 | 任务ID: user_sql_redis_state | 执行间隔: 10秒")
@@ -639,15 +632,11 @@ app.include_router(buyer_r_commodity_inform_read_router,prefix='/api')
 # 商品添加路由
 app.include_router(buyer_commoidt_add_router,prefix='/api')
 
-# 商品查询路由
-@app.get('/select')
-async def select(name:str = Query(alias='type',min_length=1)):
-    pass
+# 商品编辑路由
+app.include_router(buyer_commodity_edit_router,prefix='/api')
 
-# 商品删除路由
-@app.delete('/mall_delete')
-async def mall_delete(data:Annotated[DeleteMall,Form()])->dict:
-    pass
+# 买家端删除商品路由
+app.include_router(buyer_commodity_delete_router,prefix='/api')
 
 # cs路由
 app.include_router(cs_router,prefix='/api')

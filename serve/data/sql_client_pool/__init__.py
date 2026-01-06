@@ -21,8 +21,8 @@ class DatabasePool:
                 password=settings.DB_PASSWORD,
                 db=settings.DB_NAME,
                 autocommit=True,
-                minsize=1,  # 最小连接数
-                maxsize=10,  # 最大连接数
+                minsize=10,  # 最小连接数
+                maxsize=200,  # 最大连接数
                 pool_recycle=3600  # 连接回收时间
             )
             logger.info("数据库连接池创建成功")

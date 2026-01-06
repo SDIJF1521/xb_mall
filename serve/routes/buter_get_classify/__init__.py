@@ -3,6 +3,7 @@ from fastapi import APIRouter,Depends,Query,Header,HTTPException
 
 from services.verify_duter_token import VerifyDuterToken
 from services.buyer_role_authority import RoleAuthorityService
+from services.cache_service import CacheService
 
 from data.sql_client import get_db,execute_db_query
 from data.redis_client import RedisClient,get_redis
@@ -17,20 +18,24 @@ async def get_classify(
     redis: RedisClient = Depends(get_redis),
 ):
     """
-    获取商品分类接口
-    流程：Token验证 -> 权限检查 -> 查询分类列表（包含全局分类和店铺分类）
-    权限：主商户直接通过，店铺用户需要查询权限[2]
+    获取商品分类
     """
     verify_duter_token = VerifyDuterToken(access_token,redis)
     token_data = await verify_duter_token.token_data()
 
     async def execute():
-        # 查询分类（全局分类store_id为Null，店铺分类store_id为指定值）
+        cache = CacheService(redis)
+        cache_key = cache._make_key('classify', store_id)
+        cached_data = await cache.get(cache_key)
+        if cached_data:
+            return cached_data
+        
         sql = 'select id,name from classify where store_id is Null or store_id = %s'
         sql_data = await execute_db_query(db,sql,(store_id,))
-        # 构建分类字典：{分类ID: 分类名称}
         out_data = {i[0]:i[1] for i in sql_data}
-        return {'code':200,'msg':'获取成功','current':True,'data':out_data}
+        result = {'code':200,'msg':'获取成功','current':True,'data':out_data}
+        await cache.set(cache_key, result, expire=600)
+        return result
 
     if token_data.get('station') == '1':
         sql_data = await execute_db_query(db,'select user from seller_sing where user = %s',(token_data.get('user')))
@@ -45,7 +50,6 @@ async def get_classify(
         execute_code = await role_authority_service.authority_resolver(int(role_authority[0][0]))
         sql_data = await execute_db_query(db,'select user from store_user where user = %s and store_id = %s',(token_data.get('user'),token_data.get('mall_id')))
         verify_data = await verify_duter_token.verify_token(sql_data)
-        # 需要查询权限[2]
         if execute_code[2] and verify_data:
             return await execute()
         else:

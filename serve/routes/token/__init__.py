@@ -16,8 +16,7 @@ def get_redis():
 @router.post('/token')
 async def user_token(form_data: OAuth2PasswordRequestForm = Depends(), db:aiomysql.Connection = Depends(get_db),redis_cli:RedisClient = Depends(get_redis)) -> dict:
     """
-    用户登录获取Token接口（OAuth2标准格式）
-    流程：查询用户信息 -> 验证密码 -> 生成JWT Token -> 存储过期时间到Redis
+    用户登录获取Token
     """
     try:
         database_data = await execute_db_query(db,'select user,password FROM user WhERE user = %s',form_data.username)

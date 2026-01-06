@@ -6,6 +6,7 @@ from fastapi import APIRouter,Depends,HTTPException,Form
 
 from services.verify_duter_token import VerifyDuterToken
 from services.buyer_role_authority import RoleAuthorityService
+from services.cache_service import CacheService
 
 from data.data_mods import UpdateMallUser
 from data.sql_client import get_db,execute_db_query
@@ -19,20 +20,25 @@ async def buyer_user_amend(
     db: Connection = Depends(get_db),
     redis: RedisClient = Depends(get_redis)
 ):
-    """
-    修改店铺用户信息接口
-    流程：Token验证 -> 权限检查 -> 更新用户信息 -> 删除旧头像文件
-    权限：主商户直接通过，店铺用户需要写入权限[1]和分配权限[4]
-    """
+    """修改店铺用户信息"""
     verify_duter_token = VerifyDuterToken(data.token,redis)
     token_data = await verify_duter_token.token_data()
 
     async def execute():
-        # 更新用户信息（用户名、密码、权限、邮箱）
+        old_img_path = f'./buyer_use_img/{data.stroe_id}_{data.user}.png'
         await execute_db_query(db,'update store_user set user = %s,password = %s,authority = %s,email = %s where user = %s AND store_id = %s',
                                    (data.user_name,data.user_password,data.authority,data.email,data.user,data.stroe_id))
-        # 删除旧头像文件（如果存在）
-        os.remove(f'./buyer_use_img/{data.stroe_id}_{data.user_name}.png')
+        cache = CacheService(redis)
+        try:
+            if os.path.exists(old_img_path):
+                os.remove(old_img_path)
+                img_cache_key = cache._make_key('img_base64', old_img_path)
+                await cache.delete(img_cache_key)
+        except:
+            pass
+        await cache.delete_pattern(f'user:list:{data.stroe_id}:*')
+        await cache.delete_pattern(f'user:info:{data.stroe_id}:*')
+        await cache.delete_pattern(f'role:ratio:{data.stroe_id}')
         return {"code":200,"msg":"success","data":None,'current':True}
 
     try:
@@ -47,7 +53,6 @@ async def buyer_user_amend(
             execute_code = await role_authority_service.authority_resolver(int(role_authority[0][0]))
             sql_data = await execute_db_query(db,'select user from store_user where user = %s and store_id = %s',(token_data.get('user'),token_data.get('mall_id')))
             verify_data = await verify_duter_token.verify_token(sql_data)
-            # 需要写入权限[1]和分配权限[4]
             if execute_code[1] and execute_code[4] and verify_data:
                 return await execute()
             else:

@@ -1,4 +1,5 @@
 <template>
+  <!-- 查看详情对话框 -->
   <el-dialog 
     v-model="dialogVisible" 
     :title="title" 
@@ -7,6 +8,40 @@
     :close-on-click-modal="false"
   >
     <CommodityViewDetails :commodity="currentCommodity" />
+  </el-dialog>
+  
+  <!-- 编辑商品对话框 -->
+  <el-dialog 
+    v-model="editDialogVisible" 
+    title="编辑商品" 
+    width="80%" 
+    append-to-body
+    :close-on-click-modal="false"
+    @opened="handleEditDialogOpened"
+  >
+    <CommodityEdit 
+      v-if="currentCommodity"
+      :key="`edit-${currentCommodity.id}`"
+      :commodity="currentCommodity" 
+      @cancel="handleEditCancel"
+      @success="handleEditSuccess"
+    />
+  </el-dialog>
+
+  <!-- 删除商品对话框 -->
+  <el-dialog 
+    v-model="deleteDialogVisible" 
+    title="删除商品" 
+    width="500px" 
+    append-to-body
+    :close-on-click-modal="false"
+  >
+    <CommodityDelete 
+      v-if="currentCommodity"
+      :commodity-id="currentCommodity.id"
+      @cancel="handleDeleteCancel"
+      @success="handleDeleteSuccess"
+    />
   </el-dialog>
  <el-table :data="commodity_list" ref="table" >
   <el-table-column type="selection"  width="55" />
@@ -32,11 +67,11 @@
       />
     </template>
     <template #default="scope">
-      <el-button type="primary" size="small">修改</el-button>
+      <el-button type="primary" size="small" @click="edit_commodity(scope.row)">修改</el-button>
       <el-button type="info" size="small" @click="view_details(scope.row)">查看详情</el-button>
       <el-button v-if="scope.row.audit === 1" type="warning" size="small">下架</el-button>
       <el-button v-if="scope.row.audit === 3" type="success" size="small">上架</el-button>
-      <el-button type="danger" size="small">删除</el-button>
+      <el-button type="danger" size="small" @click="delete_commodity(scope.row)">删除</el-button>
     </template>
   </el-table-column>
  </el-table>
@@ -56,6 +91,8 @@ import {ref,onMounted,} from 'vue'
 import axios  from 'axios';
 import { useRoute } from 'vue-router'
 import CommodityViewDetails from './commodity_view_details.vue'
+import CommodityEdit from './commodity_edit.vue'
+import CommodityDelete from './commodity_delete.vue'
 
 const route = useRoute()
 const id = ref(route.params.id)
@@ -66,6 +103,8 @@ const currentPage = ref(1)
 const total = ref(0)
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 const dialogVisible = ref(false)
+const editDialogVisible = ref(false)
+const deleteDialogVisible = ref(false)
 const title = ref('')
 const currentCommodity = ref<Commodity | null>(null)
 
@@ -95,6 +134,11 @@ const Axios = axios.create({
 
 defineOptions({
     name: 'CommodityList',
+    components: {
+      CommodityViewDetails,
+      CommodityEdit,
+      CommodityDelete
+    }
 })
 
 async function getCommodityList(page: number, selectValue?: string) {
@@ -103,7 +147,6 @@ async function getCommodityList(page: number, selectValue?: string) {
     page: page
   }
   
-  // 如果有搜索关键词，添加到参数中
   if (selectValue && selectValue.trim()) {
     params.select = selectValue.trim()
   }
@@ -129,14 +172,76 @@ function view_details(data: Commodity) {
   dialogVisible.value = true
   title.value = '商品详情'
 }
-// 搜索处理函数（带防抖）
+
+// 编辑商品
+function edit_commodity(data: Commodity) {
+  // 深拷贝商品数据，避免引用问题
+  currentCommodity.value = {
+    ...data,
+    types: data.types ? [...data.types] : [],
+    img_list: data.img_list ? [...data.img_list] : [],
+    specification_list: data.specification_list ? data.specification_list.map((item: any) => ({
+      ...item,
+      specs: item.specs ? [...item.specs] : []
+    })) : []
+  }
+  editDialogVisible.value = true
+}
+
+// 对话框打开时的处理
+function handleEditDialogOpened() {
+  // 对话框打开时，确保数据已正确传递
+  // watch会自动触发初始化
+}
+
+// 取消编辑
+function handleEditCancel() {
+  editDialogVisible.value = false
+  // 延迟清空，确保对话框关闭动画完成
+  setTimeout(() => {
+    currentCommodity.value = null
+  }, 300)
+}
+
+// 编辑成功
+function handleEditSuccess() {
+  editDialogVisible.value = false
+  currentCommodity.value = null
+  // 刷新商品列表
+  getCommodityList(currentPage.value, search.value)
+}
+
+// 删除商品
+function delete_commodity(data: Commodity) {
+  currentCommodity.value = data
+  deleteDialogVisible.value = true
+}
+
+// 取消删除
+function handleDeleteCancel() {
+  deleteDialogVisible.value = false
+  setTimeout(() => {
+    currentCommodity.value = null
+  }, 300)
+}
+
+// 删除成功
+function handleDeleteSuccess() {
+  deleteDialogVisible.value = false
+  // 如果详情对话框正在显示被删除的商品，也关闭它
+  if (dialogVisible.value && currentCommodity.value) {
+    dialogVisible.value = false
+  }
+  currentCommodity.value = null
+  // 刷新商品列表
+  getCommodityList(currentPage.value, search.value)
+}
+
 function handleSearch() {
-  // 清除之前的定时器
   if (searchTimer) {
     clearTimeout(searchTimer)
   }
   
-  // 设置新的定时器，500ms 后执行搜索
   searchTimer = setTimeout(() => {
     currentPage.value = 1
     getCommodityList(1, search.value)
@@ -156,5 +261,7 @@ function handleCurrentChange(val: number) {
   currentPage.value = val
   getCommodityList(val, search.value)
 }
+
+
 
 </script>

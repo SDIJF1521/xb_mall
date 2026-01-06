@@ -5,6 +5,7 @@ from fastapi import APIRouter,Depends,HTTPException,Form
 
 from services.verify_duter_token import VerifyDuterToken
 from services.buyer_role_authority import RoleAuthorityService
+from services.cache_service import CacheService
 
 from data.data_mods import BuyerRoleDelete
 from data.redis_client import RedisClient,get_redis
@@ -17,15 +18,13 @@ async def buyer_role_delete(data:Annotated[BuyerRoleDelete,Form()],
                             db:Connection = Depends(get_db),
                             redis:RedisClient = Depends(get_redis)):
     """
-    删除角色接口（支持批量删除）
-    流程：Token验证 -> 权限检查 -> 删除角色记录和权限记录
-    权限：主商户直接通过，店铺用户需要删除权限[3]和分配权限[4]
+    删除角色
     """
     verify_duter_token = VerifyDuterToken(data.token,redis)
     token_data = await verify_duter_token.token_data()
 
     async def execute():
-        # 批量删除角色（同时删除角色表和权限表记录）
+        cache = CacheService(redis)
         for role_id in data.role_id:
             await execute_db_query(db,
                                    "delete from store_role where id=%s and (mall_id=%s or mall_id is null)",
@@ -33,6 +32,9 @@ async def buyer_role_delete(data:Annotated[BuyerRoleDelete,Form()],
             await execute_db_query(db,
                                    "delete from role_authority where role_id=%s and (mall_id=%s or mall_id is null)",
                                    (role_id,data.stroe_id))
+            await cache.delete(cache._make_key('role:info', role_id, data.stroe_id))
+        await cache.delete_pattern(f'role:list:{data.stroe_id}:*')
+        await cache.delete_pattern(f'role:ratio:{data.stroe_id}')
         return {"code":200,"msg":"操作成功","data":None,'current':True}
     try:
         if token_data.get('station') == '1':
@@ -46,7 +48,6 @@ async def buyer_role_delete(data:Annotated[BuyerRoleDelete,Form()],
             execute_code = await role_authority_service.authority_resolver(int(role_authority[0][0]))
             sql_data = await execute_db_query(db,'select user from store_user where user = %s and store_id = %s',(token_data.get('user'),token_data.get('mall_id')))
             verify_data = await verify_duter_token.verify_token(sql_data)
-            # 需要删除权限[3]和分配权限[4]
             if execute_code[3] and execute_code[4] and verify_data:
                 return await execute()
             else:

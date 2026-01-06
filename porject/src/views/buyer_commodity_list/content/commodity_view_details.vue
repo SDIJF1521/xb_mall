@@ -1,29 +1,29 @@
 <template>
-  <div v-if="commodity" style="padding: 20px;">
+  <div v-if="displayCommodity" style="padding: 20px;" class="commodity-details-container">
     <el-descriptions :column="2" border>
-      <el-descriptions-item label="商品ID">{{ commodity.id }}</el-descriptions-item>
-      <el-descriptions-item label="商品名称">{{ commodity.name }}</el-descriptions-item>
+      <el-descriptions-item label="商品ID">{{ displayCommodity.id }}</el-descriptions-item>
+      <el-descriptions-item label="商品名称">{{ displayCommodity.name }}</el-descriptions-item>
       <el-descriptions-item label="商品状态">
-        <el-tag :type="commodity.audit === 1 ? 'primary' : commodity.audit === 0 ? 'warning' : commodity.audit === 3 ? 'danger' : 'danger'">
-          {{ commodity.audit === 1 ? '审核通过' : commodity.audit === 0 ? '待审核' : commodity.audit === 3 ? '已下架' : '审核未通过' }}
+        <el-tag :type="displayCommodity.audit === 1 ? 'primary' : displayCommodity.audit === 0 ? 'warning' : displayCommodity.audit === 3 ? 'danger' : 'danger'">
+          {{ displayCommodity.audit === 1 ? '审核通过' : displayCommodity.audit === 0 ? '待审核' : displayCommodity.audit === 3 ? '已下架' : '审核未通过' }}
         </el-tag>
       </el-descriptions-item>
-      <el-descriptions-item label="创建时间">{{ commodity.time }}</el-descriptions-item>
-      <el-descriptions-item label="分类" :span="2" v-if="commodity.classify_categorize">
-        {{ commodity.classify_categorize }}
+      <el-descriptions-item label="创建时间">{{ displayCommodity.time }}</el-descriptions-item>
+      <el-descriptions-item label="分类" :span="2" v-if="displayCommodity.classify_categorize">
+        {{ getCategoryName(displayCommodity.classify_categorize) }}
       </el-descriptions-item>
       <el-descriptions-item label="商品信息" :span="2">
-        <div style="white-space: pre-wrap; word-break: break-all;">{{ commodity.info }}</div>
+        <div style="white-space: pre-wrap; word-break: break-all;">{{ displayCommodity.info }}</div>
       </el-descriptions-item>
-      <el-descriptions-item label="商品类型" :span="2" v-if="commodity.types && commodity.types.length > 0">
-        <el-tag v-for="(type, index) in commodity.types" :key="index" style="margin-right: 8px;">
+      <el-descriptions-item label="商品类型" :span="2" v-if="displayCommodity.types && displayCommodity.types.length > 0">
+        <el-tag v-for="(type, index) in displayCommodity.types" :key="index" style="margin-right: 8px;">
           {{ type }}
         </el-tag>
       </el-descriptions-item>
-      <el-descriptions-item label="商品图片" :span="2" v-if="commodity.img_list && commodity.img_list.length > 0">
+      <el-descriptions-item label="商品图片" :span="2" v-if="displayCommodity.img_list && displayCommodity.img_list.length > 0">
         <div class="image-container">
           <div
-            v-for="(img, index) in commodity.img_list"
+            v-for="(img, index) in displayCommodity.img_list"
             :key="index"
             class="image-wrapper"
           >
@@ -31,15 +31,15 @@
               :src="`data:image/jpeg;base64,${img}`"
               class="commodity-image"
               fit="cover"
-              :preview-src-list="commodity.img_list!.map(img => `data:image/jpeg;base64,${img}`)"
+              :preview-src-list="displayCommodity.img_list!.map(img => `data:image/jpeg;base64,${img}`)"
               :initial-index="index"
               preview-teleported
             />
           </div>
         </div>
       </el-descriptions-item>
-      <el-descriptions-item label="规格列表" :span="2" v-if="commodity.specification_list && commodity.specification_list.length > 0">
-        <el-table :data="commodity.specification_list" border style="width: 100%;">
+      <el-descriptions-item label="规格列表" :span="2" v-if="displayCommodity.specification_list && displayCommodity.specification_list.length > 0">
+        <el-table :data="displayCommodity.specification_list" border style="width: 100%;">
           <el-table-column label="规格组合" width="300">
             <template #default="{ row }">
               <el-tag
@@ -67,12 +67,27 @@
       </el-descriptions-item>
     </el-descriptions>
   </div>
+  <div v-else class="empty-state">
+    <el-empty description="暂无商品数据" />
+  </div>
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted, watch } from 'vue'
+import axios from 'axios'
+import { useRoute } from 'vue-router'
+
 defineOptions({
   name: 'CommodityViewDetails',
 })
+
+const Axios = axios.create({
+  baseURL: "http://127.0.0.1:8000/api"
+})
+
+const token = ref(localStorage.getItem('buyer_access_token') || '')
+const route = useRoute()
+const id = ref(route.params.id)
 
 interface Commodity {
   id: number
@@ -91,9 +106,57 @@ interface Commodity {
 const props = defineProps<{
   commodity: Commodity | null
 }>()
+
+// 监听 commodity 变化，如果为 null 则显示空状态
+const displayCommodity = ref<Commodity | null>(props.commodity)
+
+watch(() => props.commodity, (newVal) => {
+  displayCommodity.value = newVal
+}, { immediate: true })
+
+// 分类映射
+const categoryMap = ref<Record<number, string>>({})
+
+// 获取分类名称
+const getCategoryName = (categoryId: string | number): string => {
+  const id = Number(categoryId)
+  return categoryMap.value[id] || `分类 ${id}`
+}
+
+// 加载分类列表
+onMounted(async () => {
+  try {
+    const res = await Axios.get('/buter_get_classify', {
+      params: {
+        store_id: id.value
+      },
+      headers: {
+        'access-token': token.value
+      }
+    })
+    
+    if (res.data.current && res.data.data) {
+      categoryMap.value = {}
+      for (const item in res.data.data) {
+        categoryMap.value[Number(item)] = res.data.data[item]
+      }
+    }
+  } catch (error) {
+    console.error('获取分类失败:', error)
+  }
+})
 </script>
 
 <style scoped>
+.commodity-details-container {
+  padding: 20px;
+}
+
+.empty-state {
+  padding: 40px;
+  text-align: center;
+}
+
 .image-container {
   display: flex;
   flex-wrap: wrap;

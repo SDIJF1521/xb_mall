@@ -63,7 +63,7 @@ import {
 } from '@element-plus/icons-vue'
 
 const mods = ref('CommodityAudit')
-const activeIndex = ref('2') // 默认选中商品列表
+const activeIndex = ref('1') // 默认选中商品列表
 
 // 菜单选择处理函数
 const handleMenuSelect = (index: string) => {

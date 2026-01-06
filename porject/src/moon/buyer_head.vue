@@ -164,7 +164,7 @@ async function getCommodityInform() {
             console.warn('未找到访问令牌')
             return
         }
-        const res = await Axios.get('/buter_commodity_inform', {
+        const res = await Axios.get('/buyer_commodity_inform', {
             headers: {
                 'access-token': token
             }

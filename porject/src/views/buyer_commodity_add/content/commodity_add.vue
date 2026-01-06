@@ -549,10 +549,10 @@ const handleSubmit = async () => {
             commitFormData.append('stroe_id', id.toString())
             commitFormData.append('name', formData.value.name)
 
-            // Send only the first tag as type (since backend expects Tuple[str])
-            if (formData.value.tags.length > 0) {
-                commitFormData.append('type', formData.value.tags.join(','))
-            }
+            // 将每个标签作为单独的type字段发送（FormData支持同名字段，后端会解析为List[str]）
+            formData.value.tags.forEach((tag: string) => {
+                commitFormData.append('type', tag)
+            })
 
             formData.value.image.forEach((file: any) => {
                 commitFormData.append('img_list', file.raw)

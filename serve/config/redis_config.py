@@ -12,7 +12,7 @@ class RedisSettings(BaseSettings):
     REDIS_USERNAME: Optional[str] = Field(default=None, description='Redis用户名')
     REDIS_ENCODING: str = Field(default='utf-8', description='Redis编码格式')
     REDIS_DECODE_RESPONSES: bool = Field(default=True, description='是否自动解码响应')
-    REDIS_MAX_CONNECTIONS: int = Field(default=50, description='最大连接数')
+    REDIS_MAX_CONNECTIONS: int = Field(default=200, description='最大连接数')
     REDIS_SOCKET_TIMEOUT: int = Field(default=5, description='Socket超时时间（秒）')
     REDIS_SOCKET_CONNECT_TIMEOUT: int = Field(default=5, description='连接超时时间（秒）')
     REDIS_RETRY_ON_TIMEOUT: bool = Field(default=True, description='超时时是否重试')

@@ -65,7 +65,9 @@ const mall_id =ref(-1);
 onMounted(async()=>{
     new BuyerTheme().toggleTheme(true)
     const formdata = new FormData()
-    formdata.append('token', token || '')
+    // 使用最新的token
+    const currentToken = localStorage.getItem("buyer_access_token")
+    formdata.append('token', currentToken || '')
     const response = await Axios.post('get_mall_name', formdata)
     filterTableData.value = response.data.current ? response.data.mall_name : []
 })
@@ -75,7 +77,9 @@ const dialogVisible = ref(false);
 // 搜索功能
 async function require_list(){
     const formdata = new FormData()
-    formdata.append('token', token || '')
+    // 使用最新的token（可能已更新）
+    const currentToken = localStorage.getItem("buyer_access_token")
+    formdata.append('token', currentToken || '')
     // 如果搜索框为空，不传递mall_name参数（或根据后端需求调整）
     if (name.value) {
         formdata.append('mall_name', name.value)
@@ -99,16 +103,36 @@ async function confirmDelete() {
     const formdata = new FormData()
     formdata.append("token",token || '')
     formdata.append("mall_id",mall_id.value.toString())
-    const res  = await Axios.delete('/buyer_delete_mall',{data:formdata})
-
-
-    if(res.data.current){
-        ElMessage.success('删除成功')
-        dialogVisible.value = false;
-        mall_id.value = -1;
-        require_list()
-    }else{
-        ElMessage.error('删除失败')
+    
+    try {
+        const res = await Axios.delete('/buyer_delete_mall',{data:formdata})
+        
+        if(res.data.current){
+            // 检查并更新新的token（如果后端返回了新token）
+            let tokenUpdated = false
+            if (res.data.token) {
+                // 更新为新token，格式：Bearer {token}
+                const tokenType = res.data.token_type || 'bearer'
+                const newToken = `${tokenType.charAt(0).toUpperCase() + tokenType.slice(1)} ${res.data.token}`
+                localStorage.setItem('buyer_access_token', newToken)
+                
+                tokenUpdated = true
+                console.log('Token已更新，新token已移除删除的店铺信息')
+            }
+            
+            ElMessage.success(tokenUpdated ? '删除成功，Token已自动更新' : '删除成功')
+            dialogVisible.value = false;
+            mall_id.value = -1;
+            // 刷新列表（使用最新的token）
+            await require_list()
+        }else{
+            ElMessage.error(res.data.msg || '删除失败')
+            dialogVisible.value = false;
+            mall_id.value = -1;
+        }
+    } catch (error) {
+        console.error('删除店铺失败:', error)
+        ElMessage.error('删除店铺失败，请稍后重试')
         dialogVisible.value = false;
         mall_id.value = -1;
     }

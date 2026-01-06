@@ -4,6 +4,7 @@ from fastapi import APIRouter,Depends,Form,UploadFile,File
 
 from services.verify_duter_token import VerifyDuterToken
 from services.buyer_role_authority import RoleAuthorityService
+from services.cache_service import CacheService
 
 from data.sql_client import get_db,execute_db_query
 from data.redis_client import get_redis,RedisClient
@@ -19,19 +20,20 @@ async def buyer_user_picture_uploading(token:str = Form(...),
                                        redis_client:RedisClient = Depends(get_redis)
                                        ):
     """
-    上传店铺用户头像接口
-    流程：Token验证 -> 权限检查 -> 保存图片文件 -> 更新数据库记录
-    权限：主商户直接通过，店铺用户需要查询权限[2]、删除权限[3]和分配权限[4]
+    上传店铺用户头像
     """
     verify_duter_token = VerifyDuterToken(token,redis_client)
     token_data = await verify_duter_token.token_data()
 
     async def execute(user:str) ->dict:
-        # 保存图片到本地（文件命名：店铺ID_用户名.png）
         with open(f"./buyer_use_img/{stroe_id}_{name}.png", "wb") as f:
             f.write(await file.read())
-        # 更新用户头像路径
         await execute_db_query(db,'update store_user set img = %s where user = %s and store_id = %s',(f"./buyer_use_img/{stroe_id}_{name}.png",name,stroe_id))
+        
+        cache = CacheService(redis_client)
+        await cache.delete_pattern(f"mall_user_list:*")
+        await cache.delete_pattern(f"mall_user_select:*")
+        
         return {"code":200,"msg":"success","data":None,'current':True}
     
     if token_data.get('station') == '1':
@@ -45,7 +47,6 @@ async def buyer_user_picture_uploading(token:str = Form(...),
         execute_code = await role_authority_service.authority_resolver(int(role_authority[0][0]))
         sql_data = await execute_db_query(db,'select user from store_user where user = %s and store_id = %s',(token_data.get('user'),token_data.get('mall_id')))
         verify_data = await verify_duter_token.verify_token(sql_data)
-        # 需要查询权限[2]、删除权限[3]和分配权限[4]
         if execute_code[2] and execute_code[3] and execute_code[4] and verify_data:
             return await execute(name)
         else:

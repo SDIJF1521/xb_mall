@@ -217,8 +217,23 @@ async function handleOk() {
     Axios.post("/add_mall",mall_info_commit)
     .then(res =>{
         if (res.data.code === 200 && res.data.current){
+            // 检查并更新新的token（如果后端返回了新token）
+            let tokenUpdated = false
+            if (res.data.token) {
+                const oldToken = localStorage.getItem('buyer_access_token')
+                
+                // 更新为新token，格式：Bearer {token}
+                const tokenType = res.data.token_type || 'bearer'
+                const newToken = `${tokenType.charAt(0).toUpperCase() + tokenType.slice(1)} ${res.data.token}`
+                localStorage.setItem('buyer_access_token', newToken)
+                
+                tokenUpdated = true
+                console.log('Token已更新，新token包含新创建的店铺信息')
+            }
+            
             // 初始化FormData 对象，店铺图片数据
             const mall_img = new FormData();
+            // 使用最新的token（可能是新token）
             mall_img.append('token',localStorage.getItem('buyer_access_token') || '')
             mall_img.append('id',res.data.prod_id)
             console.log(mall_info.value.mall_img);
@@ -233,7 +248,7 @@ async function handleOk() {
                     mall_info.value.mall_description = "";
                     mall_info.value.mall_admin = "";
                     mall_info.value.mall_img = [];
-                    ElMessage.success("店铺创建成功")
+                    ElMessage.success(tokenUpdated ? "店铺创建成功，Token已自动更新" : "店铺创建成功")
 
                     return
                 }else if(res.data.code == 403 && res.data.code == 500){
@@ -246,6 +261,10 @@ async function handleOk() {
         }else{
             ElMessage.error(res.data.msg)
         }
+    })
+    .catch(error => {
+        console.error('创建店铺失败:', error)
+        ElMessage.error('创建店铺失败，请稍后重试')
     })
     dialogVisible.value = false
 

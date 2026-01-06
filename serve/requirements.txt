@@ -11,4 +11,5 @@ python-multipart
 email-validator
 pydantic
 pydantic-settings
+redisbloom>=2.0.0
 

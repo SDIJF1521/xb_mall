@@ -5,13 +5,13 @@ from fastapi import APIRouter,Depends,Form,HTTPException,Header
 
 from services.verify_duter_token import VerifyDuterToken
 from services.buyer_role_authority import RoleAuthorityService
+from services.cache_service import CacheService
 
 from data.sql_client import get_db,execute_db_query
 from data.redis_client import RedisClient,get_redis
 from data.mongodb_client import MongoDBClient,get_mongodb_client
 from data.data_mods import BuyerReadCommodityInform
 
-# 已读商品通知路由
 router = APIRouter()
 
 @router.post("/buyer_r_commodity_inform_read")
@@ -21,12 +21,7 @@ async def buyer_r_commodity_inform_read(
     redis: RedisClient = Depends(get_redis),
     mongodb: MongoDBClient = Depends(get_mongodb_client)
 ):
-    """
-    标记商品通知为已读
-    如果提供了 mall_id 和 shopping_id，则标记指定通知为已读
-    如果未提供，则标记用户所有未读通知为已读
-    """
-    # 验证 token
+    """标记商品通知为已读"""
     verify_duter_token = VerifyDuterToken(data.token, redis)
     token_data = await verify_duter_token.token_data()
     
@@ -38,7 +33,7 @@ async def buyer_r_commodity_inform_read(
         try:
             filter_dict = {
                 'mall_id': {'$in': mall_id_list},
-                'read': 0  # 只更新未读的通知
+                'read': 0
             }
 
             if data.mall_id is not None and data.shopping_id is not None:
@@ -61,6 +56,9 @@ async def buyer_r_commodity_inform_read(
                 update_dict
             )
             
+            cache = CacheService(redis)
+            await cache.delete_pattern('commodity:inform:*')
+            
             if updated_count > 0:
                 return {
                     'code': 200,
@@ -82,7 +80,6 @@ async def buyer_r_commodity_inform_read(
                 'current': False
             }
     
-    # 根据用户类型获取店铺ID列表
     if token_data.get('station') == '1':
     
         sql_data = await execute_db_query(
@@ -93,7 +90,6 @@ async def buyer_r_commodity_inform_read(
         verify_data = await verify_duter_token.verify_token(sql_data)
         
         if verify_data[0]:
-            # 获取用户的店铺ID列表
             mall_id_list = token_data.get('state_id_list', [])
             if not mall_id_list:
                 return {'code': 400, 'msg': '用户没有关联的店铺', 'current': False}
@@ -119,7 +115,6 @@ async def buyer_r_commodity_inform_read(
         )
         verify_data = await verify_duter_token.verify_token(sql_data)
         
-        # 需要查询权限[2]
         if execute_code[2] and verify_data:
             mall_id = token_data.get('state_id')
             if not mall_id:

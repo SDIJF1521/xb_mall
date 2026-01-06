@@ -300,3 +300,21 @@ class ManageCommodityPassAudit(BaseModel):
     mall_id:int
     shopping_id:int
     remark:Optional[str] = None
+
+# 定义卖家端商品编辑路由
+class SellerCommodityEdit(BaseModel):
+    token:str
+    stroe_id:int
+    shopping_id:int
+    name:str
+    type:Optional[List[str]] = Field(None, description="商品类型，可选参数") 
+    img_list:Optional[List[UploadFile]] = Field(None, description="商品图片列表，可选，编辑时不上传则保留原图片")
+    classify_categorize:int
+    info:str
+    sku_list:Optional[str] = Field(None, description="SKU列表，JSON字符串格式，包含规格组合、价格和库存")
+
+# 定义买家删除商品路由数据模型
+class BuyerDeleteCommodity(BaseModel):
+    token:str
+    stroe_id:int
+    shopping_id:int
