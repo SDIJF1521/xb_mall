@@ -7,19 +7,33 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
-.DS_Store
+.pnpm-store
+
+# Build outputs
 dist
 dist-ssr
-coverage
+build
+
+# Environment files
+.env.local
+.env.*.local
 *.local
 
+# Coverage
+coverage
+.nyc_output
+
+# Cypress
 /cypress/videos/
 /cypress/screenshots/
+/cypress/downloads/
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
+!.vscode/settings.json.default
 .idea
 *.suo
 *.ntvs*
@@ -27,4 +41,32 @@ coverage
 *.sln
 *.sw?
 
+# TypeScript
 *.tsbuildinfo
+.tsbuildinfo
+
+# Cache directories
+.cache
+.temp
+.vite-temp
+.parcel-cache
+
+# Package manager
+.npm
+.yarn
+.pnpm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*~
+
+# Test results
+test-results
+junit.xml

@@ -1,0 +1,291 @@
+# 项目根目录 .gitignore 文件
+# XB Mall 项目 - 防止提交无用文件配置
+
+# ==========================================
+# 操作系统文件
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.stackdump
+
+# ==========================================
+# IDE 和编辑器文件
+# ==========================================
+# VS Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json.default
+
+# IntelliJ IDEA / PyCharm
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Visual Studio
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Eclipse
+.project
+.classpath
+.cproject
+.settings/
+
+# ==========================================
+# Python 字节码文件 - 防止所有pyc文件
+# ==========================================
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/*.pyi
+**/*.py[cod]
+**/*$py.class
+**/*.so
+
+# Python 优化文件
+**/*.opt-1.pyc
+**/*.opt-2.pyc
+
+# Python 缓存目录
+**/.pytest_cache/
+**/.mypy_cache/
+**/.dmypy.json
+**/dmypy.json
+
+# Python 打包缓存
+**/*.egg-info/
+**/.installed.cfg
+**/*.egg
+**/Pipfile.lock
+**/build/
+**/dist/
+**/eggs/
+**/.eggs/
+**/*.whl
+
+# ==========================================
+# 前端项目 (porject/)
+# ==========================================
+# 依赖目录
+porject/node_modules/
+porject/.pnpm-store/
+
+# 构建输出
+porject/dist/
+porject/dist-ssr/
+porject/build/
+
+# 日志文件
+porject/logs/
+porject/*.log
+porject/npm-debug.log*
+porject/yarn-debug.log*
+porject/yarn-error.log*
+porject/pnpm-debug.log*
+porject/lerna-debug.log*
+
+# 测试覆盖率
+porject/coverage/
+porject/.nyc_output/
+
+# 本地环境文件
+porject/.env.local
+porject/.env.*.local
+porject/*.local
+
+# TypeScript
+porject/*.tsbuildinfo
+porject/.tsbuildinfo
+
+# Cypress
+porject/cypress/videos/
+porject/cypress/screenshots/
+porject/cypress/downloads/
+
+# 缓存目录
+porject/.cache/
+porject/.temp/
+porject/.vite-temp/
+
+# ==========================================
+# 后端项目 (serve/)
+# ==========================================
+# Python 虚拟环境
+serve/.venv/
+serve/venv/
+serve/env/
+serve/ENV/
+
+# Python 包
+serve/*.egg-info/
+serve/.installed.cfg
+serve/*.egg
+serve/Pipfile.lock
+
+# 构建输出
+serve/build/
+serve/dist/
+serve/*.egg-info/
+
+# 日志文件
+serve/logs/
+serve/*.log
+
+# 进程文件
+serve/*.pid
+serve/.reloadignore
+
+# 上传的文件目录（运行时生成）
+serve/buyer_use_img/
+serve/mall_img/
+serve/merchandise_img/
+serve/shop_manager_img/
+serve/shopping_img/
+serve/target_folder/
+serve/img/
+
+# 临时文件
+serve/*.tmp
+serve/*.temp
+
+# 环境配置
+serve/.env
+serve/.env.local
+serve/.env.*.local
+serve/config.local.py
+
+# 测试和覆盖率
+serve/htmlcov/
+serve/.coverage
+serve/.coverage.*
+serve/coverage.xml
+serve/*.cover
+serve/.hypothesis/
+serve/.pytest_cache/
+serve/.tox/
+serve/.nox/
+serve/test-results/
+serve/junit.xml
+
+# 数据库文件
+serve/*.sqlite
+serve/*.sqlite3
+serve/*.db
+serve/*.db-journal
+
+# 证书和密钥文件
+serve/*.pem
+serve/*.key
+serve/*.crt
+serve/*.csr
+serve/*.p12
+serve/*.pfx
+serve/jwt_private.key
+serve/jwt_public.key
+
+# IDE 配置
+serve/.vscode/
+serve/.idea/
+serve/*.iml
+serve/*.iws
+serve/*.ipr
+
+# 缓存
+serve/.cache/
+serve/.mypy_cache/
+serve/.dmypy.json
+serve/dmypy.json
+
+# Jupyter Notebook
+serve/.ipynb_checkpoints/
+
+# IPython
+serve/profile_default/
+serve/ipython_config.py
+
+# ==========================================
+# 通用日志目录
+# ==========================================
+logs/
+*.log
+
+# ==========================================
+# 临时文件
+# ==========================================
+*.tmp
+*.temp
+*.bak
+*.backup
+*.swp
+*.swo
+*~
+
+# ==========================================
+# 包管理器文件
+# ==========================================
+# npm
+.npm/
+.npmrc
+
+# yarn
+.yarn/
+.yarnrc
+
+# pnpm
+.pnpm-debug.log*
+
+# ==========================================
+# 数据库文件
+# ==========================================
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+
+# ==========================================
+# 证书和密钥文件
+# ==========================================
+*.pem
+*.key
+*.crt
+*.csr
+*.p12
+*.pfx
+
+# ==========================================
+# 文档生成文件
+# ==========================================
+docs/_build/
+docs/.doctrees/
+docs/_static/
+docs/_templates/
+
+# ==========================================
+# 其他
+# ==========================================
+# 本地开发配置
+.local/
+.development/
+
+# 缓存
+.cache/
+.parcel-cache/
+.next/
+.nuxt/
+
+# 测试报告
+test-results/
+junit.xml
+
+# 覆盖率报告
+coverage/

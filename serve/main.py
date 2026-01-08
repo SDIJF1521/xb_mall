@@ -21,7 +21,6 @@ from data.data_mods import AddMall, DeleteMall, UserOnLineUploading
 from services.verification_code import VerificationCode
 from data.redis_client import RedisClient
 from data.mongodb_client import mongodb_client
-from contextlib import asynccontextmanager
 from data.sql_client import get_db,execute_db_query
 from data.sql_client_pool import db_pool
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -79,6 +78,7 @@ from routes.buyer_commodity_inform import router as buyer_commodity_inform_route
 from routes.buyer_commodity_inform_read import router as buyer_r_commodity_inform_read_router
 from routes.buyer_commodity_edit import router as buyer_commodity_edit_router
 from routes.buyer_commodity_delete import router as buyer_commodity_delete_router
+from routes.buyer_commodity_delisting import router as buyer_commodity_delisting_router
 
 from routes.manage_sign_in import router as manage_sign_in_router
 from routes.management_verify import router as management_verify_router
@@ -196,18 +196,28 @@ async def lifespan(app: FastAPI):
     应用生命周期管理，处理启动和关闭事件。
     在应用启动时连接 Redis ，MongoDB ，验证码Redis客户端，数据库连接池，关闭时断开连接。
     """
+    # 应用启动信息（延迟写入，避免触发热重载）
+    # 使用 asyncio.sleep(0.1) 延迟写入，确保应用已完全启动
+    await asyncio.sleep(0.1)
+    logger.info("=" * 60)
+    logger.info("应用启动中...")
+    logger.info(f"Python版本: {sys.version}")
+    logger.info(f"运行平台: {sys.platform}")
+    logger.info(f"工作目录: {os.getcwd()}")
+    logger.info(f"进程ID: {os.getpid()}")
+    
+    # 检查虚拟环境
+    python_path = sys.executable
+    venv_env = os.environ.get('VIRTUAL_ENV')
+    is_venv = venv_env is not None or sys.prefix != sys.base_prefix
+    logger.info(f"Python解释器路径: {python_path}")
+    if is_venv:
+        logger.info(f"[虚拟环境] 已激活 | 路径: {venv_env if venv_env else sys.prefix}")
+    else:
+        logger.warning(f"[虚拟环境] 未检测到虚拟环境 | 建议激活虚拟环境后再运行")
+    
+    # 应用启动时的逻辑
     try:
-        # 应用启动信息（延迟写入，避免触发热重载）
-        # 使用 asyncio.sleep(0.1) 延迟写入，确保应用已完全启动
-        await asyncio.sleep(0.1)
-        logger.info("=" * 60)
-        logger.info("应用启动中...")
-        logger.info(f"Python版本: {sys.version}")
-        logger.info(f"运行平台: {sys.platform}")
-        logger.info(f"工作目录: {os.getcwd()}")
-        logger.info(f"进程ID: {os.getpid()}")
-        
-        # 应用启动时的逻辑
         logger.info("正在连接Redis...")
         await redis_client.connect()
         logger.info(f"Redis 连接已建立 | URL: {redis_client.redis_url} | DB: {redis_client.db}")
@@ -224,7 +234,7 @@ async def lifespan(app: FastAPI):
         await db_pool.create_pool()
         logger.info(f"数据库连接池已创建 | 配置: {sql_settings.DATABASE_URL}")
         
-        # 时任务
+        # 定时任务
         logger.info("正在配置定时任务...")
         scheduler.add_job(
             user_sql_redis_state, 
@@ -238,20 +248,6 @@ async def lifespan(app: FastAPI):
         logger.info("定时任务已启动 | 任务ID: user_sql_redis_state | 执行间隔: 10秒")
         logger.info("=" * 60)
         logger.info("应用启动完成，所有服务已就绪")
-        yield
-        # 关闭定时任务：等待正在运行的任务完成
-        try:
-            scheduler.shutdown(wait=True)
-            logger.info("定时任务已停止-用户状态检测")
-        except asyncio.CancelledError:
-            logger.info("定时任务关闭被取消（应用正在关闭）")
-            raise
-        except Exception as e:
-            logger.warning(f"关闭定时任务时出错: {str(e)}")
-    except asyncio.CancelledError:
-        # 应用关闭时取消是正常的，不需要记录为错误
-        logger.info("应用生命周期被取消（正常关闭）")
-        raise
     except Exception as e:
         import traceback
         error_traceback = traceback.format_exc()
@@ -261,44 +257,58 @@ async def lifespan(app: FastAPI):
         logger.error(f"错误类型: {type(e).__name__}")
         logger.error(f"错误详情:\n{error_traceback}")
         logger.error("=" * 60)
-    finally:
-        # 应用关闭时的逻辑
-        logger.info("=" * 60)
-        logger.info("应用正在关闭，清理资源...")
-        try:
-            await redis_client.close()
-            logger.info("Redis 连接已关闭")
-        except asyncio.CancelledError:
-            logger.info("Redis 连接关闭被取消")
-        except Exception as e:
-            logger.error(f"关闭Redis连接时出错: {str(e)}")
-        
-        try:
-            await mongodb_client.close()
-            logger.info("MongoDB 连接已关闭")
-        except asyncio.CancelledError:
-            logger.info("MongoDB 连接关闭被取消")
-        except Exception as e:
-            logger.error(f"关闭MongoDB连接时出错: {str(e)}")
-        
-        try:
-            await verifier.close()
-            logger.info("验证码Redis客户端连接已关闭")
-        except asyncio.CancelledError:
-            logger.info("验证码Redis客户端连接关闭被取消")
-        except Exception as e:
-            logger.error(f"关闭验证码Redis客户端连接时出错: {str(e)}")
-        
-        try:
-            await db_pool.close_pool()
-            logger.info("数据库连接池已关闭")
-        except asyncio.CancelledError:
-            logger.info("数据库连接池关闭被取消")
-        except Exception as e:
-            logger.error(f"关闭数据库连接池时出错: {str(e)}")
-        
-        logger.info("=" * 60)
-        logger.info("应用已完全关闭")
+        raise
+    
+    # yield 之后是关闭逻辑
+    yield
+    
+    # 应用关闭时的逻辑
+    logger.info("=" * 60)
+    logger.info("应用正在关闭，清理资源...")
+    
+    # 关闭定时任务：等待正在运行的任务完成
+    try:
+        scheduler.shutdown(wait=True)
+        logger.info("定时任务已停止-用户状态检测")
+    except asyncio.CancelledError:
+        logger.info("定时任务关闭被取消（应用正在关闭）")
+    except Exception as e:
+        logger.warning(f"关闭定时任务时出错: {str(e)}")
+    
+    try:
+        await redis_client.close()
+        logger.info("Redis 连接已关闭")
+    except asyncio.CancelledError:
+        logger.info("Redis 连接关闭被取消")
+    except Exception as e:
+        logger.error(f"关闭Redis连接时出错: {str(e)}")
+    
+    try:
+        await mongodb_client.close()
+        logger.info("MongoDB 连接已关闭")
+    except asyncio.CancelledError:
+        logger.info("MongoDB 连接关闭被取消")
+    except Exception as e:
+        logger.error(f"关闭MongoDB连接时出错: {str(e)}")
+    
+    try:
+        await verifier.close()
+        logger.info("验证码Redis客户端连接已关闭")
+    except asyncio.CancelledError:
+        logger.info("验证码Redis客户端连接关闭被取消")
+    except Exception as e:
+        logger.error(f"关闭验证码Redis客户端连接时出错: {str(e)}")
+    
+    try:
+        await db_pool.close_pool()
+        logger.info("数据库连接池已关闭")
+    except asyncio.CancelledError:
+        logger.info("数据库连接池关闭被取消")
+    except Exception as e:
+        logger.error(f"关闭数据库连接池时出错: {str(e)}")
+    
+    logger.info("=" * 60)
+    logger.info("应用已完全关闭")
 
 logger = logging.getLogger("fastapi_logger")
 # 注册fatsApi应用
@@ -637,6 +647,9 @@ app.include_router(buyer_commodity_edit_router,prefix='/api')
 
 # 买家端删除商品路由
 app.include_router(buyer_commodity_delete_router,prefix='/api')
+
+# 买家端下架商品路由
+app.include_router(buyer_commodity_delisting_router,prefix='/api')
 
 # cs路由
 app.include_router(cs_router,prefix='/api')

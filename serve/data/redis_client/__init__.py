@@ -2,16 +2,16 @@ from typing import List, Tuple, Optional, Dict, Any
 from typing import List, Tuple, Optional
 from config.redis_config import settings
 
-# 延迟导入 aioredis，避免 Windows 多进程导入问题
-_aioredis = None
+# 延迟导入 redis.asyncio，避免 Windows 多进程导入问题
+_redis_asyncio = None
 
-def _get_aioredis():
-    """延迟导入 aioredis 模块"""
-    global _aioredis
-    if _aioredis is None:
-        import aioredis
-        _aioredis = aioredis
-    return _aioredis
+def _get_redis_asyncio():
+    """延迟导入 redis.asyncio 模块"""
+    global _redis_asyncio
+    if _redis_asyncio is None:
+        from redis import asyncio as redis_asyncio_module
+        _redis_asyncio = redis_asyncio_module
+    return _redis_asyncio
 
 class RedisClient:
     def __init__(self, redis_url: Optional[str] = None, db: Optional[int] = None):
@@ -24,9 +24,9 @@ class RedisClient:
         
     async def connect(self) -> None:
         """异步连接到Redis服务器"""
-        # 延迟导入 aioredis，避免 Windows 多进程导入问题
-        aioredis = _get_aioredis()
-        self.redis = await aioredis.from_url(
+        # 延迟导入 redis.asyncio，避免 Windows 多进程导入问题
+        redis_asyncio = _get_redis_asyncio()
+        self.redis = redis_asyncio.from_url(
             self.redis_url,
             db=self.db,
             encoding=settings.REDIS_ENCODING,
@@ -41,12 +41,7 @@ class RedisClient:
     async def close(self) -> None:
         """异步关闭Redis连接"""
         if self.redis:
-            await self.redis.close()
-            if hasattr(self.redis, 'wait_closed'):
-                await self.redis.wait_closed()
-            else:
-                # 对于旧版本aioredis，可能需要使用await self.redis.close()
-                await self.redis.close()
+            await self.redis.aclose()
     
     async def set(self,key: str, value: str) -> None:
         """设置键值对"""
@@ -62,10 +57,19 @@ class RedisClient:
 
     async def delete(self, key: str) -> int:
         """删除键"""
+        if self.redis is None:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Redis连接未建立，跳过删除操作 | Key: {key}")
+            return 0
         return await self.redis.delete(key)
 
     async def ttl(self, key: str) -> int:
         """获取键的剩余生存时间"""
+        return await self.redis.ttl(key)
+    
+    async def get_ttl(self, key: str) -> int:
+        """获取键的剩余生存时间（别名方法，与ttl相同）"""
         return await self.redis.ttl(key)
     
     async def hset(self, name: str, key: str, value: str) -> int:
@@ -106,7 +110,7 @@ class RedisClient:
 
     async def hmset(self, name: str, mapping: Dict[str, str]) -> None:
         """批量设置哈希表中的多个字段值"""
-        # 注意：aioredis的hmset在新版本中已被hset替代，使用方式略有不同
+        # 注意：redis.asyncio的hmset已被hset替代，使用方式略有不同
         if not mapping:
             return
         await self.redis.hset(name, mapping=mapping)

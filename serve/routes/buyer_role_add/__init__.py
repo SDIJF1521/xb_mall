@@ -32,14 +32,18 @@ async def buyer_role_add(data:Annotated[BuyerRoleAdd,Form()],
         max_id = await execute_db_query(db,sql_id_select,(data.stroe_id))
         
         if not sql_data:
+            new_role_id = max_id[0][0]+1 if max_id and max_id[0][0] else 1
             insert_sql = 'insert into store_role (id,role,mall_id,name) values (%s,%s,%s,%s)'
-            await execute_db_query(db,insert_sql,(max_id[0][0]+1,data.role,data.stroe_id,data.role_name))
+            await execute_db_query(db,insert_sql,(new_role_id,data.role,data.stroe_id,data.role_name))
             
             insert_authority_sql = 'insert into role_authority (mall_id,role_id,authority) values (%s,%s,%s)'
-            await execute_db_query(db,insert_authority_sql,(data.stroe_id,max_id[0][0]+1,data.role_authority))
+            await execute_db_query(db,insert_authority_sql,(data.stroe_id,new_role_id,data.role_authority))
+            
             cache = CacheService(redis)
-            await cache.delete_pattern(f'role:list:{data.stroe_id}:*')
+            await cache.delete_pattern(f'role:list:{data.stroe_id}')
             await cache.delete_pattern(f'role:ratio:{data.stroe_id}')
+            await cache.delete(cache._make_key('role:info', new_role_id, data.stroe_id))
+            
             return {"code":200,"msg":"添加成功","data":None,'current':True}
         else:
             return {"code":400,"msg":"角色已存在","data":None,'current':False}

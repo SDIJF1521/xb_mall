@@ -1,19 +1,30 @@
 <template>
-  <el-container class="flex flex-col min-h-screen">
+  <el-container class="apply-seller-container">
     <!-- 导航栏 -->
-    <el-header class="bg-white shadow-md">
+    <el-header class="header-wrapper">
       <AppNavigation />
     </el-header>
     
     <!-- 内容区 -->
-    <el-main class="flex-grow bg-gray-50 py-8 px-4">
-      <div class="max-w-3xl mx-auto bg-white rounded-xl shadow-md p-6 md:p-8 transform transition-all duration-300 hover:shadow-lg">
-        <div class="text-center mb-8">
-          <div class="hrad">
-            <h2 class="text-[clamp(1.5rem,3vw,2rem)] font-bold text-gray-800 mb-2">申请成为卖家</h2>
-            <el-button v-if="reject_select" @click="reject_content_examin" type="danger" circle><h3>!</h3></el-button>
+    <el-main class="main-content">
+      <div class="form-card">
+        <!-- 标题区域 -->
+        <div class="header-section">
+          <div class="title-wrapper">
+            <div class="icon-wrapper">
+              <el-icon class="title-icon"><Shop /></el-icon>
+            </div>
+            <h2 class="page-title">申请成为卖家</h2>
+            <el-button 
+              v-if="reject_select" 
+              @click="reject_content_examin" 
+              type="danger" 
+              circle
+              class="reject-btn"
+              :icon="WarningFilled"
+            />
           </div>
-          <p class="text-gray-600">请填写以下信息以申请成为卖家，我们将在3个工作日内审核您的申请</p>
+          <p class="page-subtitle">请填写以下信息以申请成为卖家，我们将在3个工作日内审核您的申请</p>
         </div>
         
         <!-- 申请表单 -->
@@ -22,74 +33,99 @@
           :model="formData" 
           :rules="rules" 
           label-width="120px" 
-          class="space-y-6"
+          class="apply-form"
         >
-          <el-form-item label="姓名" prop="name">
+          <el-form-item label="姓名" prop="name" class="form-item-custom">
             <el-input 
               v-model="formData.name" 
               placeholder="请输入您的姓名" 
-              class="w-full"
-            ></el-input>
+              class="custom-input"
+              :prefix-icon="User"
+              clearable
+            />
           </el-form-item>
           
-          <el-form-item label="联系方式" prop="contact">
+          <el-form-item label="联系方式" prop="contact" class="form-item-custom">
             <el-input 
               v-model="formData.contact" 
               placeholder="请输入您的手机号码" 
-              class="w-full"
-            ></el-input>
+              class="custom-input"
+              :prefix-icon="Phone"
+              clearable
+            />
           </el-form-item>
           
-          <el-form-item label="店铺名称" prop="storeName">
+          <el-form-item label="店铺名称" prop="storeName" class="form-item-custom">
             <el-input 
               v-model="formData.storeName" 
               placeholder="请输入店铺名称" 
-              class="w-full"
-            ></el-input>
+              class="custom-input"
+              :prefix-icon="Shop"
+              clearable
+            />
           </el-form-item>
           
-          <el-form-item label="店铺描述" prop="storeDescription">
+          <el-form-item label="店铺描述" prop="storeDescription" class="form-item-custom">
             <el-input 
               type="textarea" 
               v-model="formData.storeDescription" 
-              placeholder="请简要描述您的店铺和主营商品" 
-              class="w-full"
-              :rows="4"
-            ></el-input>
+              placeholder="请简要描述您的店铺和主营商品（至少10个字符）" 
+              class="custom-textarea"
+              :rows="5"
+              maxlength="500"
+              show-word-limit
+            />
           </el-form-item>
           
-          <el-form-item>
+          <el-form-item class="submit-item">
             <el-button 
               type="primary" 
               :loading="submitting" 
               @click="submitApplication"
-              class="w-full bg-primary text-white hover:bg-blue-600 transition-colors"
+              class="submit-btn"
+              size="large"
             >
+              <el-icon v-if="!submitting" class="mr-2"><Check /></el-icon>
               {{ submitting ? '提交中...' : '提交申请' }}
             </el-button>
           </el-form-item>
         </el-form>
-        
-
-    </div>
-    <el-drawer v-model="drawer" title="驳回理由" :with-header="true" width="35%" :before-close="handleClose">
-      <div class="reject-reason-container">
-        <div class="reject-icon">
-          <el-icon class="warning-icon"><WarningFilled /></el-icon>
-        </div>
-        <div class="reject-content">
-          <p class="reject-text">{{ reject_reason || '暂无驳回理由' }}</p>
-        </div>
-        <div class="reject-footer">
-          <el-button type="primary" @click="drawer = false" class="w-full">我知道了</el-button>
-        </div>
       </div>
-    </el-drawer>
+      
+      <!-- 驳回理由抽屉 -->
+      <el-drawer 
+        v-model="drawer" 
+        title="驳回理由" 
+        :with-header="true" 
+        width="35%" 
+        direction="rtl"
+        class="reject-drawer"
+      >
+        <div class="reject-reason-container">
+          <div class="reject-icon">
+            <el-icon class="warning-icon"><WarningFilled /></el-icon>
+          </div>
+          <div class="reject-content">
+            <p class="reject-text">{{ reject_reason || '暂无驳回理由' }}</p>
+          </div>
+          <div class="reject-footer">
+            <el-button 
+              type="primary" 
+              @click="drawer = false" 
+              class="confirm-btn"
+              size="large"
+            >
+              <el-icon class="mr-2"><CircleCheck /></el-icon>
+              我知道了
+            </el-button>
+          </div>
+        </div>
+      </el-drawer>
     </el-main>
     
     <!-- 页尾 -->
-    <el-footer class="footer-content">
-        <p>版权所有 © [小白的商城]，保留所有权利。</p>
+    <el-footer class="footer-wrapper">
+      <p class="footer-text">版权所有 © [小白的商城]，保留所有权利。</p>
     </el-footer>
   </el-container>
 </template>
@@ -97,7 +133,7 @@
 <script>
 import AppNavigation from '@/moon/navigation.vue';
 import { ElMessage, ElIcon } from 'element-plus';
-import { WarningFilled } from '@element-plus/icons-vue';
+import { WarningFilled, Shop, User, Phone, Check, CircleCheck } from '@element-plus/icons-vue';
 import router from '@/router';
 import axios from 'axios';
 
@@ -213,122 +249,414 @@ export default {
 </script>
 
 <style scoped>
-
-.hrad{
-display: flex;
-justify-content: space-between;
-align-items: center;
-width: 100%;
-}
-.el-button[type='danger'] {
-  margin-left: auto;
-}
-/* 驳回理由抽屉样式 */
-.reject-reason-container {
-  padding: 24px;
+/* 容器样式 */
+.apply-seller-container {
+  min-height: 100vh;
+  background: var(--el-bg-color-page);
   display: flex;
   flex-direction: column;
-  min-height: 200px;
+  transition: background-color 0.3s ease;
 }
+
+/* 导航栏样式 */
+.header-wrapper {
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color);
+  padding: 0;
+  height: auto !important;
+  transition: all 0.3s ease;
+}
+
+/* 主内容区 */
+.main-content {
+  flex: 1;
+  padding: 2rem 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  background: var(--el-bg-color-page);
+  transition: background-color 0.3s ease;
+}
+
+/* 表单卡片 */
+.form-card {
+  width: 100%;
+  max-width: 800px;
+  background: var(--el-bg-color);
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--el-border-color);
+  padding: 3rem 2.5rem;
+  animation: fadeInUp 0.6s ease-out;
+  transition: all 0.3s ease;
+}
+
+.form-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* 标题区域 */
+.header-section {
+  text-align: center;
+  margin-bottom: 2.5rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--el-border-color);
+}
+
+.title-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  position: relative;
+}
+
+.icon-wrapper {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(to right, #7ef0b3, #9c6edd);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 15px rgba(126, 240, 179, 0.3);
+  animation: float 3s ease-in-out infinite;
+  transition: all 0.3s ease;
+}
+
+.dark .icon-wrapper {
+  background: linear-gradient(to right, #46e2cb, #742bd9);
+  box-shadow: 0 4px 15px rgba(70, 226, 203, 0.3);
+}
+
+.title-icon {
+  font-size: 28px;
+  color: #ffffff;
+}
+
+.page-title {
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-weight: 600;
+  background: linear-gradient(to right, #7ef0b3, #9c6edd);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.dark .page-title {
+  background: linear-gradient(to right, #46e2cb, #742bd9);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.reject-btn {
+  position: absolute;
+  right: 0;
+  animation: shake 0.5s ease-in-out infinite;
+}
+
+.reject-btn:hover {
+  animation: none;
+  transform: scale(1.1);
+}
+
+.page-subtitle {
+  color: var(--el-text-color-regular);
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-top: 0.5rem;
+  transition: color 0.3s ease;
+}
+
+/* 表单样式 */
+.apply-form {
+  margin-top: 1.5rem;
+}
+
+.form-item-custom {
+  margin-bottom: 1.75rem;
+}
+
+.form-item-custom :deep(.el-form-item__label) {
+  color: var(--el-text-color-primary);
+  font-weight: 600;
+  font-size: 1rem;
+  padding-bottom: 0.5rem;
+  transition: color 0.3s ease;
+}
+
+.custom-input :deep(.el-input__wrapper) {
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  background-color: var(--el-fill-color-blank);
+  border-color: var(--el-border-color);
+}
+
+.custom-input :deep(.el-input__wrapper:hover) {
+  border-color: var(--el-color-primary-light-7);
+}
+
+.custom-input :deep(.el-input__wrapper.is-focus) {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 0 0 2px var(--el-color-primary-light-8);
+}
+
+.custom-textarea :deep(.el-textarea__inner) {
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  background-color: var(--el-fill-color-blank);
+  border-color: var(--el-border-color);
+  font-family: inherit;
+  line-height: 1.6;
+  color: var(--el-text-color-primary);
+}
+
+.custom-textarea :deep(.el-textarea__inner:hover) {
+  border-color: var(--el-color-primary-light-7);
+}
+
+.custom-textarea :deep(.el-textarea__inner:focus) {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 0 0 2px var(--el-color-primary-light-8);
+}
+
+.submit-item {
+  margin-top: 2.5rem;
+  margin-bottom: 0;
+}
+
+.submit-btn {
+  width: 100%;
+  height: 50px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.submit-btn:hover {
+  transform: translateY(-2px);
+}
+
+.submit-btn:active {
+  transform: translateY(0);
+}
+
+/* 驳回理由抽屉样式 */
+.reject-drawer :deep(.el-drawer__header) {
+  margin-bottom: 0;
+  padding: 1.5rem 1.5rem 1rem;
+  border-bottom: 1px solid var(--el-border-color);
+}
+
+.reject-drawer :deep(.el-drawer__body) {
+  background: var(--el-bg-color);
+}
+
+.reject-reason-container {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 300px;
+  align-items: center;
+}
+
 .reject-icon {
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 2rem;
 }
+
 .warning-icon {
-  font-size: 48px;
-  color: #f59e0b;
-  animation: pulse 2s infinite;
+  font-size: 64px;
+  color: var(--el-color-warning);
+  animation: pulse 2s ease-in-out infinite;
 }
+
 .reject-content {
   flex: 1;
-  padding: 16px;
-  background-color: #fffbeb;
-  border-radius: 8px;
-  border: 1px solid #fde68a;
-  margin-bottom: 20px;
+  width: 100%;
+  padding: 1.5rem;
+  background: var(--el-color-warning-light-9);
+  border-radius: 12px;
+  border: 1px solid var(--el-color-warning-light-7);
+  margin-bottom: 2rem;
+  transition: all 0.3s ease;
 }
+
+.dark .reject-content {
+  background: var(--el-color-warning-dark-2);
+  border-color: var(--el-color-warning-dark-1);
+}
+
 .reject-text {
-  color: #92400e;
-  line-height: 1.6;
+  color: var(--el-text-color-primary);
+  line-height: 1.8;
   white-space: pre-wrap;
+  font-size: 1rem;
+  margin: 0;
+  transition: color 0.3s ease;
 }
+
 .reject-footer {
   width: 100%;
 }
-/* 动画效果 */
-@keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
+
+.confirm-btn {
+  width: 100%;
+  height: 48px;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: all 0.3s ease;
 }
+
+.confirm-btn:hover {
+  transform: translateY(-2px);
+}
+
 /* 页脚样式 */
-.footer-content {
+.footer-wrapper {
+  background: var(--el-bg-color);
+  border-top: 1px solid var(--el-border-color);
+  padding: 1.5rem;
   text-align: center;
-  color: darkgray;
+  transition: all 0.3s ease;
 }
 
-/* 自定义工具类 */
-@layer utilities {
-  .content-auto {
-    content-visibility: auto;
+.footer-text {
+  color: var(--el-text-color-regular);
+  font-size: 0.9rem;
+  margin: 0;
+  transition: color 0.3s ease;
+}
+
+/* 动画效果 */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
   }
-  .bg-primary {
-    background-color: #409eff;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-/* 全局样式 */
-* {
-  box-sizing: border-box;
-}
-
-/* 表单元素样式优化 */
-.el-input__inner {
-  border-radius: 0.5rem;
-  border-color: #d1d5db;
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  transition: all 0.2s;
-}
-.el-input__inner:focus {
-  border-color: #409eff;
-  box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.2);
-  outline: none;
-}
-
-.el-form-item__label {
-  color: #374151; /* text-gray-700 */
-  font-weight: 500; /* font-medium */
-}
-
-.el-form-item__error {
-  color: #ef4444; /* text-red-500 */
-  font-size: 0.875rem; /* text-sm */
-  margin-top: 0.25rem; /* mt-1 */
-}
-
-/* 提示框样式 */
-.el-alert {
-  border-radius: 0.5rem; /* rounded-lg */
-  padding: 1rem; /* p-4 */
-  transition: all 0.3s;
-}
-
-.el-alert--success {
-  background-color: #f0fdf4; /* bg-green-50 */
-  border: 1px solid #bbf7d0; /* border-green-200 */
-  color: #15803d; /* text-green-700 */
-}
-
-.el-alert--error {
-  background-color: #fef2f2; /* bg-red-50 */
-  border: 1px solid #fecaca; /* border-red-200 */
-  color: #b91c1c; /* text-red-700 */
-}
-
-/* 响应式调整 */
-@media (max-width: 640px) {
-  .el-form-item__label {
-    font-size: 0.875rem; /* text-sm */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
   }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.9;
+  }
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-5deg);
+  }
+  75% {
+    transform: rotate(5deg);
+  }
+}
+
+/* 表单错误提示样式 */
+.form-item-custom :deep(.el-form-item__error) {
+  color: var(--el-color-error);
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  padding-left: 0.25rem;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .form-card {
+    padding: 2rem 1.5rem;
+    border-radius: 16px;
+  }
+
+  .title-wrapper {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .reject-btn {
+    position: static;
+    margin-left: auto;
+  }
+
+  .icon-wrapper {
+    width: 50px;
+    height: 50px;
+  }
+
+  .title-icon {
+    font-size: 24px;
+  }
+
+  .page-title {
+    font-size: 1.75rem;
+  }
+
+  .form-item-custom :deep(.el-form-item__label) {
+    font-size: 0.9rem;
+  }
+
+  .reject-drawer :deep(.el-drawer) {
+    width: 90% !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-content {
+    padding: 1rem 0.5rem;
+  }
+
+  .form-card {
+    padding: 1.5rem 1rem;
+  }
+
+  .header-section {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+  }
+
+  .page-title {
+    font-size: 1.5rem;
+  }
+
+  .page-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .submit-btn {
+    height: 48px;
+    font-size: 1rem;
+  }
+}
+
+/* 工具类 */
+.mr-2 {
+  margin-right: 0.5rem;
 }
 </style>

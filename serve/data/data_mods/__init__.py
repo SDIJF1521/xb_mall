@@ -318,3 +318,9 @@ class BuyerDeleteCommodity(BaseModel):
     token:str
     stroe_id:int
     shopping_id:int
+
+# 定义买家下架商品路由数据模型
+class BuyerDelistingCommodity(BaseModel):
+    token:str
+    stroe_id:int
+    shopping_id:int

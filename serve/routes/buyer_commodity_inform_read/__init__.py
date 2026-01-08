@@ -116,7 +116,7 @@ async def buyer_r_commodity_inform_read(
         verify_data = await verify_duter_token.verify_token(sql_data)
         
         if execute_code[2] and verify_data:
-            mall_id = token_data.get('state_id')
+            mall_id = token_data.get('mall_id')
             if not mall_id:
                 return {'code': 400, 'msg': '用户没有关联的店铺', 'current': False}
             return await execute([mall_id])

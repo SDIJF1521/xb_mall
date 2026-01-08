@@ -32,9 +32,12 @@ async def buyer_role_delete(data:Annotated[BuyerRoleDelete,Form()],
             await execute_db_query(db,
                                    "delete from role_authority where role_id=%s and (mall_id=%s or mall_id is null)",
                                    (role_id,data.stroe_id))
+        
+        for role_id in data.role_id:
             await cache.delete(cache._make_key('role:info', role_id, data.stroe_id))
-        await cache.delete_pattern(f'role:list:{data.stroe_id}:*')
+        await cache.delete_pattern(f'role:list:{data.stroe_id}')
         await cache.delete_pattern(f'role:ratio:{data.stroe_id}')
+        await cache.delete_pattern(f'user:list:{data.stroe_id}:*')
         return {"code":200,"msg":"操作成功","data":None,'current':True}
     try:
         if token_data.get('station') == '1':

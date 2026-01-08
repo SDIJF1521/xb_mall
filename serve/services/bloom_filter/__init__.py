@@ -1,9 +1,13 @@
-from typing import Optional
+import logging
+from typing import Optional, Any
 from data.redis_client import RedisClient
+from config.redis_config import settings
 
-# 自定义布隆过滤器服务
+logger = logging.getLogger(__name__)
+
+
 class BloomFilter:
-
+    """布隆过滤器服务（基于 aiobloom）"""
     
     def __init__(
         self, 
@@ -26,39 +30,30 @@ class BloomFilter:
         self.capacity = capacity
         self.error_rate = error_rate
         self.filter_key = f"{key_prefix}:filter"
+        self._bloom_filter: Optional[Any] = None
         self._initialized = False
-        self._use_set_fallback = False
+    
+    def _get_redis_url_for_aiobloom(self) -> str:
+        """获取 aiobloom 需要的 Redis URL 格式（host:port）"""
+        return f"{settings.REDIS_HOST}:{settings.REDIS_PORT}"
     
     async def _ensure_initialized(self):
         """确保布隆过滤器已初始化"""
         if self._initialized:
             return
         
+        from aiobloom.aiobloom import BloomFilter as AioBloomFilter
+        
         if self.redis_client.redis is None:
             await self.redis_client.connect()
         
-        try:
-            exists = await self.redis_client.redis.exists(self.filter_key)
-            
-            if not exists:
-                try:
-                    await self.redis_client.redis.execute_command(
-                        'BF.RESERVE',
-                        self.filter_key,
-                        self.error_rate,
-                        self.capacity
-                    )
-                    self._use_set_fallback = False
-                except Exception as e:
-                    import logging
-                    logger = logging.getLogger(__name__)
-                    logger.warning(f"无法创建布隆过滤器，将使用 Set 降级方案: {str(e)}")
-                    self._use_set_fallback = True
-        except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.warning(f"布隆过滤器初始化检查失败，使用 Set 降级方案: {str(e)}")
-            self._use_set_fallback = True
+        self._bloom_filter = AioBloomFilter(
+            capacity=self.capacity,
+            error_rate=self.error_rate,
+            bloom_key=self.filter_key
+        )
+        redis_url = self._get_redis_url_for_aiobloom()
+        await self._bloom_filter.connect(redis_url=redis_url)
         
         self._initialized = True
     
@@ -70,30 +65,15 @@ class BloomFilter:
             item: 要添加的元素
             
         Returns:
-            是否添加成功（对于布隆过滤器，通常返回 True）
+            是否添加成功
         """
         await self._ensure_initialized()
         
-        if self.redis_client.redis is None:
-            await self.redis_client.connect()
+        if self._bloom_filter is None:
+            raise RuntimeError("布隆过滤器未初始化")
         
-        if self._use_set_fallback:
-            await self.redis_client.redis.sadd(self.filter_key, item)
-            return True
-        
-        try:
-            result = await self.redis_client.redis.execute_command(
-                'BF.ADD',
-                self.filter_key,
-                item
-            )
-            return bool(result)
-        except Exception:
-            try:
-                await self.redis_client.redis.sadd(self.filter_key, item)
-                return True
-            except Exception:
-                return False
+        result = await self._bloom_filter.add(item)
+        return bool(result)
     
     async def exists(self, item: str) -> bool:
         """
@@ -104,28 +84,12 @@ class BloomFilter:
             
         Returns:
             如果可能存在返回 True，如果一定不存在返回 False
-            注意：布隆过滤器可能存在误判（假阳性），但不会有假阴性
         """
         await self._ensure_initialized()
         
-        if self.redis_client.redis is None:
-            await self.redis_client.connect()
+        if self._bloom_filter is None:
+            raise RuntimeError("布隆过滤器未初始化")
         
-        if self._use_set_fallback:
-            result = await self.redis_client.redis.sismember(self.filter_key, item)
-            return bool(result)
-        
-        try:
-            result = await self.redis_client.redis.execute_command(
-                'BF.EXISTS',
-                self.filter_key,
-                item
-            )
-            return bool(result)
-        except Exception:
-            try:
-                result = await self.redis_client.redis.sismember(self.filter_key, item)
-                return bool(result)
-            except Exception:
-                return False
+        result = await self._bloom_filter.exist(item)
+        return bool(result)
 

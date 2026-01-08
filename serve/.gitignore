@@ -1,0 +1,167 @@
+# 后端项目 .gitignore 文件
+# XB Mall 后端 - Python FastAPI 项目
+
+# ==========================================
+# Python 相关
+# ==========================================
+# 字节码文件 - 防止所有pyc文件
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyi
+*.py[cod]
+*$py.class
+*.so
+
+# Python 优化文件
+*.opt-1.pyc
+*.opt-2.pyc
+
+# Python 缓存目录
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Python 打包缓存
+*.egg-info/
+dist/
+build/
+eggs/
+.eggs/
+
+# Python 轮子文件
+*.whl
+
+# 虚拟环境
+.venv/
+venv/
+env/
+ENV/
+
+# Python 包
+*.egg-info/
+.installed.cfg
+*.egg
+Pipfile.lock
+
+# 构建输出
+build/
+dist/
+*.egg-info/
+
+# ==========================================
+# 运行时文件
+# ==========================================
+# 日志文件
+logs/
+*.log
+
+# 进程文件
+*.pid
+.reloadignore
+
+# 上传的文件目录（运行时生成）
+buyer_use_img/
+mall_img/
+merchandise_img/
+shop_manager_img/
+shopping_img/
+target_folder/
+img/
+
+# 临时文件
+*.tmp
+*.temp
+
+# ==========================================
+# 环境配置
+# ==========================================
+# 环境变量文件
+.env
+.env.local
+.env.*.local
+
+# 本地配置文件
+config.local.py
+
+# ==========================================
+# IDE 和编辑器
+# ==========================================
+# VS Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json.default
+
+# PyCharm / IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# ==========================================
+# 测试和覆盖率
+# ==========================================
+# 测试覆盖率
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# 测试结果
+.tox/
+.nox/
+test-results/
+junit.xml
+
+# ==========================================
+# 数据库
+# ==========================================
+# SQLite 数据库文件
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+
+# ==========================================
+# 证书和密钥
+# ==========================================
+# SSL 证书
+*.pem
+*.key
+*.crt
+*.csr
+*.p12
+*.pfx
+# JWT 密钥
+jwt_private.key
+jwt_public.key
+
+# ==========================================
+# 缓存
+# ==========================================
+.cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# ==========================================
+# 操作系统
+# ==========================================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# ==========================================
+# 其他
+# ==========================================
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# IPython
+profile_default/
+ipython_config.py

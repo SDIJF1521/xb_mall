@@ -34,6 +34,8 @@ async def apply_seller_consent(data:Annotated[ApplySellerConsent,Form()], db:aio
                 if not sql_mall_info_data:
                     await execute_db_query(db,'insert into mall_info(user,mall_name,mall_phone,mall_descrine,mall_state) values(%s,%s,%s,%s,%s)',(mall_info[0][0],mall_info[0][1],mall_info[0][2],mall_info[0][3],1))
                     await execute_db_query(db,'update shop_apply set state = 3 where user = %s',data.name)
+                    # 更新user表的merchant字段为1（卖家）
+                    await execute_db_query(db,'update user set merchant = 1 where user = %s',data.name)
                     
                     user_info = await execute_db_query(db,'select user,password from user where user = %s',data.name)
                     img_query = await execute_db_query(db,'select HeadPortrait from personal_details where user = %s',data.name)
@@ -63,6 +65,8 @@ async def apply_seller_consent(data:Annotated[ApplySellerConsent,Form()], db:aio
                     await cache.delete_pattern('admin:merchant:*')
                     await cache.delete_pattern('number:merchants')
                     await cache.delete_pattern('admin:user:list')
+                    # 清除用户基础数据缓存，确保下次查询时获取最新的merchant状态
+                    await cache.delete(cache._make_key('user:data', data.name))
                     
                     return {'msg':'同意成功','current':True}
                 else:

@@ -43,6 +43,22 @@
       @success="handleDeleteSuccess"
     />
   </el-dialog>
+
+  <!-- 下架商品对话框 -->
+  <el-dialog 
+    v-model="delistingDialogVisible" 
+    title="下架商品" 
+    width="500px" 
+    append-to-body
+    :close-on-click-modal="false"
+  >
+    <CommodityDelisting 
+      v-if="currentCommodity"
+      :commodity-id="currentCommodity.id"
+      @cancel="handleDelistingCancel"
+      @success="handleDelistingSuccess"
+    />
+  </el-dialog>
  <el-table :data="commodity_list" ref="table" >
   <el-table-column type="selection"  width="55" />
   <el-table-column prop="id" label="商品id"/>
@@ -69,7 +85,7 @@
     <template #default="scope">
       <el-button type="primary" size="small" @click="edit_commodity(scope.row)">修改</el-button>
       <el-button type="info" size="small" @click="view_details(scope.row)">查看详情</el-button>
-      <el-button v-if="scope.row.audit === 1" type="warning" size="small">下架</el-button>
+      <el-button v-if="scope.row.audit === 1" type="warning" size="small" @click="delisting_commodity(scope.row)">下架</el-button>
       <el-button v-if="scope.row.audit === 3" type="success" size="small">上架</el-button>
       <el-button type="danger" size="small" @click="delete_commodity(scope.row)">删除</el-button>
     </template>
@@ -93,6 +109,7 @@ import { useRoute } from 'vue-router'
 import CommodityViewDetails from './commodity_view_details.vue'
 import CommodityEdit from './commodity_edit.vue'
 import CommodityDelete from './commodity_delete.vue'
+import CommodityDelisting from './commodity_delisting.vue'
 
 const route = useRoute()
 const id = ref(route.params.id)
@@ -105,6 +122,7 @@ let searchTimer: ReturnType<typeof setTimeout> | null = null
 const dialogVisible = ref(false)
 const editDialogVisible = ref(false)
 const deleteDialogVisible = ref(false)
+const delistingDialogVisible = ref(false)
 const title = ref('')
 const currentCommodity = ref<Commodity | null>(null)
 
@@ -137,7 +155,8 @@ defineOptions({
     components: {
       CommodityViewDetails,
       CommodityEdit,
-      CommodityDelete
+      CommodityDelete,
+      CommodityDelisting
     }
 })
 
@@ -232,6 +251,28 @@ function handleDeleteSuccess() {
   if (dialogVisible.value && currentCommodity.value) {
     dialogVisible.value = false
   }
+  currentCommodity.value = null
+  // 刷新商品列表
+  getCommodityList(currentPage.value, search.value)
+}
+
+// 下架商品
+function delisting_commodity(data: Commodity) {
+  currentCommodity.value = data
+  delistingDialogVisible.value = true
+}
+
+// 取消下架
+function handleDelistingCancel() {
+  delistingDialogVisible.value = false
+  setTimeout(() => {
+    currentCommodity.value = null
+  }, 300)
+}
+
+// 下架成功
+function handleDelistingSuccess() {
+  delistingDialogVisible.value = false
   currentCommodity.value = null
   // 刷新商品列表
   getCommodityList(currentPage.value, search.value)

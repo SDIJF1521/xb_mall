@@ -31,6 +31,20 @@ async def commodity_add(data:Annotated[CommodityAdd,Form(),File()],
         return {"code":403,"msg":"无效的token",'current':False}
 
     async def execute():
+        # 验证分类ID是否存在
+        classify_check = await execute_db_query(
+            db,
+            'select id from classify where id = %s and mall_id = %s',
+            (data.classify_categorize, data.stroe_id)
+        )
+        
+        if not classify_check or len(classify_check) == 0:
+            return {
+                "code": 400,
+                "msg": f"分类ID {data.classify_categorize} 不存在或不属于当前店铺，请选择有效的商品分类",
+                'current': False
+            }
+        
         sql_data = await execute_db_query(db,'select MAX(shopping_id) from shopping where mall_id = %s',(data.stroe_id))
         specification_sql = await execute_db_query(db,'select MAX(specification_id) from specification where mall_id = %s',(data.stroe_id))
         img = []

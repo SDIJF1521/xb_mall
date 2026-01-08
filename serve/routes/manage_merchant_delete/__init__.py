@@ -53,6 +53,13 @@ async def manage_merchant_delete(data:Annotated[DeleteMerchant,Form()],
             await cache.delete_pattern(f'admin:merchant:*')
             await cache.delete_pattern(f'admin:apply:seller:*')
             await cache.delete_pattern(f'number:merchants')
+            await cache.delete_pattern(f'admin:user:list')        
+            await cache.delete(cache._make_key('user:data', data.name))
+            await cache.delete(cache._make_key('user:apply:seller', data.name))
+            await cache.delete_pattern(f'mall_name:user:{data.name}')
+            for mall_id in mall_id_list:
+                await cache.delete_pattern(f'mall_name:mall:{mall_id}')
+            
             return {"code":200,"msg":"删除成功","success":True}
         else:
             return {"code":404,"msg":"用户不存在","success":False}

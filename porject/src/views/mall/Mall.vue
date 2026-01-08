@@ -24,9 +24,9 @@
 
 <script>
 import AppNavigation from '@/moon/navigation.vue';
-import HeadSearch from './content/head_search.vue';
-import NullPage from './content/nall_page.vue';
-import MallGoods from './content/mall_goods.vue'
+import HeadSearch from '@/views/mall/content/head_search.vue';
+import NullPage from '@/views/mall/content/nall_page.vue';
+import MallGoods from '@/views/mall/content/mall_goods.vue'
 
 export default {
   name: 'Mall',

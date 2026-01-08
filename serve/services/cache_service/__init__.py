@@ -24,6 +24,15 @@ class CacheService:
     
 
     def _make_key(self, prefix: str, *args) -> str:
+        """
+        生成缓存键
+        Args:
+            prefix: 缓存键前缀
+            *args: 缓存键参数
+            
+        Returns:
+            缓存键
+        """
         if not args:
             return prefix
         key_str = ':'.join(str(arg) for arg in args if arg is not None)
@@ -57,18 +66,37 @@ class CacheService:
             logger.warning(f"缓存设置失败 | Key: {key} | 错误: {str(e)}")
     
     async def delete(self, key: str):
+        """
+        删除缓存
+        Args:
+            key: 缓存键
+        """
         try:
+            if not hasattr(self.redis, 'redis') or self.redis.redis is None:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Redis连接未建立，跳过缓存删除 | Key: {key}")
+                return
             await self.redis.delete(key)
-        except:
-            pass
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"缓存删除失败 | Key: {key} | 错误: {str(e)}")
     
     async def delete_pattern(self, pattern: str):
         try:
+            if not hasattr(self.redis, 'redis') or self.redis.redis is None:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Redis连接未建立，跳过缓存模式删除 | Pattern: {pattern}")
+                return
             keys = await self.redis.redis.keys(pattern)
             if keys:
                 await self.redis.redis.delete(*keys)
-        except:
-            pass
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"缓存模式删除失败 | Pattern: {pattern} | 错误: {str(e)}")
 
     async def get_or_set(self, key: str, func: Callable, expire: int = 300) -> Any:
         data = await self.get(key)
@@ -96,35 +124,48 @@ class CacheService:
             item_id: 用于布隆过滤器检查的ID
             func: 获取数据的函数
             expire: 缓存过期时间
-            return_none_if_not_exists: 如果布隆过滤器判断不存在，是否返回None
+            return_none_if_not_exists: 如果布隆过滤器判断不存在，是否直接返回None（避免缓存穿透）
             
         Returns:
             缓存数据或函数执行结果
         """
-        # 先检查缓存
         data = await self.get(key)
         if data is not None:
             return data
         
-        exists = await self.bloom_filter.exists(item_id)
-
-        if not exists and return_none_if_not_exists:
-            result = await func()
-            if result is None:
-                await self.bloom_filter.add(item_id)
+        try:
+            exists = await self.bloom_filter.exists(item_id)
+            
+            if not exists and return_none_if_not_exists:
                 return None
-            else:
-                await self.set(key, result, expire)
-                await self.bloom_filter.add(item_id)
-                return result
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"布隆过滤器检查失败，降级到普通缓存逻辑 | Item ID: {item_id} | 错误: {str(e)}")
         
-        result = await func()
+        try:
+            result = await func()
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"查询函数执行失败 | Item ID: {item_id} | 错误: {str(e)}")
+            return None
         
         if result is not None:
             await self.set(key, result, expire)
-            await self.bloom_filter.add(item_id)
+            try:
+                await self.bloom_filter.add(item_id)
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"布隆过滤器添加失败 | Item ID: {item_id} | 错误: {str(e)}")
         else:
-            await self.bloom_filter.add(item_id)
+            try:
+                await self.bloom_filter.add(item_id)
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"布隆过滤器添加失败 | Item ID: {item_id} | 错误: {str(e)}")
         
         return result
 

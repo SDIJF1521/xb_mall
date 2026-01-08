@@ -584,6 +584,23 @@ const handleSubmit = async () => {
                 return false
             }
             
+            // 验证分类ID是否有效
+            if (!formData.value.category_id || formData.value.category_id === 0) {
+                ElMessage.error('请选择有效的商品分类！')
+                submitLoading.value = false
+                return false
+            }
+            
+            // 验证分类ID是否在分类列表中
+            const categoryExists = classifyList.value.some(
+                (cat: any) => cat.value === formData.value.category_id
+            )
+            if (!categoryExists) {
+                ElMessage.error('选择的分类无效，请重新选择商品分类！')
+                submitLoading.value = false
+                return false
+            }
+            
             // 将SKU列表转换为JSON字符串发送
             commitFormData.append('sku_list', JSON.stringify(skuList.value))
             commitFormData.append('classify_categorize', formData.value.category_id.toString())
@@ -611,17 +628,27 @@ const handleSubmit = async () => {
                   submitLoading.value = false
                   return true
                 }else{
-                  ElMessage.error('商品添加失败！')
+                  // 显示后端返回的错误信息
+                  const errorMsg = res.data.msg || '商品添加失败'
+                  ElMessage.error(errorMsg)
+                  
+                  // 如果是分类ID错误，高亮分类选择框
+                  if (errorMsg.includes('分类') || errorMsg.includes('classify') || errorMsg.includes('分类ID')) {
+                    formRef.value?.validateField('category_id')
+                  }
+                  
                   submitLoading.value = false
                   return false
                 }
               }else{
-                  ElMessage.error('商品添加失败！')
+                  ElMessage.error(res.data?.msg || '商品添加失败！')
                   submitLoading.value = false
                   return false
               }
-            } catch (error) {
-                ElMessage.error('商品添加失败！')
+            } catch (error: any) {
+                console.error('提交商品失败:', error)
+                const errorMsg = error.response?.data?.msg || error.message || '网络错误，请稍后重试'
+                ElMessage.error(errorMsg)
                 submitLoading.value = false
                 return false
             }
