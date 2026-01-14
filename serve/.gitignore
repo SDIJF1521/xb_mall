@@ -62,14 +62,6 @@ logs/
 *.pid
 .reloadignore
 
-# 上传的文件目录（运行时生成）
-buyer_use_img/
-mall_img/
-merchandise_img/
-shop_manager_img/
-shopping_img/
-target_folder/
-img/
 
 # 临时文件
 *.tmp

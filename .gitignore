@@ -145,14 +145,6 @@ serve/*.log
 serve/*.pid
 serve/.reloadignore
 
-# 上传的文件目录（运行时生成）
-serve/buyer_use_img/
-serve/mall_img/
-serve/merchandise_img/
-serve/shop_manager_img/
-serve/shopping_img/
-serve/target_folder/
-serve/img/
 
 # 临时文件
 serve/*.tmp
