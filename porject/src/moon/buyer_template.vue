@@ -21,6 +21,7 @@ import UserListMain from '@/views/buyer_user_list_id/content/user_list_main.vue'
 import RoleListMain from '@/views/buyer_role_list/content/role_list_main.vue'
 import CommodityAdd from '@/views/buyer_commodity_add/content/commodity_add.vue'
 import CommodityList from '@/views/buyer_commodity_list/content/commodity_list.vue'
+import CommodityClassify from '@/views/buyer_commodity_classify/content/commodity_classify.vue'
 
 defineOptions({
     name: 'BuyerTemplate',
@@ -31,6 +32,7 @@ defineOptions({
         RoleListMain,
         CommodityAdd,
         CommodityList,
+        CommodityClassify,
     }
 })
 
@@ -69,6 +71,10 @@ onMounted(() => {
   }else if (route.path.startsWith('/buyer_commodity_list')) {
     title.value = '小白的商城-商品列表页';
     console.log('设置商品列表页标题，新值:', title.value);
+  } else if (
+    route.path.startsWith('/buyer_commodity_classify')) {
+    title.value = '小白的商城-商品分类页';
+    console.log('设置商品分类页标题，新值:', title.value);
   } else {
     title.value = '小白的商城';
     console.log('设置默认标题，新值:', title.value);

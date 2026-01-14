@@ -121,7 +121,7 @@ function toCommodityManage(){
 // 跳转到分类管理页面
 function toCategoryManage(){
     const store = useBuyerManagementSelectStore()
-    store.setToUel('/buyer_category_manage')
+    store.setToUel('/buyer_commodity_classify')
     router.push({name:'BuyerSelect'})
 }
 // 跳转到库存管理页面

@@ -1,42 +1,42 @@
 <template>
   <!-- 查看详情对话框 -->
-  <el-dialog 
-    v-model="dialogVisible" 
-    :title="title" 
-    width="60%" 
+  <el-dialog
+    v-model="dialogVisible"
+    :title="title"
+    width="60%"
     append-to-body
     :close-on-click-modal="false"
   >
     <CommodityViewDetails :commodity="currentCommodity" />
   </el-dialog>
-  
+
   <!-- 编辑商品对话框 -->
-  <el-dialog 
-    v-model="editDialogVisible" 
-    title="编辑商品" 
-    width="80%" 
+  <el-dialog
+    v-model="editDialogVisible"
+    title="编辑商品"
+    width="80%"
     append-to-body
     :close-on-click-modal="false"
     @opened="handleEditDialogOpened"
   >
-    <CommodityEdit 
+    <CommodityEdit
       v-if="currentCommodity"
       :key="`edit-${currentCommodity.id}`"
-      :commodity="currentCommodity" 
+      :commodity="currentCommodity"
       @cancel="handleEditCancel"
       @success="handleEditSuccess"
     />
   </el-dialog>
 
   <!-- 删除商品对话框 -->
-  <el-dialog 
-    v-model="deleteDialogVisible" 
-    title="删除商品" 
-    width="500px" 
+  <el-dialog
+    v-model="deleteDialogVisible"
+    title="删除商品"
+    width="500px"
     append-to-body
     :close-on-click-modal="false"
   >
-    <CommodityDelete 
+    <CommodityDelete
       v-if="currentCommodity"
       :commodity-id="currentCommodity.id"
       @cancel="handleDeleteCancel"
@@ -45,18 +45,34 @@
   </el-dialog>
 
   <!-- 下架商品对话框 -->
-  <el-dialog 
-    v-model="delistingDialogVisible" 
-    title="下架商品" 
-    width="500px" 
+  <el-dialog
+    v-model="delistingDialogVisible"
+    title="下架商品"
+    width="500px"
     append-to-body
     :close-on-click-modal="false"
   >
-    <CommodityDelisting 
+    <CommodityDelisting
       v-if="currentCommodity"
       :commodity-id="currentCommodity.id"
       @cancel="handleDelistingCancel"
       @success="handleDelistingSuccess"
+    />
+  </el-dialog>
+
+  <!-- 上架商品对话框 -->
+  <el-dialog
+    v-model="putawayDialogVisible"
+    title="上架商品"
+    width="500px"
+    append-to-body
+    :close-on-click-modal="false"
+  >
+    <CommodityPutaway
+      v-if="currentCommodity"
+      :commodity-id="currentCommodity.id"
+      @cancel="handlePutawayCancel"
+      @success="handlePutawaySuccess"
     />
   </el-dialog>
  <el-table :data="commodity_list" ref="table" >
@@ -66,17 +82,17 @@
   <el-table-column prop="audit" label="商品状态">
     <template #default="scope">
       <el-tag :type="scope.row.audit === 1 ? 'primary' : scope.row.audit === 0 ? 'warning' : scope.row.audit === 3 ? 'danger' : 'danger'">
-        {{ scope.row.audit === 1 ? '审核通过' : scope.row.audit === 0 ? '待审核' : scope.row.audit === 3 ? '已下架' : '审核未通过' }}
+        {{ scope.row.audit === 1 ? '已上架' : scope.row.audit === 0 ? '待审核' : scope.row.audit === 3 ? '已下架' : '审核未通过' }}
       </el-tag>
     </template>
   </el-table-column>
   <el-table-column prop="time" label="创建时间"/>
   <el-table-column align="right">
     <template #header>
-      <el-input 
-        v-model="search" 
-        size="small" 
-        placeholder="搜索商品名称" 
+      <el-input
+        v-model="search"
+        size="small"
+        placeholder="搜索商品名称"
         clearable
         @input="handleSearch"
         @clear="handleSearchClear"
@@ -86,17 +102,17 @@
       <el-button type="primary" size="small" @click="edit_commodity(scope.row)">修改</el-button>
       <el-button type="info" size="small" @click="view_details(scope.row)">查看详情</el-button>
       <el-button v-if="scope.row.audit === 1" type="warning" size="small" @click="delisting_commodity(scope.row)">下架</el-button>
-      <el-button v-if="scope.row.audit === 3" type="success" size="small">上架</el-button>
+      <el-button v-if="scope.row.audit === 3" type="success" size="small" @click="putaway_commodity(scope.row)">上架</el-button>
       <el-button type="danger" size="small" @click="delete_commodity(scope.row)">删除</el-button>
     </template>
   </el-table-column>
  </el-table>
  <div style="display: flex; justify-content: center; margin-top: 20px;">
-  <el-pagination 
+  <el-pagination
     v-model:current-page="currentPage"
-    :page-size="20" 
-    :total="total" 
-    @current-change="handleCurrentChange" 
+    :page-size="20"
+    :total="total"
+    @current-change="handleCurrentChange"
   />
  </div>
 
@@ -110,6 +126,7 @@ import CommodityViewDetails from './commodity_view_details.vue'
 import CommodityEdit from './commodity_edit.vue'
 import CommodityDelete from './commodity_delete.vue'
 import CommodityDelisting from './commodity_delisting.vue'
+import CommodityPutaway from './commodity_putaway.vue'
 
 const route = useRoute()
 const id = ref(route.params.id)
@@ -123,6 +140,7 @@ const dialogVisible = ref(false)
 const editDialogVisible = ref(false)
 const deleteDialogVisible = ref(false)
 const delistingDialogVisible = ref(false)
+const putawayDialogVisible = ref(false)
 const title = ref('')
 const currentCommodity = ref<Commodity | null>(null)
 
@@ -156,7 +174,8 @@ defineOptions({
       CommodityViewDetails,
       CommodityEdit,
       CommodityDelete,
-      CommodityDelisting
+      CommodityDelisting,
+      CommodityPutaway
     }
 })
 
@@ -165,18 +184,18 @@ async function getCommodityList(page: number, selectValue?: string) {
     stroe_id: id.value,
     page: page
   }
-  
+
   if (selectValue && selectValue.trim()) {
     params.select = selectValue.trim()
   }
-  
+
   const res = await Axios.get('/buyer_get_commoidt', {
     params: params,
     headers: {
       'access-token': token.value
     }
   })
-  
+
   if (res.status == 200) {
     if (res.data.success) {
       commodity_list.value = res.data.data
@@ -278,11 +297,33 @@ function handleDelistingSuccess() {
   getCommodityList(currentPage.value, search.value)
 }
 
+// 上架商品
+function putaway_commodity(data: Commodity) {
+  currentCommodity.value = data
+  putawayDialogVisible.value = true
+}
+
+// 取消上架
+function handlePutawayCancel() {
+  putawayDialogVisible.value = false
+  setTimeout(() => {
+    currentCommodity.value = null
+  }, 300)
+}
+
+// 上架成功
+function handlePutawaySuccess() {
+  putawayDialogVisible.value = false
+  currentCommodity.value = null
+  // 刷新商品列表
+  getCommodityList(currentPage.value, search.value)
+}
+
 function handleSearch() {
   if (searchTimer) {
     clearTimeout(searchTimer)
   }
-  
+
   searchTimer = setTimeout(() => {
     currentPage.value = 1
     getCommodityList(1, search.value)

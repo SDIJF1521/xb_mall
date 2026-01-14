@@ -79,6 +79,7 @@ from routes.buyer_commodity_inform_read import router as buyer_r_commodity_infor
 from routes.buyer_commodity_edit import router as buyer_commodity_edit_router
 from routes.buyer_commodity_delete import router as buyer_commodity_delete_router
 from routes.buyer_commodity_delisting import router as buyer_commodity_delisting_router
+from routes.buyer_commoidt_putaway import router as buyer_commodity_putaway_router
 
 from routes.manage_sign_in import router as manage_sign_in_router
 from routes.management_verify import router as management_verify_router
@@ -650,6 +651,9 @@ app.include_router(buyer_commodity_delete_router,prefix='/api')
 
 # 买家端下架商品路由
 app.include_router(buyer_commodity_delisting_router,prefix='/api')
+
+# 买家端上架商品路由
+app.include_router(buyer_commodity_putaway_router,prefix='/api')
 
 # cs路由
 app.include_router(cs_router,prefix='/api')

@@ -68,7 +68,6 @@ async def buyer_get_mall_info(data:Annotated[GetMallInfo,Form()],db: Connection 
                     return {"code":200,"msg":"success","data":rtn,'current':True}
                 return None
             
-            # 如果查询指定ID，使用布隆过滤器；否则直接查询
             if query_mall_id is not None:
                 result = await cache.get_or_set_with_bloom(
                     key=cache_key,
@@ -81,7 +80,6 @@ async def buyer_get_mall_info(data:Annotated[GetMallInfo,Form()],db: Connection 
                     return result
                 return {"code":404,"msg":"店铺不存在","data":None,'current':False}
             else:
-                # 按用户查询，不使用布隆过滤器
                 cached_data = await cache.get(cache_key)
                 if cached_data:
                     return cached_data
@@ -93,7 +91,6 @@ async def buyer_get_mall_info(data:Annotated[GetMallInfo,Form()],db: Connection 
 
         station = token_data.get('station')
         if station == '1':
-            # 主商户验证
             sql_data = await execute_db_query(db,'select user from seller_sing where user = %s',(token_data.get('user')))
             verify_data = await verify_duter_token.verify_token(sql_data)
             if verify_data and len(verify_data) > 0 and verify_data[0]:
@@ -101,7 +98,6 @@ async def buyer_get_mall_info(data:Annotated[GetMallInfo,Form()],db: Connection 
             else:
                 return {"code":400,"msg":"token verify failed","data":None,'current':False}
         elif station == '2':
-            # 店铺用户验证
             if not token_data.get('mall_id') or not token_data.get('role'):
                 return {"code":400,"msg":"token信息不完整","data":None,'current':False}
             

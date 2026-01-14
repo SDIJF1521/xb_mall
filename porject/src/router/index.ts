@@ -33,7 +33,7 @@ import BuyerCommodityManagement from '@/views/buyer_commodity_management/buyer_c
 import BuyerCommodityAdd from '@/views/buyer_commodity_add/buyer_commodity_add.vue'
 import BuyerCommodityList from '@/views/buyer_commodity_list/buyer_commodity_list.vue'
 import ManagementCommodityApply from '@/views/management_commodity_apply/management_commodity_apply.vue'
-
+import BuyerCommodityClassify from '@/views/buyer_commodity_classify/buyer_commodity_classify.vue'
 
 
 import { setupHeartbeatGuard } from './heartbeatGuard'
@@ -228,6 +228,12 @@ const routes: Array<RouteRecordRaw> = [
     path:'/audit_apply_seller/:id',
     name:'AuditApplySeller',
     component:AuditApplySeller
+  },
+  // 买家端商品分类页
+  {
+    path:'/buyer_commodity_classify/:id',
+    name:'BuyerCommodityClassify',
+    component:BuyerCommodityClassify
   },
     {
     // 404 页面 - 匹配所有未定义的路由

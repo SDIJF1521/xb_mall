@@ -31,10 +31,9 @@ async def commodity_add(data:Annotated[CommodityAdd,Form(),File()],
         return {"code":403,"msg":"无效的token",'current':False}
 
     async def execute():
-        # 验证分类ID是否存在
         classify_check = await execute_db_query(
             db,
-            'select id from classify where id = %s and mall_id = %s',
+            'select id from classify where id = %s and (store_id is Null or store_id = %s)',
             (data.classify_categorize, data.stroe_id)
         )
         
