@@ -30,10 +30,18 @@ async def get_classify(
         if cached_data:
             return cached_data
         
+        classify_edit_T = await execute_db_query(db,'select id from classify where store_id  = %s',
+                                               (store_id,))
+        classify_edit_F = await execute_db_query(db,'select id from classify where store_id is Null')
+
+        classify_edit_out = {i[0]: False for i in classify_edit_F}
+        if classify_edit_T:
+            classify_edit_out.update({i[0]: True for i in classify_edit_T})
+
         sql = 'select id,name from classify where store_id is Null or store_id = %s'
         sql_data = await execute_db_query(db,sql,(store_id,))
         out_data = {i[0]:i[1] for i in sql_data}
-        result = {'code':200,'msg':'获取成功','current':True,'data':out_data}
+        result = {'code':200,'msg':'获取成功','current':True,'data':out_data,'edit':classify_edit_out}
         await cache.set(cache_key, result, expire=600)
         return result
 

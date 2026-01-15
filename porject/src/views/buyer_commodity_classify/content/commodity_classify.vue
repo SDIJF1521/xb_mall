@@ -23,9 +23,9 @@
           </template>
         </el-input>
       </div>
-      <el-button 
-        type="primary" 
-        size="large" 
+      <el-button
+        type="primary"
+        size="large"
         @click="handleAdd"
         class="add-button"
       >
@@ -36,8 +36,8 @@
 
     <!-- 分类列表 -->
     <div class="classify-list">
-      <el-card 
-        v-for="(item, index) in filteredClassifyList" 
+      <el-card
+        v-for="(item, index) in filteredClassifyList"
         :key="item.id || index"
         class="classify-card"
         :class="`card-${(index % 4) + 1}`"
@@ -55,18 +55,21 @@
               </div>
             </div>
             <div class="card-actions">
-              <el-button 
-                type="primary" 
-                size="small" 
+              <el-button
+                type="primary"
+                v-if="classifyEditList.find(c => c.id === item.id)?.edit"
+                size="small"
+                :v-if="false"
                 :icon="Edit"
                 circle
                 @click="handleEdit(item)"
                 title="编辑"
                 class="action-btn"
               />
-              <el-button 
-                type="danger" 
-                size="small" 
+              <el-button
+                type="danger"
+                v-if="classifyEditList.find(c => c.id === item.id)?.edit"
+                size="small"
                 :icon="Delete"
                 circle
                 @click="handleDelete(item)"
@@ -87,8 +90,8 @@
       </el-card>
 
       <!-- 空状态 -->
-      <el-empty 
-        v-if="filteredClassifyList.length === 0" 
+      <el-empty
+        v-if="filteredClassifyList.length === 0"
         description="暂无分类数据"
         :image-size="120"
       >
@@ -160,25 +163,38 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { 
-  Search, 
-  Plus, 
-  Edit, 
-  Delete, 
+import { useRoute } from 'vue-router'
+import {
+  Search,
+  Plus,
+  Edit,
+  Delete,
   Folder,
   WarningFilled
 } from '@element-plus/icons-vue'
+import axios from 'axios'
 
 defineOptions({
   name: 'CommodityClassify'
 })
 
+interface ClassifyEditItem {
+  id: number | string
+  edit: boolean
+}
 interface ClassifyItem {
   id: number | string
   name: string
 }
 
+const token = localStorage.getItem('buyer_access_token') || ''
+const route = useRoute()
+const store_id = route.params.id
+const Axios = axios.create({
+  baseURL: 'http://127.0.0.1:8000/api',
+})
 const searchKeyword = ref('')
+const classifyEditList = ref<ClassifyEditItem[]>([])
 const classifyList = ref<ClassifyItem[]>([])
 const dialogVisible = ref(false)
 const deleteDialogVisible = ref(false)
@@ -208,7 +224,7 @@ const filteredClassifyList = computed(() => {
     return classifyList.value
   }
   const keyword = searchKeyword.value.toLowerCase()
-  return classifyList.value.filter(item => 
+  return classifyList.value.filter(item =>
     item.name.toLowerCase().includes(keyword)
   )
 })
@@ -250,7 +266,7 @@ const handleCancel = () => {
 
 const handleSubmit = async () => {
   if (!formRef.value) return
-  
+
   await formRef.value.validate(async (valid: boolean) => {
     if (valid) {
       submitLoading.value = true
@@ -258,7 +274,7 @@ const handleSubmit = async () => {
         // TODO: 调用API保存分类
         // 这里先模拟成功
         await new Promise(resolve => setTimeout(resolve, 500))
-        
+
         if (isEditMode.value) {
           const index = classifyList.value.findIndex(item => item.id === currentClassify.value?.id)
           if (index !== -1) {
@@ -276,7 +292,7 @@ const handleSubmit = async () => {
           classifyList.value.push(newItem)
           ElMessage.success('分类添加成功')
         }
-        
+
         dialogVisible.value = false
         formRef.value?.resetFields()
         currentClassify.value = null
@@ -291,18 +307,18 @@ const handleSubmit = async () => {
 
 const confirmDelete = async () => {
   if (!currentClassify.value) return
-  
+
   deleteLoading.value = true
   try {
     // TODO: 调用API删除分类
     // 这里先模拟成功
     await new Promise(resolve => setTimeout(resolve, 500))
-    
+
     const index = classifyList.value.findIndex(item => item.id === currentClassify.value?.id)
     if (index !== -1) {
       classifyList.value.splice(index, 1)
     }
-    
+
     ElMessage.success('分类删除成功')
     deleteDialogVisible.value = false
     currentClassify.value = null
@@ -313,28 +329,47 @@ const confirmDelete = async () => {
   }
 }
 
-onMounted(() => {
+const requstes_classify = async () => {
+  try {
+    setTimeout(async () => {
+        console.log(store_id);
+
+        const res = await Axios.get('/buter_get_classify', {
+        params: {
+          'store_id': store_id.toString()
+        },
+        headers:{
+          'access-token':token
+        }
+      })
+      if (res.status === 200) {
+        if (res.data.current) {
+          console.log(res.data.data);
+          classifyList.value = Object.entries(res.data.data).map(([id, name]: [string, any]) => ({
+            id,
+            name
+          }))
+          classifyEditList.value = classifyList.value.map(item => ({
+            id: item.id,
+            edit: false
+          }))
+        } else {
+          ElMessage.error(res.data.msg || '获取分类列表失败')
+        }
+      }else {
+        ElMessage.error('获取分类列表失败')
+      }
+      }, 500)
+  } catch (error) {
+    ElMessage.error('获取分类列表失败，请稍后重试')
+  }
+}
+onMounted(async() => {
   // TODO: 从API加载分类列表
   // 这里先使用模拟数据
-  classifyList.value = [
-    {
-      id: 1,
-      name: '电子产品'
-    },
-    {
-      id: 2,
-      name: '服装配饰'
-    },
-    {
-      id: 3,
-      name: '食品饮料'
-    },
-    {
-      id: 4,
-      name: '家居用品'
-    }
-  ]
+  await requstes_classify()
 })
+
 </script>
 
 <style scoped>

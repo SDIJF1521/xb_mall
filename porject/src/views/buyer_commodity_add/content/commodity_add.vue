@@ -391,12 +391,11 @@ const formData = ref<CommodityAddFormData>({
     skuList: [],
 })
 
-// 验证规格的自定义验证函数
 const validateSpecifications = (rule: any, value: any, callback: any) => {
-    const validSpecs = formData.value.specifications.filter(spec => 
+    const validSpecs = formData.value.specifications.filter(spec =>
         spec.name.trim() && spec.values.length > 0
     )
-    
+
     if (validSpecs.length === 0) {
         callback(new Error('请至少添加一个商品规格，并为每个规格添加至少一个值'))
     } else {
@@ -559,23 +558,23 @@ const handleSubmit = async () => {
             })
 
             // 验证至少有一个有效的规格
-            const validSpecs = formData.value.specifications.filter(spec => 
+            const validSpecs = formData.value.specifications.filter(spec =>
                 spec.name.trim() && spec.values.length > 0
             )
-            
+
             if (validSpecs.length === 0) {
                 ElMessage.error('请至少添加一个商品规格，并为每个规格添加至少一个值！')
                 submitLoading.value = false
                 return false
             }
-            
+
             // 验证SKU列表是否存在
             if (skuList.value.length === 0) {
                 ElMessage.error('规格组合生成失败，请检查规格设置！')
                 submitLoading.value = false
                 return false
             }
-            
+
             // 验证SKU列表中的价格和库存
             const invalidSku = skuList.value.find(sku => sku.price <= 0 || sku.stock < 0)
             if (invalidSku) {
@@ -583,14 +582,14 @@ const handleSubmit = async () => {
                 submitLoading.value = false
                 return false
             }
-            
+
             // 验证分类ID是否有效
             if (!formData.value.category_id || formData.value.category_id === 0) {
                 ElMessage.error('请选择有效的商品分类！')
                 submitLoading.value = false
                 return false
             }
-            
+
             // 验证分类ID是否在分类列表中
             const categoryExists = classifyList.value.some(
                 (cat: any) => cat.value === formData.value.category_id
@@ -600,7 +599,7 @@ const handleSubmit = async () => {
                 submitLoading.value = false
                 return false
             }
-            
+
             // 将SKU列表转换为JSON字符串发送
             commitFormData.append('sku_list', JSON.stringify(skuList.value))
             commitFormData.append('classify_categorize', formData.value.category_id.toString())
@@ -631,12 +630,12 @@ const handleSubmit = async () => {
                   // 显示后端返回的错误信息
                   const errorMsg = res.data.msg || '商品添加失败'
                   ElMessage.error(errorMsg)
-                  
+
                   // 如果是分类ID错误，高亮分类选择框
                   if (errorMsg.includes('分类') || errorMsg.includes('classify') || errorMsg.includes('分类ID')) {
                     formRef.value?.validateField('category_id')
                   }
-                  
+
                   submitLoading.value = false
                   return false
                 }
@@ -760,10 +759,10 @@ const handleSpecNameBlur = () => {
 
 // 生成SKU组合
 const generateSkuCombinations = () => {
-    const specs = formData.value.specifications.filter(spec => 
+    const specs = formData.value.specifications.filter(spec =>
         spec.name.trim() && spec.values.length > 0
     )
-    
+
     if (specs.length === 0) {
         skuList.value = []
         return
@@ -771,29 +770,29 @@ const generateSkuCombinations = () => {
 
     // 生成所有可能的组合
     const combinations: string[][] = []
-    
+
     function generateCombinations(index: number, current: string[]) {
         if (index === specs.length) {
             combinations.push([...current])
             return
         }
-        
+
         for (const value of specs[index].values) {
             current.push(`${specs[index].name}:${value}`)
             generateCombinations(index + 1, current)
             current.pop()
         }
     }
-    
+
     generateCombinations(0, [])
-    
+
     // 更新SKU列表，保留已有的价格和库存
     const existingSkus = new Map<string, SkuItem>()
     skuList.value.forEach(sku => {
         const key = sku.specs.join('|')
         existingSkus.set(key, sku)
     })
-    
+
     skuList.value = combinations.map(combo => {
         const key = combo.join('|')
         const existing = existingSkus.get(key)
