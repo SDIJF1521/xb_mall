@@ -68,7 +68,19 @@ class DatabasePool:
 db_pool = DatabasePool()
 
 async def get_db_pool():
-    """获取数据库连接池"""
+    """
+    从连接池获取数据库连接（FastAPI依赖注入）
+    如果连接池不存在，会自动创建（延迟初始化）
+    注意：如果不在 main.py 的 lifespan 中管理连接池，应用关闭时可能无法正确关闭连接池
+    """
+    # 确保连接池已创建（延迟初始化）
     if not db_pool.pool:
         await db_pool.create_pool()
-    return db_pool
+    
+    # 从连接池获取连接
+    async with db_pool.pool.acquire() as conn:
+        try:
+            yield conn
+        finally:
+            # 连接会自动归还到连接池，不需要手动关闭
+            pass

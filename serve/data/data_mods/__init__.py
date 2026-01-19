@@ -330,3 +330,9 @@ class BuyerPutawayCommodity(BaseModel):
     token:str
     stroe_id:int
     shopping_id:int
+
+# 定义买家添加商品分类路由数据模型
+class BuyerCommodityClassifyAdd(BaseModel):
+    token:str
+    stroe_id:int
+    name:str

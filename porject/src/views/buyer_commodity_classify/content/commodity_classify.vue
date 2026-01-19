@@ -69,6 +69,7 @@
               <el-button
                 type="danger"
                 v-if="classifyEditList.find(c => c.id === item.id)?.edit"
+                 :v-if="false"
                 size="small"
                 :icon="Delete"
                 circle
@@ -88,16 +89,15 @@
           </div>
         </div>
       </el-card>
-
-      <!-- 空状态 -->
-      <el-empty
-        v-if="filteredClassifyList.length === 0"
-        description="暂无分类数据"
-        :image-size="120"
-      >
-        <el-button type="primary" @click="handleAdd">添加第一个分类</el-button>
-      </el-empty>
     </div>
+       <!-- 空状态 -->
+    <el-empty
+      v-if="filteredClassifyList.length === 0"
+      description="暂无分类数据"
+      :image-size="120"
+    >
+      <el-button type="primary" @click="handleAdd">添加第一个分类</el-button>
+    </el-empty>
 
     <!-- 添加/编辑分类对话框 -->
     <el-dialog
@@ -173,6 +173,7 @@ import {
   WarningFilled
 } from '@element-plus/icons-vue'
 import axios from 'axios'
+import { log } from 'echarts/types/src/util/log.js'
 
 defineOptions({
   name: 'CommodityClassify'
@@ -203,6 +204,47 @@ const deleteLoading = ref(false)
 const currentClassify = ref<ClassifyItem | null>(null)
 const isEditMode = ref(false)
 const formRef = ref()
+
+// 获取分类列表
+const requstes_classify = async () => {
+  try {
+    setTimeout(async () => {
+        console.log(store_id);
+
+        const res = await Axios.get('/buter_get_classify', {
+        params: {
+          'store_id': store_id.toString()
+        },
+        headers:{
+          'access-token':token
+        }
+      })
+      if (res.status === 200) {
+        if (res.data.current) {
+          console.log(res.data.data);
+          classifyList.value = Object.entries(res.data.data).map(([id, name]: [string, any]) => ({
+            id,
+            name
+          }))
+          classifyEditList.value =  Object.entries(res.data.edit).map(([id, edit]: [string, any]) => ({
+            id,
+            edit
+          }))
+        } else {
+          ElMessage.error(res.data.msg || '获取分类列表失败')
+        }
+      }else {
+        ElMessage.error('获取分类列表失败')
+      }
+      }, 500)
+  } catch (error) {
+    ElMessage.error('获取分类列表失败，请稍后重试')
+  }
+}
+
+onMounted(async() => {
+  await requstes_classify()
+})
 
 const formData = ref({
   name: ''
@@ -273,7 +315,6 @@ const handleSubmit = async () => {
       try {
         // TODO: 调用API保存分类
         // 这里先模拟成功
-        await new Promise(resolve => setTimeout(resolve, 500))
 
         if (isEditMode.value) {
           const index = classifyList.value.findIndex(item => item.id === currentClassify.value?.id)
@@ -285,12 +326,31 @@ const handleSubmit = async () => {
           }
           ElMessage.success('分类更新成功')
         } else {
-          const newItem: ClassifyItem = {
-            id: Date.now(),
-            name: formData.value.name
+          // 添加分类
+          try{
+            const Fromdata = new FormData();
+            Fromdata.append('token',token);
+            Fromdata.append('stroe_id',store_id.toString());
+            console.log('formData.value:', formData.value);
+            console.log('formData.value.name:', formData.value.name);
+
+            Fromdata.append('name',formData.value.name);
+            const res = await Axios.post('/buyer/classify/add', Fromdata)
+            if (res.status === 200) {
+              if (res.data.current) {
+                ElMessage.success('分类添加成功')
+
+                await requstes_classify()
+              } else {
+                ElMessage.error(res.data.msg || '添加分类失败')
+              }
+            }else {
+              ElMessage.error('添加分类失败')
+            }
+          }catch(error){
+            console.error('添加分类错误:', error);
+            ElMessage.error('添加分类失败，请稍后重试')
           }
-          classifyList.value.push(newItem)
-          ElMessage.success('分类添加成功')
         }
 
         dialogVisible.value = false
@@ -329,46 +389,6 @@ const confirmDelete = async () => {
   }
 }
 
-const requstes_classify = async () => {
-  try {
-    setTimeout(async () => {
-        console.log(store_id);
-
-        const res = await Axios.get('/buter_get_classify', {
-        params: {
-          'store_id': store_id.toString()
-        },
-        headers:{
-          'access-token':token
-        }
-      })
-      if (res.status === 200) {
-        if (res.data.current) {
-          console.log(res.data.data);
-          classifyList.value = Object.entries(res.data.data).map(([id, name]: [string, any]) => ({
-            id,
-            name
-          }))
-          classifyEditList.value = classifyList.value.map(item => ({
-            id: item.id,
-            edit: false
-          }))
-        } else {
-          ElMessage.error(res.data.msg || '获取分类列表失败')
-        }
-      }else {
-        ElMessage.error('获取分类列表失败')
-      }
-      }, 500)
-  } catch (error) {
-    ElMessage.error('获取分类列表失败，请稍后重试')
-  }
-}
-onMounted(async() => {
-  // TODO: 从API加载分类列表
-  // 这里先使用模拟数据
-  await requstes_classify()
-})
 
 </script>
 
