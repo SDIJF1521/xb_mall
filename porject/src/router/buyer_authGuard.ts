@@ -23,7 +23,8 @@ const AUTH_REQUIRED_ROUTES = ['BuyerIndex',
                               "BuyerCommodityAdd",
                               "BuyerCommodityList",
                               "BuyerCommodityManagement",
-                              "BuyerCommodityClassify"
+                              "BuyerCommodityClassify",
+                              "BuyerCommodityRepertory"
                             ];
 
 // 验证令牌有效性

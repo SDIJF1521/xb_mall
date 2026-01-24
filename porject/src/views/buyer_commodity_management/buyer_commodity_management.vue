@@ -127,7 +127,7 @@ function toCategoryManage(){
 // 跳转到库存管理页面
 function toInventoryManage(){
     const store = useBuyerManagementSelectStore()
-    store.setToUel('/buyer_inventory_manage')
+    store.setToUel('/buyer_commodity_repertory')
     router.push({name:'BuyerSelect'})
 }
 </script>

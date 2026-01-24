@@ -75,7 +75,10 @@ onMounted(() => {
     route.path.startsWith('/buyer_commodity_classify')) {
     title.value = '小白的商城-商品分类页';
     console.log('设置商品分类页标题，新值:', title.value);
-  } else {
+  } else if (route.path.startsWith('/buyer_commodity_repertory')){
+    title.value = '小白的商城-商品库存页';
+    console.log('设置商品分类页标题，新值:', title.value);
+  }else{
     title.value = '小白的商城';
     console.log('设置默认标题，新值:', title.value);
   }

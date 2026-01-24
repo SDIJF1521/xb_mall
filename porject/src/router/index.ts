@@ -34,6 +34,7 @@ import BuyerCommodityAdd from '@/views/buyer_commodity_add/buyer_commodity_add.v
 import BuyerCommodityList from '@/views/buyer_commodity_list/buyer_commodity_list.vue'
 import ManagementCommodityApply from '@/views/management_commodity_apply/management_commodity_apply.vue'
 import BuyerCommodityClassify from '@/views/buyer_commodity_classify/buyer_commodity_classify.vue'
+import BuyerCommodityRepertory from '@/views/buyer_commodity_repertory/buyer_commodity_repertory.vue'
 
 
 import { setupHeartbeatGuard } from './heartbeatGuard'
@@ -234,6 +235,12 @@ const routes: Array<RouteRecordRaw> = [
     path:'/buyer_commodity_classify/:id',
     name:'BuyerCommodityClassify',
     component:BuyerCommodityClassify
+  },
+  //买家端商品库存页
+  {
+    path:'/buyer_commodity_repertory/:id',
+    name:'BuyerCommodityRepertory',
+    component:BuyerCommodityRepertory
   },
     {
     // 404 页面 - 匹配所有未定义的路由

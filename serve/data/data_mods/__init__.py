@@ -336,3 +336,16 @@ class BuyerCommodityClassifyAdd(BaseModel):
     token:str
     stroe_id:int
     name:str
+
+# 定义买家删除商品分类路由数据模型
+class BuyerCommodityClassifyDelete(BaseModel):
+    token:str
+    stroe_id:int
+    classify_id:int
+
+# 定义买家编辑商品分类路由数据模型
+class BuyerCommodityClassifyEdit(BaseModel):
+    token:str
+    stroe_id:int
+    classify_id:int
+    name:str

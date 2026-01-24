@@ -104,7 +104,7 @@
       v-model="dialogVisible"
       :title="dialogTitle"
       width="500px"
-    append-to-body
+      append-to-body
       :close-on-click-modal="false"
     >
       <el-form
@@ -139,6 +139,7 @@
       v-model="deleteDialogVisible"
       title="删除分类"
       width="400px"
+      append-to-body
       :close-on-click-modal="false"
     >
       <div class="delete-content">
@@ -174,6 +175,7 @@ import {
 } from '@element-plus/icons-vue'
 import axios from 'axios'
 import { log } from 'echarts/types/src/util/log.js'
+import { id } from 'element-plus/es/locales.mjs'
 
 defineOptions({
   name: 'CommodityClassify'
@@ -317,30 +319,58 @@ const handleSubmit = async () => {
         // 这里先模拟成功
 
         if (isEditMode.value) {
-          const index = classifyList.value.findIndex(item => item.id === currentClassify.value?.id)
-          if (index !== -1) {
-            classifyList.value[index] = {
-              ...classifyList.value[index],
-              name: formData.value.name
-            }
+          if (currentClassify.value) {
+            // 保存当前表单数据，避免异步操作时值被重置
+            const currentName = formData.value.name
+            const currentClassifyId = currentClassify.value.id
+            
+            setTimeout(async ()=>{
+              try{
+                const FromData = new FormData()
+                FromData.append('token',token||'')
+                FromData.append('stroe_id',store_id.toString())
+                FromData.append('classify_id',currentClassifyId.toString())
+                FromData.append('name',currentName)
+                const res = await Axios.patch('/buyer_classify_edit',FromData)
+                if (res.status==200){
+                  if (res.data.current){
+                    ElMessage.success('分类更新成功')
+                    await requstes_classify()
+                    dialogVisible.value = false
+                    formRef.value?.resetFields()
+                    currentClassify.value = null
+                  }else{
+                    ElMessage.error(res.data.msg || '分类更新失败')
+                  }
+                }else{
+                  ElMessage.error('分类更新失败')
+                }
+              }catch(error){
+                console.error('分类更新错误:', error)
+                ElMessage.error('分类更新失败')
+              } finally {
+                submitLoading.value = false
+              }
+            },500)
+          } else {
+            submitLoading.value = false
           }
-          ElMessage.success('分类更新成功')
+          
         } else {
           // 添加分类
           try{
             const Fromdata = new FormData();
             Fromdata.append('token',token);
             Fromdata.append('stroe_id',store_id.toString());
-            console.log('formData.value:', formData.value);
-            console.log('formData.value.name:', formData.value.name);
-
             Fromdata.append('name',formData.value.name);
-            const res = await Axios.post('/buyer/classify/add', Fromdata)
+            const res = await Axios.post('/buyer_classify_add', Fromdata)
             if (res.status === 200) {
               if (res.data.current) {
                 ElMessage.success('分类添加成功')
-
                 await requstes_classify()
+                dialogVisible.value = false
+                formRef.value?.resetFields()
+                currentClassify.value = null
               } else {
                 ElMessage.error(res.data.msg || '添加分类失败')
               }
@@ -350,15 +380,12 @@ const handleSubmit = async () => {
           }catch(error){
             console.error('添加分类错误:', error);
             ElMessage.error('添加分类失败，请稍后重试')
+          } finally {
+            submitLoading.value = false
           }
         }
-
-        dialogVisible.value = false
-        formRef.value?.resetFields()
-        currentClassify.value = null
       } catch (error) {
         ElMessage.error('操作失败，请稍后重试')
-      } finally {
         submitLoading.value = false
       }
     }
@@ -376,10 +403,26 @@ const confirmDelete = async () => {
 
     const index = classifyList.value.findIndex(item => item.id === currentClassify.value?.id)
     if (index !== -1) {
-      classifyList.value.splice(index, 1)
-    }
+      console.log(index);
+      setTimeout(async () => {
+        const from_data = new FormData();
+        from_data.append('token',token);
+        from_data.append('stroe_id',store_id.toString());
+        from_data.append('classify_id',(index+1).toString());
 
-    ElMessage.success('分类删除成功')
+        const res = await Axios.delete('/buyer_classify_delete',{data:from_data});
+        if (res.status === 200) {
+          if (res.data.current) {
+            ElMessage.success('分类删除成功')
+            await requstes_classify()
+          }else{
+            ElMessage.error(res.data.msg || '删除分类失败')
+          }
+        }else{
+          ElMessage.error('删除分类失败')
+        }
+      }, 500)
+    }
     deleteDialogVisible.value = false
     currentClassify.value = null
   } catch (error) {
