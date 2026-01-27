@@ -5,7 +5,7 @@
 ![Vue.js](https://img.shields.io/badge/Vue.js-3.x-4FC08D?logo=vue.js&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-005571?logo=fastapi&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-ES2022-3178C6?logo=typescript&logoColor=white)
-![Python](https://img.shields.io/badge/Python-3.8+-3776AB?logo=python&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)
 
 一个现代化的全栈电商平台系统，采用前后端分离架构设计。
 
