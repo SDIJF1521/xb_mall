@@ -22,6 +22,7 @@ import RoleListMain from '@/views/buyer_role_list/content/role_list_main.vue'
 import CommodityAdd from '@/views/buyer_commodity_add/content/commodity_add.vue'
 import CommodityList from '@/views/buyer_commodity_list/content/commodity_list.vue'
 import CommodityClassify from '@/views/buyer_commodity_classify/content/commodity_classify.vue'
+import CommodityRepertory from '@/views/buyer_commodity_repertory/content/commodity_repertory.vue'
 
 defineOptions({
     name: 'BuyerTemplate',
@@ -33,6 +34,7 @@ defineOptions({
         CommodityAdd,
         CommodityList,
         CommodityClassify,
+        CommodityRepertory,
     }
 })
 

@@ -104,6 +104,8 @@ async def commodity_add(data:Annotated[CommodityAdd,Form(),File()],
         cache = CacheService(redis)
         await cache.delete_pattern(f'commodity:list:{data.stroe_id}:*')
         await cache.delete_pattern(f'commodity:search:{data.stroe_id}:*')
+        await cache.delete_pattern(f'commodity:repertory:list:{data.stroe_id}')
+        await cache.delete_pattern(f'commodity:repertory:search:{data.stroe_id}:*')
 
         return {"code":200,"msg":"添加成功",'current':True}
 

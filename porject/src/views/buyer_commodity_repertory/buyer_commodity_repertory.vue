@@ -1,5 +1,5 @@
 <template>
-    <BuyerTemplate/>
+    <BuyerTemplate :currentComponents="['CommodityRepertory']"/>
 </template>
 <script setup lang="ts">
 import BuyerTemplate from '@/moon/buyer_template.vue'

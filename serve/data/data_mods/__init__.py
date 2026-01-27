@@ -349,3 +349,18 @@ class BuyerCommodityClassifyEdit(BaseModel):
     stroe_id:int
     classify_id:int
     name:str
+
+# 定义卖家商品库存查询路由数据模型
+class BuyerCommodityRepertoryList(BaseModel):
+    token: str
+    stroe_id: int
+    select: Optional[str] = None
+    stock_status: Optional[str] = None  # 新增库存状态筛选字段
+    page: Optional[int] = 1
+    page_size: Optional[int] = 20
+
+# 定义卖家商品库存统计路由数据模型
+class BuyerCommodityRepertoryStatistics(BaseModel):
+    token: str
+    stroe_id: int
+    stock_status: Optional[str] = None  # 新增库存状态筛选字段

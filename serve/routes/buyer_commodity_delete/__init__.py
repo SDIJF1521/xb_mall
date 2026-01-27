@@ -60,6 +60,8 @@ async def buyer_commodity_delete(data:Annotated[BuyerDeleteCommodity,Form()],
         await cache.delete_pattern(f'admin:commodity:detail:{data.stroe_id}:{data.shopping_id}')
         await cache.delete_pattern(f'admin:commodity:apply:*')
         await cache.delete_pattern(f'img_base64:*')
+        await cache.delete_pattern(f'commodity:repertory:list:{data.stroe_id}')
+        await cache.delete_pattern(f'commodity:repertory:search:{data.stroe_id}:*')
         return {'code':200,'msg':'删除成功','current':True}
 
     if token_data.get('station') == '1':

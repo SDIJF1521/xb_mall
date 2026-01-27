@@ -83,6 +83,9 @@ from routes.buyer_commoidt_putaway import router as buyer_commodity_putaway_rout
 from routes.buyer_classify_add import router as buyer_classify_add_router
 from routes.buyer_classify_delete import router as buyer_classify_delete_router
 from routes.buyer_classify_edit import router as  buyer_classify_edit_router
+from routes.buyer_commodity_repertory_list import router as buyer_commodity_repertory_list_router
+from routes.buyer_commodity_repertory_statistics import router as buyer_commodity_repertory_statistics_router
+
 
 from routes.manage_sign_in import router as manage_sign_in_router
 from routes.management_verify import router as management_verify_router
@@ -664,8 +667,15 @@ app.include_router(buyer_classify_add_router,prefix='/api')
 # 买家端删除分类路由
 app.include_router(buyer_classify_delete_router,prefix='/api')
 
-# 买家端x修改分类路由
+# 买家端修改分类路由
 app.include_router(buyer_classify_edit_router,prefix='/api')
+
+# 买家端商品库存列表路由
+app.include_router(buyer_commodity_repertory_list_router,prefix='/api')
+
+# 买家端商品库存统计路由
+app.include_router(buyer_commodity_repertory_statistics_router,prefix='/api')
+
 
 # cs路由
 app.include_router(cs_router,prefix='/api')
