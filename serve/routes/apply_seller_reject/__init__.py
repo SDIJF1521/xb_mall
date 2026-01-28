@@ -34,8 +34,10 @@ async def apply_seller_reject(data:Annotated[ApplySellerReject,Form()], db:aiomy
                     await execute_db_query(db,'update shop_apply set state=%s where user = %s',(2,data.name))
                     await execute_db_query(db,'insert into rejection_reason(user,reason) values(%s,%s)',(data.name,data.reason))
                 
-                await cache.delete('admin:apply:seller:list')
-                await cache.delete(cache._make_key('user:apply:seller', data.name))
+                await cache.delete_pattern('admin:apply:seller:list:*')
+                await cache.delete_pattern('admin:apply:seller:search:%s' % data.name)
+                await cache.delete_pattern(cache._make_key('user:apply:seller', data.name))
+            
                 
                 return {'msg':'拒绝成功','current':True}
             else:

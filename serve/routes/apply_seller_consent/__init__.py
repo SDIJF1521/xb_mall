@@ -60,7 +60,7 @@ async def apply_seller_consent(data:Annotated[ApplySellerConsent,Form()], db:aio
                         await execute_db_query(db,'insert into seller_sing(user,password,img) values(%s,%s,%s)',(user_info[0][0],user_info[0][1],None))
                         cache = CacheService(redis_client)
                     
-                    await cache.delete('admin:apply:seller:list')
+                    await cache.delete_pattern('admin:apply:seller:list:*')
                     await cache.delete(cache._make_key('user:apply:seller', data.name))
                     await cache.delete_pattern('admin:merchant:*')
                     await cache.delete_pattern('number:merchants')

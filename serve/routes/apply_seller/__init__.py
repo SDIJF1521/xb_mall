@@ -23,7 +23,7 @@ async def apply_seller( data:Annotated[ApplyBusiness,Form()], db:aiomysql.Connec
         await execute_db_query(db, out['query'], out['params'])
         
         cache = CacheService(redis)
-        await cache.delete('admin:apply:seller:list')
+        await cache.delete_pattern('admin:apply:seller:list:*')
         user_info = UserInfo(data.token)
         user_data = await user_info.token_analysis()
         if user_data.get('current'):
