@@ -9,7 +9,7 @@ from services.buyer_role_authority import RoleAuthorityService
 from services.cache_service import CacheService
 from data.file_client import read_file_base64_with_cache
 
-from data.sql_client import get_db,execute_db_query
+from data.sql_client_pool import get_db_pool,db_pool
 from data.redis_client import RedisClient,get_redis
 from data.data_mods import GetMallInfo
 
@@ -17,19 +17,22 @@ from data.data_mods import GetMallInfo
 router = APIRouter()
 
 @router.post("/buyer_get_mall_info")
-async def buyer_get_mall_info(data:Annotated[GetMallInfo,Form()],db: Connection = Depends(get_db),redis: RedisClient = Depends(get_redis)):
+async def buyer_get_mall_info(data:Annotated[GetMallInfo,Form()],db: Connection = Depends(get_db_pool),redis: RedisClient = Depends(get_redis)):
     """获取店铺信息"""
     try:
         verify_duter_token = VerifyDuterToken(data.token,redis)
         token_data = await verify_duter_token.token_data()
-        
+        sql = db_pool
         # 检查token是否有效
         if not token_data:
             return {"code":400,"msg":"token无效或已过期","data":None,'current':False}
 
         async def execute(mall_id:int=None):
             cache = CacheService(redis)
-            
+            redis_id_select = await cache.get("mall_info:%s"%data.id)
+            if redis_id_select:
+                return redis_id_select
+
             # 确定查询的店铺ID和缓存键
             query_mall_id = data.id if data.id is not None else mall_id
             
@@ -45,11 +48,11 @@ async def buyer_get_mall_info(data:Annotated[GetMallInfo,Form()],db: Connection 
             print(f"Cache Key: {cache_key}, Bloom Item ID: {bloom_item_id}")
             async def fetch_mall_info():
                 if data.id is None and mall_id is None:
-                    sql_mall_info = await execute_db_query(db,"select * from store where user = %s",(token_data.get("user")))
+                    sql_mall_info = await sql.execute_query("select * from store where user = %s",(token_data.get("user")))
                 elif data.id is not None:
-                    sql_mall_info = await execute_db_query(db,"select * from store where mall_id = %s",(data.id))
+                    sql_mall_info = await sql.execute_query("select * from store where mall_id = %s",(data.id))
                 else:
-                     sql_mall_info = await execute_db_query(db,"select * from store where mall_id = %s",(mall_id))
+                     sql_mall_info = await sql.execute_query("select * from store where mall_id = %s",(mall_id))
                 
                 rtn = []
                 if sql_mall_info:
@@ -129,7 +132,7 @@ async def buyer_get_mall_info(data:Annotated[GetMallInfo,Form()],db: Connection 
 
         station = token_data.get('station')
         if station == '1':
-            sql_data = await execute_db_query(db,'select user from seller_sing where user = %s',(token_data.get('user')))
+            sql_data = await sql.execute_query('select user from seller_sing where user = %s',(token_data.get('user')))
             verify_data = await verify_duter_token.verify_token(sql_data)
             if verify_data and len(verify_data) > 0 and verify_data[0]:
                 return await execute()

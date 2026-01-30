@@ -108,11 +108,47 @@ from routes.apply_seller_reject import router as apply_seller_reject_router
 from routes.address_show import router as address_show_router
 from routes.delete_token_time import router as delete_token_time_router
 from routes.cs import router as cs_router
+from services.bloom_filter_manager import init_bloom_filter_manager
 
 redis_client = RedisClient()
 scheduler = AsyncIOScheduler()
 
 # ---------------------- 定时任务----------------------
+
+async def rebuild_bloom_filters():
+    """
+    每小时重建布隆过滤器，从数据库加载所有需要的ID
+    """
+    try:
+        logger.info("开始执行布隆过滤器重建任务...")
+        
+        from services.bloom_filter_manager import get_bloom_filter_manager
+        bloom_manager = get_bloom_filter_manager()
+        
+        if not bloom_manager:
+            logger.warning("布隆过滤器管理器未初始化，跳过重建任务")
+            return
+        
+        async def load_all_ids():
+            """从数据库加载所有需要加入布隆过滤器的ID"""
+            mall_ids = []
+            
+            stores = await db_pool.execute_query("SELECT DISTINCT mall_id FROM store WHERE mall_id IS NOT NULL")
+            mall_ids.extend([f"mall:{row[0]}" for row in stores if row[0] is not None])
+            
+            user_stores = await db_pool.execute_query("SELECT DISTINCT user FROM store WHERE user IS NOT NULL")
+            mall_ids.extend([f"mall:user:{row[0]}" for row in user_stores if row[0] is not None])
+            
+            logger.info(f"从数据库加载了 {len(mall_ids)} 个ID用于布隆过滤器")
+            return mall_ids
+        
+        await bloom_manager.rebuild_from_database(load_all_ids)
+        logger.info("布隆过滤器重建任务完成")
+        
+    except Exception as e:
+        logger.error(f"布隆过滤器重建任务失败: {str(e)}", exc_info=True)
+
+
 async def user_sql_redis_state():
     """
     定时任务：清理离线用户的Redis在线状态缓存
@@ -241,6 +277,12 @@ async def lifespan(app: FastAPI):
         await db_pool.create_pool()
         logger.info(f"数据库连接池已创建 | 配置: {sql_settings.DATABASE_URL}")
         
+        # 初始化布隆过滤器管理器
+        logger.info("正在初始化布隆过滤器管理器...")
+        from services.bloom_filter_manager import init_bloom_filter_manager
+        bloom_filter_manager = init_bloom_filter_manager(redis_client)
+        logger.info("布隆过滤器管理器已初始化")
+        
         # 定时任务
         logger.info("正在配置定时任务...")
         scheduler.add_job(
@@ -251,8 +293,21 @@ async def lifespan(app: FastAPI):
             coalesce=True,    
             misfire_grace_time=30  
         )
+        
+        # 每小时重建布隆过滤器
+        scheduler.add_job(
+            rebuild_bloom_filters,
+            IntervalTrigger(hours=1),
+            id='rebuild_bloom_filters',
+            max_instances=1,
+            coalesce=True,
+            misfire_grace_time=60
+        )
+        logger.info("每小时布隆过滤器重建任务已配置")
+        
         scheduler.start()
         logger.info("定时任务已启动 | 任务ID: user_sql_redis_state | 执行间隔: 10秒")
+        logger.info("定时任务已启动 | 任务ID: rebuild_bloom_filters | 执行间隔: 1小时")
         logger.info("=" * 60)
         logger.info("应用启动完成，所有服务已就绪")
     except Exception as e:

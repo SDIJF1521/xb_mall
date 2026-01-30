@@ -1,5 +1,6 @@
 from aiomysql import Connection
 from data.sql_client import execute_db_query
+from services.cache_service import CacheService
 
 # 角色权限服务 - 基于位运算的权限管理系统
 class RoleAuthorityService:

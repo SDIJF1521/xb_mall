@@ -4,6 +4,7 @@ from datetime import datetime, date
 from typing import Optional, Any, Callable
 from data.redis_client import RedisClient
 from services.bloom_filter import BloomFilter as CustomBloomFilter
+from services.bloom_filter_manager import get_bloom_filter_manager
 
 class DateTimeEncoder(json.JSONEncoder):
     """自定义JSON编码器，处理datetime和date对象"""
@@ -15,12 +16,17 @@ class DateTimeEncoder(json.JSONEncoder):
 class CacheService:
     def __init__(self, redis_client: RedisClient):
         self.redis = redis_client
-        self.bloom_filter = CustomBloomFilter(
-            redis_client=redis_client,
-            key_prefix='cache:bloom',
-            capacity=10000,
-            error_rate=0.001
-        )
+        
+        bloom_manager = get_bloom_filter_manager()
+        if bloom_manager:
+            self.bloom_filter = bloom_manager
+        else:
+            self.bloom_filter = CustomBloomFilter(
+                redis_client=redis_client,
+                key_prefix='cache:bloom',
+                capacity=10000,
+                error_rate=0.001
+            )
     
 
     def _make_key(self, prefix: str, *args) -> str:
@@ -134,6 +140,7 @@ class CacheService:
             return data
         
         try:
+            # 兼容布隆过滤器管理器
             exists = await self.bloom_filter.exists(item_id)
             
             if not exists and return_none_if_not_exists:
@@ -168,4 +175,3 @@ class CacheService:
                 logger.warning(f"布隆过滤器添加失败 | Item ID: {item_id} | 错误: {str(e)}")
         
         return result
-
