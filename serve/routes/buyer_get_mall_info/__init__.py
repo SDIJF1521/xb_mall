@@ -29,8 +29,9 @@ async def buyer_get_mall_info(data:Annotated[GetMallInfo,Form()],db: Connection 
 
         async def execute(mall_id:int=None):
             cache = CacheService(redis)
-            redis_id_select = await cache.get("mall_info:%s"%data.id)
+            redis_id_select = await cache.get(cache._make_key("mall_info", data.id))
             if redis_id_select:
+                print(123)
                 return redis_id_select
 
             # 确定查询的店铺ID和缓存键
@@ -45,7 +46,6 @@ async def buyer_get_mall_info(data:Annotated[GetMallInfo,Form()],db: Connection 
             else:
                 cache_key = cache._make_key('mall_info:user', token_data.get("user"))
                 bloom_item_id = f"mall:user:{token_data.get('user')}"
-            print(f"Cache Key: {cache_key}, Bloom Item ID: {bloom_item_id}")
             async def fetch_mall_info():
                 if data.id is None and mall_id is None:
                     sql_mall_info = await sql.execute_query("select * from store where user = %s",(token_data.get("user")))
@@ -70,17 +70,12 @@ async def buyer_get_mall_info(data:Annotated[GetMallInfo,Form()],db: Connection 
                     return {"code":200,"msg":"success","data":rtn,'current':True}
                 return None
             if query_mall_id is not None:
-                print(f"Query Mall ID: {query_mall_id}")
-                print(f"Cache Key: {cache_key}")
-                print(f"Bloom Item ID: {bloom_item_id}")
                 cached_result = await cache.get(cache_key)
                 if cached_result:
-                    print("Returning cached result")
                     return cached_result
                 
                 try:
                     exists_in_bloom = await cache.bloom_filter.exists(bloom_item_id)
-                    print(f"Bloom filter check for {bloom_item_id}: {exists_in_bloom}")
                     
                     if not exists_in_bloom:
                         db_result = await fetch_mall_info()
@@ -106,12 +101,10 @@ async def buyer_get_mall_info(data:Annotated[GetMallInfo,Form()],db: Connection 
                             expire=300,
                             return_none_if_not_exists=True
                         )
-                        print(f"Cache result: {result}")
                         if result:
                             return result
                         return {"code":404,"msg":"店铺不存在","data":None,'current':False}
                 except Exception as e:
-                    print(f"Bloom filter error: {e}")
                     result = await cache.get_or_set(
                         key=cache_key,
                         func=fetch_mall_info,
@@ -142,7 +135,10 @@ async def buyer_get_mall_info(data:Annotated[GetMallInfo,Form()],db: Connection 
             if not token_data.get('mall_id') or not token_data.get('role'):
                 return {"code":400,"msg":"token信息不完整","data":None,'current':False}
             
-            role_authority_service = RoleAuthorityService(token_data.get('role'),db)
+            role_authority_service = RoleAuthorityService(role=token_data.get('role'),
+                                                          db=db,redis=redis,
+                                                          name=token_data.get('user'),
+                                                          mall_id=token_data.get('mall_id'))
             role_authority = await role_authority_service.get_authority(token_data.get('mall_id'))
             if not role_authority or len(role_authority) == 0 or len(role_authority[0]) == 0:
                 return {"code":400,"msg":"权限验证失败","data":None,'current':False}

@@ -40,6 +40,7 @@ async def buyer_user_delete(data:Annotated[DeleteMallUser,Form()],
         await cache.delete_pattern(f'user:list:{data.strore_id}:*')
         await cache.delete_pattern(f'user:info:{data.strore_id}:*')
         await cache.delete_pattern(f'role:ratio:{data.strore_id}')
+        await cache.delete_pattern(f'role:{data.strore_id}:{data.user_name}')
         return {'code':200,'msg':'删除成功','current':True}
         
         
@@ -52,7 +53,11 @@ async def buyer_user_delete(data:Annotated[DeleteMallUser,Form()],
             else:
                 return {'code':400,'msg':'用户不存在','current':False}
         else:
-            role_authority_service = RoleAuthorityService(token_data.get('role'),db)
+            role_authority_service = RoleAuthorityService(role=token_data.get('role'),
+                                                          db=db,
+                                                          redis=redis,
+                                                          name=token_data.get('user'),
+                                                          mall_id=token_data.get('mall_id'))
             role_authority = await role_authority_service.get_authority(token_data.get('mall_id'))
             execute_code = await role_authority_service.authority_resolver(int(role_authority[0][0]))
             

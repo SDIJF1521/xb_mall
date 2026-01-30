@@ -33,7 +33,9 @@ async def buyer_update_mall(data:Annotated[UpdateMall,Form()],db:Connection=Depe
                 os.remove(f'./mall_img/{data.id}.png')
             except:
                 pass
-            await cache.delete(cache._make_key('mall_info', data.id))
+            await cache.delete_pattern(f'img_base64:./mall_img/{data.id}.png')
+            await cache.delete_pattern(f'mall_info:{data.id}')
+            await cache.delete_pattern(f'mall_info:user:{old_user}')
             await cache.delete_pattern(f'mall_name:user:{old_user}')
             await cache.delete_pattern(f'mall_name:mall:{data.id}')
             return {"code":200,"msg":"操作成功","data":None,'current':True}
@@ -49,7 +51,11 @@ async def buyer_update_mall(data:Annotated[UpdateMall,Form()],db:Connection=Depe
             else:
                 return {"code":400,"msg":"您没有权限操作","data":None,'current':False}
         else:
-            role_authority_service = RoleAuthorityService(token_data.get('role'),db)
+            role_authority_service = RoleAuthorityService(role=token_data.get('role'),
+                                                          db=db,
+                                                          redis=redis,
+                                                          name=token_data.get('user'),
+                                                          mall_id=token_data.get('mall_id'))
             role_authority = await role_authority_service.get_authority(token_data.get('mall_id'))
             execute_code = await role_authority_service.authority_resolver(int(role_authority[0][0]))
             sql_data = await execute_db_query(db,'select user from store_user where user = %s and store_id = %s',(token_data.get('user'),token_data.get('mall_id')))

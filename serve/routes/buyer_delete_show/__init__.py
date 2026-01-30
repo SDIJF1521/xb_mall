@@ -47,9 +47,10 @@ async def buyer_delete_mall(data: Annotated[DeleteMall, Form()], db: Connection 
                         await cache.delete(img_cache_key)
                     except Exception:
                         pass
-                await cache.delete(cache._make_key('mall_info', data.mall_id))
+                await cache.delete_pattern(f'mall_info:{data.mall_id}')
                 await cache.delete_pattern(f'mall_name:user:{user_name}')
                 await cache.delete_pattern(f'mall_name:mall:{data.mall_id}')
+                await cache.delete_pattern(f'img_base64:./mall_img/{data.mall_id}.png')
                 await cache.delete_pattern(f'mall_info:user:{user_name}')
                 await cache.delete_pattern(f'admin:mall:info:%d'%(data.mall_id))
                 

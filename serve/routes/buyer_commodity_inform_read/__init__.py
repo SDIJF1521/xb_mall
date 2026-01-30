@@ -98,8 +98,11 @@ async def buyer_r_commodity_inform_read(
             return {'code': 403, 'msg': '验证失败', 'current': False}
     else:
         role_authority_service = RoleAuthorityService(
-            token_data.get('role'),
-            db
+            role=token_data.get('role'),
+            db=db,
+            redis=redis,
+            name=token_data.get('user'),
+            mall_id=token_data.get('mall_id')
         )
         role_authority = await role_authority_service.get_authority(
             token_data.get('mall_id')

@@ -42,7 +42,12 @@ async def buyer_classify_delete(data:Annotated[BuyerCommodityClassifyDelete,Form
         else:
             return {'code':400,'msg':'token验证失败','current':False}
     else:
-        role_authority_service = RoleAuthorityService(token_data.get('role'),db)
+        role_authority_service = RoleAuthorityService(role=token_data.get('role'),
+                                                      db=db,
+                                                      redis=redis,
+                                                      name=token_data.get('user'),
+                                                      mall_id=token_data.get('mall_id'))
+        
         role_authority = await role_authority_service.get_authority(token_data.get('mall_id'))
         execute_code = await role_authority_service.authority_resolver(int(role_authority[0][0]))
         if execute_code[3] and execute_code[4] and verify_data:

@@ -58,7 +58,11 @@ async def role_ratio(data:Annotated[RoleRatio,Query()],
         else:
             return {'code':403,'msg':'验证失败','data':None,'current':False}
     else:
-        role_authority_service = RoleAuthorityService(token_data.get('role'),db)
+        role_authority_service = RoleAuthorityService(role=token_data.get('role'),
+                                                      db=db,
+                                                      redis=redis,
+                                                      name=token_data.get('user'),
+                                                      mall_id=token_data.get('mall_id'))
         role_authority = await role_authority_service.get_authority(token_data.get('mall_id'))
         execute_code = await role_authority_service.authority_resolver(int(role_authority[0][0]))
         sql_data = await execute_db_query(db,'select user from store_user where user = %s and store_id = %s',(token_data.get('user'),token_data.get('mall_id')))
