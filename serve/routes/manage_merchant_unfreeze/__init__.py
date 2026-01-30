@@ -34,6 +34,7 @@ async def thaw_merchant(
             cache = CacheService(redis)
             await cache.delete_pattern(f'admin:merchant:*')
             await cache.delete_pattern(f'number:merchants')
+            await cache.delete_pattern(f'admin:mall:info:*')
             
             return {"code":200,"msg":"解冻成功","success":True}
         else:

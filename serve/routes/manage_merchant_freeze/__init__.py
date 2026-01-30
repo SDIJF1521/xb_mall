@@ -33,7 +33,7 @@ async def freeze_merchant(data:Annotated[FreezeMerchant,Form()],
             cache = CacheService(redis)
             await cache.delete_pattern(f'admin:merchant:*')
             await cache.delete_pattern(f'number:merchants')
-            
+            await cache.delete_pattern(f'admin:mall:info:*')
             return {"code":200,"msg":"冻结成功","success":True}
         else:
             return {"code":404,"msg":"用户不存在或已被冻结","success":False}

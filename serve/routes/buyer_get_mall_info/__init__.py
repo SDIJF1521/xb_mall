@@ -42,8 +42,7 @@ async def buyer_get_mall_info(data:Annotated[GetMallInfo,Form()],db: Connection 
             else:
                 cache_key = cache._make_key('mall_info:user', token_data.get("user"))
                 bloom_item_id = f"mall:user:{token_data.get('user')}"
-            
-
+            print(f"Cache Key: {cache_key}, Bloom Item ID: {bloom_item_id}")
             async def fetch_mall_info():
                 if data.id is None and mall_id is None:
                     sql_mall_info = await execute_db_query(db,"select * from store where user = %s",(token_data.get("user")))
@@ -67,18 +66,57 @@ async def buyer_get_mall_info(data:Annotated[GetMallInfo,Form()],db: Connection 
                 if rtn:
                     return {"code":200,"msg":"success","data":rtn,'current':True}
                 return None
-            
             if query_mall_id is not None:
-                result = await cache.get_or_set_with_bloom(
-                    key=cache_key,
-                    item_id=bloom_item_id,
-                    func=fetch_mall_info,
-                    expire=300,
-                    return_none_if_not_exists=True
-                )
-                if result:
-                    return result
-                return {"code":404,"msg":"店铺不存在","data":None,'current':False}
+                print(f"Query Mall ID: {query_mall_id}")
+                print(f"Cache Key: {cache_key}")
+                print(f"Bloom Item ID: {bloom_item_id}")
+                cached_result = await cache.get(cache_key)
+                if cached_result:
+                    print("Returning cached result")
+                    return cached_result
+                
+                try:
+                    exists_in_bloom = await cache.bloom_filter.exists(bloom_item_id)
+                    print(f"Bloom filter check for {bloom_item_id}: {exists_in_bloom}")
+                    
+                    if not exists_in_bloom:
+                        db_result = await fetch_mall_info()
+                        
+                        if db_result:
+                            await cache.set(cache_key, db_result, expire=300)
+                            try:
+                                await cache.bloom_filter.add(bloom_item_id)
+                            except Exception as e:
+                                print(f"Failed to add to bloom filter: {e}")
+                            return db_result
+                        else:
+                            try:
+                                await cache.bloom_filter.add(bloom_item_id)
+                            except Exception as e:
+                                print(f"Failed to add to bloom filter: {e}")
+                            return {"code":404,"msg":"店铺不存在","data":None,'current':False}
+                    else:
+                        result = await cache.get_or_set_with_bloom(
+                            key=cache_key,
+                            item_id=bloom_item_id,
+                            func=fetch_mall_info,
+                            expire=300,
+                            return_none_if_not_exists=True
+                        )
+                        print(f"Cache result: {result}")
+                        if result:
+                            return result
+                        return {"code":404,"msg":"店铺不存在","data":None,'current':False}
+                except Exception as e:
+                    print(f"Bloom filter error: {e}")
+                    result = await cache.get_or_set(
+                        key=cache_key,
+                        func=fetch_mall_info,
+                        expire=300
+                    )
+                    if result:
+                        return result
+                    return {"code":404,"msg":"店铺不存在","data":None,'current':False}
             else:
                 cached_data = await cache.get(cache_key)
                 if cached_data:
