@@ -157,6 +157,8 @@
       v-model="editDialogVisible"
       title="修改库存"
       width="600px"
+      append-to-body
+     :close-on-click-modal="false"
 
     >
       <el-form
@@ -350,7 +352,8 @@ const stockForm = reactive({
   maxStock: 0,
   changeType: 'increase',
   changeAmount: 0,
-  remark: ''
+  remark: '',
+  specificationId: ''
 })
 
 // 表单验证规则
@@ -554,6 +557,7 @@ const handleEditStock = (row: StockItem) => {
   stockForm.currentStock = row.currentStock
   stockForm.minStock = row.minStock
   stockForm.maxStock = row.maxStock
+  stockForm.specificationId = row.specification  // 保存规格ID
   stockForm.changeType = 'increase'
   stockForm.changeAmount = 0
   stockForm.remark = ''
@@ -604,36 +608,35 @@ const handleSubmitStock = async () => {
       submitLoading.value = true
       try {
         // 构建请求参数
-        const params: any = {
-          product_id: String(stockForm.id),  // 这里使用的是productId，应该保持不变
-          change_type: stockForm.changeType,
-          change_amount: String(stockForm.changeAmount),
-          min_stock: String(stockForm.minStock),
-          max_stock: String(stockForm.maxStock),
-          remark: stockForm.remark,
-          token: token.value
+        const formData = new FormData()
+        formData.append('token', token.value)
+        formData.append('stroe_id', String(storeId.value))
+        formData.append('shopping_id', String(stockForm.id))
+        formData.append('sku_id', String(stockForm.specificationId))
+
+        if (stockForm.changeType != 'set') {
+          formData.append('change_type', stockForm.changeType == 'increase' ? '1' : '0')
         }
 
-        const response = await axiosInstance.post('/buyer/commodity_repertory_list/update',
-          new URLSearchParams(params as Record<string, string>),
-          {
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-              'access-token': token.value
-            }
+        formData.append('change_num', String(stockForm.changeAmount))
+        formData.append('maximum_inventory', String(stockForm.maxStock))
+        formData.append('minimum_balance', String(stockForm.minStock))
+        formData.append('info', stockForm.remark||'null')
+
+        const res = await axiosInstance.patch('/buyer_commofity_inventory_change', formData)
+        if (res.status == 200) {
+          if (res.data.current) {
+            ElMessage.success('库存修改成功')
+            editDialogVisible.value = false
+            fetchStockData()
+          } else {
+            ElMessage.error(res.data.msg || '库存修改失败')
           }
-        )
-
-        if (response.data.success) {
-          ElMessage.success('库存修改成功')
-          editDialogVisible.value = false
-
-          // 刷新数据
-          fetchStockData()
-          fetchStatistics()
         } else {
-          ElMessage.error(response.data.msg || '库存修改失败')
+          ElMessage.error(res.data.msg || '库存修改失败')
         }
+
+
       } catch (error) {
         console.error('库存修改失败:', error)
         ElMessage.error('库存修改失败')

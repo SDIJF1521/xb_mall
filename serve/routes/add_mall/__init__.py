@@ -44,11 +44,14 @@ async def add_mall(data:Annotated[AddMallData,Form()],db:Connection=Depends(get_
             
             try:
                 sql_user_data = await execute_db_query(db,'select * from seller_sing where user = %s',(data.user))
+                await execute_db_query(db,'update mall_info set mall_number = mall_number+1 where user = %s',(data.user))
                 if not sql_user_data:
+                    await cache.delete_pattern(f'admin:mall:info:{data.user}')
                     return {'msg':'添加成功','prod_id':prod_id,'current':True,'code':200}
 
                 state = await execute_db_query(db,"select mall_state from mall_info where user = %s",(data.user,))
                 if not state or state[0][0] != 1:
+                    await cache.delete_pattern(f'admin:mall:info:{data.user}')
                     return {'msg':'添加成功','prod_id':prod_id,'current':True,'code':200}
                 
 

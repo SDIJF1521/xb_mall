@@ -5,6 +5,7 @@ import asyncio
 from typing import Annotated
 
 import logging
+import fastapi_cdn_host
 from fastapi import FastAPI, Form, Query,Request,Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -72,7 +73,7 @@ from routes.buyer_role_info import router as buyer_role_info_router
 from routes.buyer_update_role import router as buyer_update_role_router
 from routes.buyer_role_ratio import router as buyer_role_ratio_router
 from routes.buyer_commoidt_add import router as buyer_commoidt_add_router
-from routes.buter_get_classify import router as get_classify_router
+from routes.buyer_get_classify import router as get_classify_router
 from routes.buyer_get_commoidt import router as buyer_get_commoidt_router
 from routes.buyer_commodity_inform import router as buyer_commodity_inform_router
 from routes.buyer_commodity_inform_read import router as buyer_r_commodity_inform_read_router
@@ -85,6 +86,7 @@ from routes.buyer_classify_delete import router as buyer_classify_delete_router
 from routes.buyer_classify_edit import router as  buyer_classify_edit_router
 from routes.buyer_commodity_repertory_list import router as buyer_commodity_repertory_list_router
 from routes.buyer_commodity_repertory_statistics import router as buyer_commodity_repertory_statistics_router
+from routes.buyer_commofity_inventory_change import router as buyer_commodity_inventory_change_router
 
 
 from routes.manage_sign_in import router as manage_sign_in_router
@@ -493,6 +495,7 @@ verifier = VerificationCode(
     db=redis_settings.REDIS_DB,
     email_config=email_config
 )
+fastapi_cdn_host.patch_docs(app)
 
 # 验证码申请路由
 app.include_router(verification_router, prefix="/api")
@@ -731,6 +734,8 @@ app.include_router(buyer_commodity_repertory_list_router,prefix='/api')
 # 买家端商品库存统计路由
 app.include_router(buyer_commodity_repertory_statistics_router,prefix='/api')
 
+# 买家端商品库存变化路由
+app.include_router(buyer_commodity_inventory_change_router,prefix='/api')
 
 # cs路由
 app.include_router(cs_router,prefix='/api')

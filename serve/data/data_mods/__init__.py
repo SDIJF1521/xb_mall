@@ -364,3 +364,15 @@ class BuyerCommodityRepertoryStatistics(BaseModel):
     token: str
     stroe_id: int
     stock_status: Optional[str] = None  # 新增库存状态筛选字段
+
+# 定义买家商品库存变更路由数据模型
+class BuyerCommodityRepertoryChange(BaseModel):
+    token: str
+    stroe_id: int
+    shopping_id: int
+    sku_id: int
+    change_type: Optional[int] = None  # 变更类型：1（增加）或 2（减少）
+    change_num: int 
+    maximum_inventory: Optional[int] = 99  # 新增最大库存字段
+    minimum_balance: Optional[int] = 5  # 新增最小库存字段
+    info: Optional[str] = None
