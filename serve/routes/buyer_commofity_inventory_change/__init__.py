@@ -160,6 +160,7 @@ async def change_commodity_repertory(
                                         'select user from store_user where user = %s and store_id = %s',
                                         (token_data.get('user'), token_data.get('mall_id')))
         verify_data = await verify_duter_token.verify_token(sql_data)
+        print(verify_data)
         if execute_code[4] and execute_code[1] and verify_data:
             return await execute()
         else:

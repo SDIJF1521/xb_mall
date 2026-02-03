@@ -35,7 +35,7 @@ async def buyer_commodity_inform(access_token:str = Header(...),
         
         mongodb_data = []
         for i in id_list:
-            mongodb_data.extend(await mongodb.find_many('commodity_msg',{'mall_id':i,'read':0}))
+            mongodb_data.extend(await mongodb.find_many('commodity_msg',{'mall_id':i}))
 
         if mongodb_data:
             result_data = []
@@ -46,6 +46,7 @@ async def buyer_commodity_inform(access_token:str = Header(...),
                 })
                 
                 item = {
+                    '_id': msg.get('_id'),
                     'mall_id': msg.get('mall_id'),
                     'shopping_id': msg.get('shopping_id'),
                     'pass': msg.get('pass'),

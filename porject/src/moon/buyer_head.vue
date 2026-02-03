@@ -26,21 +26,32 @@
                                         <span class="header-text">商品通知</span>
                                         <el-badge :value="unreadCount" :hidden="unreadCount === 0" class="header-badge" />
                                     </div>
-                                    <el-button 
-                                        text 
-                                        type="primary" 
-                                        size="small" 
-                                        @click.stop="markAllAsRead"
-                                        v-if="unreadCount > 0"
-                                        class="mark-all-read-btn"
-                                    >
-                                        全部已读
-                                    </el-button>
+                                    <div class="header-actions">
+                                        <el-button
+                                            text
+                                            type="primary"
+                                            size="small"
+                                            @click.stop="markAllAsRead"
+                                            v-if="unreadCount > 0"
+                                            class="mark-all-read-btn"
+                                        >
+                                            全部已读
+                                        </el-button>
+                                        <el-button
+                                            text
+                                            type="danger"
+                                            size="small"
+                                            @click.stop="deleteAllReadNotifications"
+                                            class="delete-all-read-btn"
+                                        >
+                                            删除已读
+                                        </el-button>
+                                    </div>
                                 </div>
                                 <el-divider class="notification-divider" />
                                 <div class="notification-list" v-if="inform.length > 0">
-                                    <div 
-                                        v-for="(item, index) in inform" 
+                                    <div
+                                        v-for="(item, index) in inform"
                                         :key="index"
                                         class="notification-item"
                                         :class="{ 'unread': item.read === 0 }"
@@ -55,26 +66,36 @@
                                                     <el-icon class="title-icon info-icon" v-else><Clock /></el-icon>
                                                     {{ item.name || '商品通知' }}
                                                 </div>
-                                                <el-tag 
-                                                    :type="item.pass === 1 ? 'success' : item.pass === 0 ? 'danger' : 'info'"
-                                                    size="small"
-                                                    class="status-tag"
-                                                    effect="plain"
-                                                >
-                                                    {{ item.pass === 1 ? '已通过' : item.pass === 0 ? '已拒绝' : '审核中' }}
-                                                </el-tag>
+                                                <div class="notification-actions">
+                                                    <el-tag
+                                                        :type="item.pass === 1 ? 'success' : item.pass === 0 ? 'danger' : 'info'"
+                                                        size="small"
+                                                        class="status-tag"
+                                                        effect="plain"
+                                                    >
+                                                        {{ item.pass === 1 ? '已通过' : item.pass === 0 ? '已拒绝' : '审核中' }}
+                                                    </el-tag>
+                                                    <el-button
+                                                        :icon="Delete"
+                                                        size="small"
+                                                        type="danger"
+                                                        text
+                                                        @click.stop="deleteNotification(item, index)"
+                                                        class="delete-notification-btn"
+                                                    />
+                                                </div>
                                             </div>
                                             <div class="notification-message-wrapper">
-                                                <div 
+                                                <div
                                                     class="notification-message"
                                                     :class="{ 'expanded': expandedItems[index] }"
                                                 >
                                                     {{ item.msg || '您有新的商品审核通知' }}
                                                 </div>
-                                                <el-button 
+                                                <el-button
                                                     v-if="shouldShowExpandButton(item.msg)"
-                                                    text 
-                                                    type="primary" 
+                                                    text
+                                                    type="primary"
                                                     size="small"
                                                     class="expand-btn"
                                                     @click.stop="toggleExpand(index)"
@@ -107,21 +128,61 @@
                     </el-dropdown>
                 </el-badge>
                 <el-badge :value="messageCount" :hidden="messageCount === 0" :max="99">
-                    <el-dropdown trigger="click">
-                        <el-button :icon="ChatDotRound" size="small" circle />
-                        <template #dropdown>
-                            <el-dropdown-menu>
-                                <div class="notification-header">
-                                    <span>消息</span>
-                                </div>
-                                <el-divider style="margin: 5px 0;" />
-                                <div class="empty-notification">
-                                    <el-empty description="暂无消息" :image-size="80" />
-                                </div>
-                            </el-dropdown-menu>
-                        </template>
-                    </el-dropdown>
+                    <el-button :icon="ChatDotRound" size="small" circle @click="openMessageDrawer" />
                 </el-badge>
+
+                <!-- 聊天侧边抽屉 -->
+                <el-drawer
+                    v-model="messageDrawerVisible"
+                    title="聊天室"
+                    direction="rtl"
+                    size="450px"
+                    :z-index="2000"
+                >
+                    <div class="chat-container">
+                        <div class="chat-header">
+                            <h3>对话</h3>
+                            <el-tag type="success" size="small">在线</el-tag>
+                        </div>
+
+                        <div class="chat-messages" ref="chatMessagesRef">
+                            <div
+                                v-for="(msg, index) in chatMessages"
+                                :key="index"
+                                class="message-bubble"
+                                :class="{ 'my-message': msg.sender === 'me', 'other-message': msg.sender !== 'me' }"
+                            >
+                                <div class="message-avatar">
+                                    <el-avatar
+                                        :size="30"
+                                        :src="msg.sender === 'me' ? myAvatar : otherAvatar"
+                                    />
+                                </div>
+                                <div class="message-content">
+                                    <div class="message-text">{{ msg.text }}</div>
+                                    <div class="message-time">{{ msg.time }}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="chat-input-area">
+                            <el-input
+                                v-model="chatInput"
+                                placeholder="输入消息..."
+                                @keyup.enter="sendMessage"
+                                class="chat-input"
+                            />
+                            <el-button
+                                type="primary"
+                                @click="sendMessage"
+                                :disabled="!chatInput.trim()"
+                                class="send-button"
+                            >
+                                发送
+                            </el-button>
+                        </div>
+                    </div>
+                </el-drawer>
             </div>
             <el-text>昵称:{{ data.userName }}</el-text>
         </div>
@@ -129,10 +190,10 @@
 </div>
 </template>
 <script lang="ts" setup>
-import {ref, onMounted, onUnmounted, computed} from 'vue'
+import {ref, onMounted, onUnmounted, computed, nextTick} from 'vue'
 import axios from 'axios'
-import {Bell, ChatDotRound, Search, CircleCheck, CircleClose, Clock, User, ArrowDown, ArrowUp} from '@element-plus/icons-vue'
-import {ElMessage} from 'element-plus'
+import {Bell, ChatDotRound, Search, CircleCheck, CircleClose, Clock, User, ArrowDown, ArrowUp, Delete} from '@element-plus/icons-vue'
+import {ElMessage, ElMessageBox} from 'element-plus'
 
 const Axios = axios.create({
     baseURL: 'http://127.0.0.1:8000/api'
@@ -141,6 +202,12 @@ const Axios = axios.create({
 const inform = ref<any[]>([])
 const messageCount = ref(0)
 const expandedItems = ref<Record<number, boolean>>({}) // 跟踪每个通知项的展开状态
+const messageDrawerVisible = ref(false)
+const chatMessages = ref<any[]>([])
+const chatInput = ref('')
+const chatMessagesRef = ref<HTMLElement>()
+const myAvatar = ref(`data:image/png;base64,${localStorage.getItem('img')}` || 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png')
+const otherAvatar = ref('https://cube.elemecdn.com/3/73/750154eb595ab21efae0d53a836c7.png') // 默认头像
 const MAX_PREVIEW_LENGTH = 150 // 预览最大字符数
 
 defineOptions({
@@ -190,19 +257,18 @@ function handleNotificationVisible(visible: boolean) {
 }
 
 // 标记单个通知为已读
-async function markNotificationAsRead(mall_id: number, shopping_id: number) {
+async function markNotificationAsRead(mall_id: number, shopping_id: number,_id:string) {
     try {
         const token = localStorage.getItem('buyer_access_token')
         if (!token) {
             console.warn('未找到访问令牌')
             return false
         }
-        
         const formData = new FormData()
         formData.append('token', token)
+        formData.append('info_id', _id.toString())
         formData.append('mall_id', mall_id.toString())
         formData.append('shopping_id', shopping_id.toString())
-        
         const res = await Axios.post('/buyer_r_commodity_inform_read', formData)
         if (res.status === 200 && res.data.current) {
             return true
@@ -220,7 +286,9 @@ async function markNotificationAsRead(mall_id: number, shopping_id: number) {
 async function handleNotificationClick(item: any) {
     console.log('点击通知:', item)
     if (item.read === 0 && item.mall_id && item.shopping_id) {
-        const success = await markNotificationAsRead(item.mall_id, item.shopping_id)
+        console.log(item);
+
+        const success = await markNotificationAsRead(item.mall_id, item.shopping_id,item._id)
         if (success) {
             item.read = 1
             ElMessage.success('已标记为已读')
@@ -238,10 +306,10 @@ async function markAllAsRead() {
             ElMessage.error('未找到访问令牌')
             return
         }
-        
+
         const formData = new FormData()
         formData.append('token', token)
-        
+
         const res = await Axios.post('/buyer_r_commodity_inform_read', formData)
         if (res.status === 200 && res.data.current) {
             inform.value.forEach(item => {
@@ -264,6 +332,174 @@ function shouldShowExpandButton(msg: string | undefined): boolean {
 
 function toggleExpand(index: number) {
     expandedItems.value[index] = !expandedItems.value[index]
+}
+
+// 打开聊天抽屉
+function openMessageDrawer() {
+    messageDrawerVisible.value = true
+    // 初始化聊天记录
+    initChat()
+}
+
+// 初始化聊天
+function initChat() {
+    // 模拟初始聊天记录
+    chatMessages.value = [
+        {
+            id: 1,
+            sender: 'other',
+            text: '您好，欢迎来到我们的商城！有什么可以帮助您的吗？',
+            time: formatTime(new Date(Date.now() - 300000)) // 5分钟前
+        },
+        {
+            id: 2,
+            sender: 'me',
+            text: '我想咨询一下最近的促销活动',
+            time: formatTime(new Date(Date.now() - 240000)) // 4分钟前
+        },
+        {
+            id: 3,
+            sender: 'other',
+            text: '我们最近有春季大促活动，全场商品8折起，还有满减优惠哦！',
+            time: formatTime(new Date(Date.now() - 180000)) // 3分钟前
+        }
+    ]
+    // 自动滚动到底部
+    nextTick(() => {
+        scrollToBottom()
+    })
+}
+
+// 格式化时间
+function formatTime(date: Date) {
+    const hours = date.getHours().toString().padStart(2, '0')
+    const minutes = date.getMinutes().toString().padStart(2, '0')
+    return `${hours}:${minutes}`
+}
+
+// 发送消息
+function sendMessage() {
+    if (!chatInput.value.trim()) return
+
+    // 添加用户消息
+    const userMessage = {
+        id: Date.now(),
+        sender: 'me',
+        text: chatInput.value,
+        time: formatTime(new Date())
+    }
+
+    chatMessages.value.push(userMessage)
+    chatInput.value = ''
+
+    // 自动滚动到底部
+    nextTick(() => {
+        scrollToBottom()
+    })
+
+    // 回复
+    setTimeout(() => {
+        const replyMessage = {
+            id: Date.now() + 1,
+            sender: 'other',
+            text: '好的，我会尽快为您处理这个问题。',
+            time: formatTime(new Date())
+        }
+        chatMessages.value.push(replyMessage)
+
+        nextTick(() => {
+            scrollToBottom()
+        })
+    }, 1000)
+}
+
+// 滚动到聊天底部
+function scrollToBottom() {
+    if (chatMessagesRef.value) {
+        chatMessagesRef.value.scrollTop = chatMessagesRef.value.scrollHeight
+    }
+}
+
+// 删除单个通知
+async function deleteNotification(item: any, index: number) {
+    try {
+        await ElMessageBox.confirm(
+            '确定要删除这条通知吗？',
+            '删除通知',
+            {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning'
+            }
+        )
+
+        const token = localStorage.getItem('buyer_access_token')
+        if (!token) {
+            ElMessage.error('未找到访问令牌')
+            return
+        }
+
+        const formData = new FormData()
+        formData.append('token', token)
+        formData.append('info_id', item._id.toString())
+         formData.append('token', token)
+        formData.append('info_id', item._id.toString())
+        formData.append('mall_id', item.mall_id.toString())
+        formData.append('shopping_id', item.shopping_id.toString())
+
+
+        const res = await Axios.post('/buyer_r_commodity_inform_delete', formData)
+        if (res.status === 200 && res.data.current) {
+            // 从本地数组中移除该通知
+            inform.value.splice(index, 1)
+            ElMessage.success('通知删除成功')
+        } else {
+            ElMessage.error(res.data.msg || '删除通知失败')
+        }
+    } catch (error) {
+        if (error !== 'cancel') {
+            console.error('删除通知失败:', error)
+            ElMessage.error('删除通知失败')
+        }
+    }
+}
+
+// 删除所有已读通知
+async function deleteAllReadNotifications() {
+    try {
+        await ElMessageBox.confirm(
+            '确定要删除所有已读通知吗？',
+            '删除通知',
+            {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning'
+            }
+        )
+
+        const token = localStorage.getItem('buyer_access_token')
+        if (!token) {
+            ElMessage.error('未找到访问令牌')
+            return
+        }
+
+        const formData = new FormData()
+        formData.append('token', token)
+
+        const res = await Axios.post('/buyer_r_commodity_inform_delete', formData)
+        if (res.status === 200 && res.data.current) {
+            // 重新获取通知列表
+            getCommodityInform()
+            ElMessage.success(`已删除所有已读通知（共${res.data.deleted_count || 0}条）`)
+        } else {
+            ElMessage.error(res.data.msg || '删除已读通知失败')
+        }
+    } catch (error) {
+        if (error !== 'cancel') {
+            console.error('删除已读通知失败:', error)
+            ElMessage.error('删除已读通知失败')
+        }
+    }
 }
 
 
@@ -298,7 +534,7 @@ onUnmounted(() => {
         align-items: center;
         width: 100%;
     }
-    
+
     .notification-btn {
         transition: all 0.3s ease;
     }
@@ -312,7 +548,7 @@ onUnmounted(() => {
         font-weight: 600;
         box-shadow: 0 2px 8px rgba(70, 226, 203, 0.4);
     }
-    
+
     /* 下拉菜单样式 */
     .notification-dropdown :deep(.el-dropdown-menu) {
         padding: 0;
@@ -324,7 +560,7 @@ onUnmounted(() => {
         max-width: 420px;
         background-color: var(--el-bg-color);
     }
-    
+
     /* 通知头部 */
     .notification-header {
         display: flex;
@@ -334,10 +570,21 @@ onUnmounted(() => {
         background: linear-gradient(135deg, #46e2cb 0%, #742bd9 100%);
         color: #fff;
     }
-    .header-title {
+    .header-actions {
         display: flex;
         align-items: center;
         gap: 8px;
+    }
+
+    .delete-all-read-btn {
+        color: #f56c6c !important;
+        padding: 4px 12px;
+        border-radius: 6px;
+        transition: all 0.2s;
+    }
+
+    .delete-all-read-btn:hover {
+        background-color: rgba(245, 108, 108, 0.1) !important;
     }
     .header-icon {
         font-size: 18px;
@@ -362,12 +609,12 @@ onUnmounted(() => {
     .mark-all-read-btn:hover {
         background-color: rgba(255, 255, 255, 0.2) !important;
     }
-    
+
     .notification-divider {
         margin: 0;
         border-color: var(--el-border-color);
     }
-    
+
     .notification-list {
         max-height: 450px;
         overflow-y: auto;
@@ -387,7 +634,7 @@ onUnmounted(() => {
     .notification-list::-webkit-scrollbar-thumb:hover {
         background: var(--el-text-color-placeholder);
     }
-    
+
     .notification-item {
         position: relative;
         padding: 16px 20px;
@@ -410,7 +657,7 @@ onUnmounted(() => {
     .notification-item.unread:hover {
         background: linear-gradient(to right, rgba(70, 226, 203, 0.25) 0%, var(--el-fill-color-light) 8%);
     }
-    
+
     .notification-indicator {
         position: absolute;
         left: 8px;
@@ -433,7 +680,7 @@ onUnmounted(() => {
             transform: translateY(-50%) scale(1.2);
         }
     }
-    
+
     .notification-content {
         display: flex;
         flex-direction: column;
@@ -470,15 +717,30 @@ onUnmounted(() => {
     .info-icon {
         color: var(--el-text-color-placeholder);
     }
+    .notification-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
     .status-tag {
         flex-shrink: 0;
         font-weight: 500;
     }
-    
+    .delete-notification-btn {
+        color: #f56c6c !important;
+        opacity: 0.7;
+        transition: all 0.2s;
+    }
+
+    .delete-notification-btn:hover {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+
     .notification-message-wrapper {
         padding-left: 26px;
     }
-    
+
     .notification-message {
         font-size: 13px;
         color: var(--el-text-color-regular);
@@ -486,7 +748,7 @@ onUnmounted(() => {
         word-break: break-word;
         word-wrap: break-word;
         white-space: pre-wrap;
-        max-height: 4.8em; 
+        max-height: 4.8em;
         overflow: hidden;
         text-overflow: ellipsis;
         display: -webkit-box;
@@ -496,12 +758,12 @@ onUnmounted(() => {
         transition: max-height 0.3s ease, -webkit-line-clamp 0.3s ease;
     }
     .notification-message.expanded {
-        max-height: 1000px; 
+        max-height: 1000px;
         -webkit-line-clamp: unset;
         line-clamp: unset;
         display: block;
     }
-    
+
 
     .expand-btn {
         margin-top: 6px;
@@ -516,7 +778,7 @@ onUnmounted(() => {
         font-size: 12px;
         transition: transform 0.3s ease;
     }
-    
+
 
     .notification-footer {
         display: flex;
@@ -535,7 +797,7 @@ onUnmounted(() => {
     .notification-auditor .el-icon {
         font-size: 14px;
     }
-    
+
 
     .empty-notification {
         padding: 40px 20px;
@@ -546,7 +808,7 @@ onUnmounted(() => {
         color: var(--el-text-color-placeholder);
         opacity: 0.5;
     }
-    
+
 
     .dark .notification-btn:hover {
         background-color: rgba(70, 226, 203, 0.15);
@@ -566,5 +828,118 @@ onUnmounted(() => {
     }
     .dark .notification-item.unread:hover {
         background: linear-gradient(to right, rgba(70, 226, 203, 0.3) 0%, rgba(255, 255, 255, 0.05) 8%);
+    }
+
+    /* 聊天界面样式 */
+    .chat-container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .chat-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--el-border-color);
+        margin-bottom: 16px;
+    }
+
+    .chat-header h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0 10px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .chat-messages::-webkit-scrollbar {
+        width: 6px;
+    }
+    .chat-messages::-webkit-scrollbar-track {
+        background: var(--el-fill-color-lighter);
+    }
+    .chat-messages::-webkit-scrollbar-thumb {
+        background: var(--el-border-color-darker);
+        border-radius: 3px;
+    }
+    .chat-messages::-webkit-scrollbar-thumb:hover {
+        background: var(--el-text-color-placeholder);
+    }
+
+    .message-bubble {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+    }
+
+    .message-bubble.my-message {
+        flex-direction: row-reverse;
+        margin-left: auto;
+    }
+
+    .message-avatar {
+        flex-shrink: 0;
+    }
+
+    .message-content {
+        display: flex;
+        flex-direction: column;
+        max-width: 70%;
+    }
+
+    .message-bubble.my-message .message-content {
+        align-items: flex-end;
+    }
+
+    .message-text {
+        padding: 10px 14px;
+        border-radius: 18px;
+        font-size: 14px;
+        line-height: 1.5;
+        word-wrap: break-word;
+        white-space: pre-wrap;
+    }
+
+    .message-bubble.my-message .message-text {
+        background-color: #409eff;
+        color: white;
+        border-bottom-right-radius: 4px;
+    }
+
+    .message-bubble.other-message .message-text {
+        background-color: var(--el-bg-color-overlay);
+        border: 1px solid var(--el-border-color);
+        border-bottom-left-radius: 4px;
+    }
+
+    .message-time {
+        font-size: 12px;
+        color: var(--el-text-color-secondary);
+        margin-top: 4px;
+        text-align: right;
+    }
+
+    .chat-input-area {
+        display: flex;
+        gap: 8px;
+        padding-top: 16px;
+        border-top: 1px solid var(--el-border-color);
+    }
+
+    .chat-input {
+        flex: 1;
+    }
+
+    .send-button {
+        flex-shrink: 0;
     }
 </style>

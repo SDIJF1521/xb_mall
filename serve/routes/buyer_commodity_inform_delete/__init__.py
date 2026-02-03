@@ -1,38 +1,37 @@
 from typing import Annotated
 
+
 from aiomysql import Connection
-from fastapi import APIRouter,Depends,Form,HTTPException,Header
 from bson import ObjectId
+from fastapi import APIRouter,Depends,Form,HTTPException
 
 from services.verify_duter_token import VerifyDuterToken
 from services.buyer_role_authority import RoleAuthorityService
 from services.cache_service import CacheService
 
-from data.sql_client import get_db,execute_db_query
-from data.redis_client import RedisClient,get_redis
-from data.mongodb_client import MongoDBClient,get_mongodb_client
-from data.data_mods import BuyerReadCommodityInform
+from data.data_mods import BuyerReadCommodityInfoDelete
+from data.sql_client_pool import get_db_pool,db_pool
+from data.redis_client import get_redis,RedisClient
+from data.mongodb_client import get_mongodb_client,MongoDBClient
 
 router = APIRouter()
-
-@router.post("/buyer_r_commodity_inform_read")
-async def buyer_r_commodity_inform_read(
-    data: Annotated[BuyerReadCommodityInform, Form()],
-    db: Connection = Depends(get_db),
-    redis: RedisClient = Depends(get_redis),
-    mongodb: MongoDBClient = Depends(get_mongodb_client)
-):
-    """标记商品通知为已读"""
+@router.post('/buyer_r_commodity_inform_delete')
+async def buyer_r_commodity_inform_delete(data:Annotated[BuyerReadCommodityInfoDelete,Form(...)],
+                                          db:Connection = Depends(get_db_pool),
+                                          redis:RedisClient = Depends(get_redis),
+                                          mongodb:MongoDBClient = Depends(get_mongodb_client)):
+    
+    """删除商品通知"""
     verify_duter_token = VerifyDuterToken(data.token, redis)
     token_data = await verify_duter_token.token_data()
+    sql = db_pool
     
     if token_data is None:
         return {'code': 403, 'msg': 'token验证失败', 'current': False}
     
     async def execute(mall_id_list):
-        """执行标记已读操作"""
+        """执行删除操作"""
         try:
-            # 将字符串类型的 info_id 转换为 ObjectId
             object_id = None
             if data.info_id:
                 try:
@@ -46,9 +45,7 @@ async def buyer_r_commodity_inform_read(
             
             filter_dict = {
                 'mall_id': {'$in': mall_id_list},
-                'read': 0
             }
-            # 只有当 object_id 存在时才添加 _id 条件
             if object_id:
                 filter_dict["_id"] = {"$ne": object_id}
 
@@ -64,31 +61,32 @@ async def buyer_r_commodity_inform_read(
                     'mall_id': data.mall_id,
                     'shopping_id': data.shopping_id,
                 }
-                # 只有当 object_id 存在时才添加 _id 条件
                 if object_id:
                     filter_dict["_id"] =  object_id
             
-            update_dict = {'$set': {'read': 1}}
-            updated_count = await mongodb.update_many(
+            updated_count = await mongodb.count_documents(
                 'commodity_msg',
-                filter_dict,
-                update_dict
+                filter_dict
             )
             
             cache = CacheService(redis)
             await cache.delete_pattern('commodity:inform:*')
             print
             if updated_count > 0:
+                updated_count = await mongodb.delete_many(
+                'commodity_msg',
+                filter_dict
+            )
                 return {
                     'code': 200,
-                    'msg': '标记已读成功',
+                    'msg': '删除成功',
                     'current': True,
                     'updated_count': updated_count
                 }
             else:
                 return {
-                    'code': 200,
-                    'msg': '没有需要标记的通知',
+                    'code': 400,
+                    'msg': '通知不存在',
                     'current': False,
                     'updated_count': 0
                 }
@@ -101,8 +99,7 @@ async def buyer_r_commodity_inform_read(
     
     if token_data.get('station') == '1':
     
-        sql_data = await execute_db_query(
-            db,
+        sql_data = await sql.execute_query(
             'select user from seller_sing where user = %s',
             (token_data.get('user'),)
         )
@@ -131,8 +128,7 @@ async def buyer_r_commodity_inform_read(
             int(role_authority[0][0])
         )
         
-        sql_data = await execute_db_query(
-            db,
+        sql_data = await sql.execute_query(
             'select user from store_user where user = %s and store_id = %s',
             (token_data.get('user'), token_data.get('mall_id'))
         )

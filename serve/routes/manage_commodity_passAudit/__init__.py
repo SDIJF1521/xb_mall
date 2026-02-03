@@ -45,12 +45,8 @@ async def manage_commodity_passAudit(data:Annotated[ManageCommodityPassAudit,For
             else:
                 msg_content = f'商品 {commodity_name} 审核通过，审核备注：\n{data.remark}'
             
-            if mongodb_sql:
-                await mongodb.update_one('commodity_msg',{'mall_id':data.mall_id,'shopping_id':data.shopping_id},
-                                        {'$set':{'msg':msg_content,
-                                        'pass':1,'auditor':admin_tokrn_content['user'],'read':0}})
-            else:
-                await mongodb.insert_one('commodity_msg',{'mall_id':data.mall_id,'shopping_id':data.shopping_id,'msg':msg_content,
+
+            await mongodb.insert_one('commodity_msg',{'mall_id':data.mall_id,'shopping_id':data.shopping_id,'msg':msg_content,
                                         'pass':1,'auditor':admin_tokrn_content['user'],'read':0})
             
             cache = CacheService(redis)

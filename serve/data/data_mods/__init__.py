@@ -291,8 +291,18 @@ class BuyerGetCommodityInfo(BaseModel):
 # 定义已读商品通知路由数据模型
 class BuyerReadCommodityInform(BaseModel):
     token:str
+    info_id:Optional[str] = None
     mall_id:Optional[int] = None
     shopping_id:Optional[int] = None
+
+# 定义买家删除商品通知路由数据模型
+# 定义已读商品通知路由数据模型
+class BuyerReadCommodityInfoDelete(BaseModel):
+    token:str
+    info_id:Optional[str] = None
+    mall_id:Optional[int] = None
+    shopping_id:Optional[int] = None
+
 
 # 定义管理员通过商品上架申请路由数据模型
 class ManageCommodityPassAudit(BaseModel):

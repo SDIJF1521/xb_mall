@@ -77,6 +77,7 @@ from routes.buyer_get_classify import router as get_classify_router
 from routes.buyer_get_commoidt import router as buyer_get_commoidt_router
 from routes.buyer_commodity_inform import router as buyer_commodity_inform_router
 from routes.buyer_commodity_inform_read import router as buyer_r_commodity_inform_read_router
+from routes.buyer_commodity_inform_delete import router as buyer_commodity_inform_delete_router
 from routes.buyer_commodity_edit import router as buyer_commodity_edit_router
 from routes.buyer_commodity_delete import router as buyer_commodity_delete_router
 from routes.buyer_commodity_delisting import router as buyer_commodity_delisting_router
@@ -703,6 +704,9 @@ app.include_router(buyer_commodity_inform_router,prefix='/api')
 
 # 买家端标记商品通知为已读路由
 app.include_router(buyer_r_commodity_inform_read_router,prefix='/api')
+
+# 买家端删除商品通知路由
+app.include_router(buyer_commodity_inform_delete_router,prefix='/api')
 
 # 商品添加路由
 app.include_router(buyer_commoidt_add_router,prefix='/api')
