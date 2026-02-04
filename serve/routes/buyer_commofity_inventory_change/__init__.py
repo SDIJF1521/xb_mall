@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from datetime import datetime
+from datetime import datetime,date
 from aiomysql import Connection
 from fastapi import APIRouter,Depends,Form,HTTPException
 
@@ -54,6 +54,7 @@ async def change_commodity_repertory(
             await mongo.insert_one('inventory_records',msg)
             await cache.delete_pattern(f'commodity:repertory:list:{data.stroe_id}:*')
             await cache.delete_pattern(f'commodity:list:{data.stroe_id}:*')
+            await cache.delete_pattern(f'commodity:repertory:records:{data.stroe_id}:{data.shopping_id}:{data.sku_id}:*')
 
         if data.maximum_inventory < data.minimum_balance:
             return {"code":400,"msg":"最大库存不能小于最小库存",'current':False}
@@ -71,11 +72,13 @@ async def change_commodity_repertory(
                                             'update specification set stock = %s, ' \
                                                                   'maximum_inventory = %s, ' \
                                                                   'minimum_balance = %s ' \
+                                                                  'time = %s'\
                                             'where mall_id = %s '
                                             'and (shopping_id = %s and specification_id = %s)',
                                             (data.change_num,
                                              data.maximum_inventory,
                                              data.minimum_balance,
+                                             datetime.now().strftime("%Y-%m-%d"),
                                              data.stroe_id,
                                              data.shopping_id,
                                              data.sku_id)
@@ -94,12 +97,14 @@ async def change_commodity_repertory(
                 await sql.execute_query(
                                         'update specification set stock = stock + %s, ' \
                                                                 'maximum_inventory = %s, ' \
-                                                                'minimum_balance = %s ' \
+                                                                'minimum_balance = %s,' \
+                                                                 'time = %s'\
                                         'where mall_id = %s '
                                         'and (shopping_id = %s and specification_id = %s)',
                                         (data.change_num,
                                             data.maximum_inventory,
                                             data.minimum_balance,
+                                            datetime.now().strftime("%Y-%m-%d"),
                                             data.stroe_id,
                                             data.shopping_id,
                                             data.sku_id)
@@ -117,12 +122,14 @@ async def change_commodity_repertory(
                 await sql.execute_query(
                                         'update specification set stock = stock - %s, ' \
                                                                 'maximum_inventory = %s, ' \
-                                                                'minimum_balance = %s ' \
+                                                                'minimum_balance = %s,' \
+                                                                 'time = %s'\
                                         'where mall_id = %s '
                                         'and (shopping_id = %s and specification_id = %s)',
                                         (data.change_num,
                                             data.maximum_inventory,
                                             data.minimum_balance,
+                                            datetime.now().strftime("%Y-%m-%d"),
                                             data.stroe_id,
                                             data.shopping_id,
                                             data.sku_id)
@@ -141,7 +148,9 @@ async def change_commodity_repertory(
     if token_data.get('station') == '1':
         sql_data = await sql.execute_query('select user from seller_sing where user = %s',(token_data.get('user')))
         verify_data = await verify_duter_token.verify_token(sql_data)
-        if verify_data:
+        if verify_data[0]:
+            if data.stroe_id not in token_data.get('state_id_list'):
+                return {'code': 403, 'msg': '您没有权限操作该店铺的库存变更', 'current': False}
             return await execute()
         else:
             return {"code":403,"msg":"无效的token",'current':False}
@@ -160,8 +169,9 @@ async def change_commodity_repertory(
                                         'select user from store_user where user = %s and store_id = %s',
                                         (token_data.get('user'), token_data.get('mall_id')))
         verify_data = await verify_duter_token.verify_token(sql_data)
-        print(verify_data)
-        if execute_code[4] and execute_code[1] and verify_data:
+        if execute_code[4] and execute_code[1] and verify_data[0]:
+            if data.stroe_id != token_data.get('mall_id'):
+                return {'code': 403, 'msg': '您没有权限操作该店铺的库存变更', 'current': False}
             return await execute()
         else:
             return {'code': 403, 'msg': '您没有权限执行此操作', 'current': False}

@@ -263,6 +263,17 @@ class MongoDBClient:
         collection = self.get_collection(collection_name)
         await collection.drop()
         logger.info(f"集合 {collection_name} 已删除")
+    
+    async def aggregate(self, collection_name: str, pipeline: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """聚合查询
+        :param collection_name: 集合名称
+        :param pipeline: 聚合管道
+        :return: 聚合结果列表
+        """
+        collection = self.get_collection(collection_name)
+        cursor = collection.aggregate(pipeline)
+        results = await cursor.to_list(length=None)
+        return self._convert_docs_objectid_to_str(results)
 
 # 创建全局MongoDB客户端实例
 mongodb_client = MongoDBClient()

@@ -295,8 +295,8 @@ class BuyerReadCommodityInform(BaseModel):
     mall_id:Optional[int] = None
     shopping_id:Optional[int] = None
 
-# 定义买家删除商品通知路由数据模型
-# 定义已读商品通知路由数据模型
+
+# 定义删除商品通知路由数据模型
 class BuyerReadCommodityInfoDelete(BaseModel):
     token:str
     info_id:Optional[str] = None
@@ -386,3 +386,14 @@ class BuyerCommodityRepertoryChange(BaseModel):
     maximum_inventory: Optional[int] = 99  # 新增最大库存字段
     minimum_balance: Optional[int] = 5  # 新增最小库存字段
     info: Optional[str] = None
+
+class CommodityRepertoryRecord(BaseModel):
+    token: str
+    stroe_id: int
+    shopping_id: int
+    sku_id: int
+    page: Optional[int] = 1
+    page_size: Optional[int] = 20
+    start_time: Optional[str] = None  # 开始时间，格式：YYYY-MM-DD HH:MM:SS
+    end_time: Optional[str] = None    # 结束时间，格式：YYYY-MM-DD HH:MM:SS
+    change_type: Optional[str] = None  # 变更类型：'设置', '增加', '减少'

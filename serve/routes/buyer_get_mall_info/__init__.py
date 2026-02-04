@@ -128,6 +128,8 @@ async def buyer_get_mall_info(data:Annotated[GetMallInfo,Form()],db: Connection 
             sql_data = await sql.execute_query('select user from seller_sing where user = %s',(token_data.get('user')))
             verify_data = await verify_duter_token.verify_token(sql_data)
             if verify_data and len(verify_data) > 0 and verify_data[0]:
+                if data.id  is not None and data.id not in token_data.get('state_id_list'):
+                    return {"code":400,"msg":"您没有权限查询该店铺信息","data":None,'current':False}
                 return await execute()
             else:
                 return {"code":400,"msg":"token verify failed","data":None,'current':False}
@@ -144,6 +146,8 @@ async def buyer_get_mall_info(data:Annotated[GetMallInfo,Form()],db: Connection 
                 return {"code":400,"msg":"权限验证失败","data":None,'current':False}
             execute_code = await role_authority_service.authority_resolver(int(role_authority[0][0]))
             if execute_code and len(execute_code) > 2 and execute_code[2]:
+                if data.id  is not None and data.id != token_data.get('mall_id'):
+                    return {"code":400,"msg":"您没有权限查询该店铺信息","data":None,'current':False}
                 return await execute(token_data.get('mall_id'))
             else:
                 return {"code":400,"msg":"权限不足，无法查询店铺信息","data":None,'current':False}

@@ -13,12 +13,13 @@ from services.cache_service import CacheService
 from data.redis_client import RedisClient,get_redis
 from data.sql_client import get_db,execute_db_query
 from data.data_mods import DeleteMall
+from data.mongodb_client import get_mongodb_client,MongoDBClient
 
 router = APIRouter()
 
 
 @router.delete('/buyer_delete_mall')
-async def buyer_delete_mall(data: Annotated[DeleteMall, Form()], db: Connection = Depends(get_db),redis: RedisClient = Depends(get_redis)):
+async def buyer_delete_mall(data: Annotated[DeleteMall, Form()], db: Connection = Depends(get_db),redis: RedisClient = Depends(get_redis),mongodb: MongoDBClient = Depends(get_mongodb_client)):
     """主商户删除店铺"""
     try:
         verifier = VerifyDuterToken(data.token,redis)
@@ -28,7 +29,9 @@ async def buyer_delete_mall(data: Annotated[DeleteMall, Form()], db: Connection 
             return {'msg':'Token无效或已过期','current':False}
         
         if token_data.get('station') == '1':
-            sql_data_store_id = await execute_db_query(db,"select mall_id from store where mall_id = %s",(data.mall_id))
+            if data.mall_id not in token_data.get('state_id_list'):
+                return {'msg':'您没有权限删除该店铺','current':False}
+            sql_data_store_id = await execute_db_query(db,"select mall_id from store where mall_id = %s and user = %s",(data.mall_id,token_data.get('user')))
             if not sql_data_store_id:
                 return {'msg':'该店铺不存在或无权限删除','current':False}
             
@@ -37,7 +40,8 @@ async def buyer_delete_mall(data: Annotated[DeleteMall, Form()], db: Connection 
             if sql_data:
                 cache = CacheService(redis)
                 user_name = token_data.get('user')
-                await execute_db_query(db,'delete from store where mall_id = %s',(data.mall_id))
+                await execute_db_query(db,'delete from store where mall_id = %s and user = %s',(data.mall_id,token_data.get('user')))
+                await execute_db_query(db,'update mall_info set mall_state = mall_state - 1 where user = %s',(token_data.get('user')))
                 if img_path and img_path[0][0]:
                     img_path_str = img_path[0][0]
                     try:
@@ -47,6 +51,11 @@ async def buyer_delete_mall(data: Annotated[DeleteMall, Form()], db: Connection 
                         await cache.delete(img_cache_key)
                     except Exception:
                         pass
+
+                await mongodb.delete_many('commodity_msg',{'mall_id':data.mall_id})
+                await mongodb.delete_many('inventory_records',{'mall_id':data.mall_id})
+                await mongodb.delete_many('shopping',{'mall_id':data.mall_id})
+
                 await cache.delete_pattern(f'mall_info:{data.mall_id}')
                 await cache.delete_pattern(f'mall_name:user:{user_name}')
                 await cache.delete_pattern(f'mall_name:mall:{data.mall_id}')
@@ -54,7 +63,8 @@ async def buyer_delete_mall(data: Annotated[DeleteMall, Form()], db: Connection 
                 await cache.delete_pattern(f'mall_info:user:{user_name}')
                 await cache.delete_pattern(f'admin:mall:info:%d'%(data.mall_id))
                 await cache.delete_pattern(f'admin:mall:info:{data.user}')
-                
+                await cache.delete_pattern(f'commodity:repertory:list:{data.mall_id}:*')
+                await cache.delete_pattern(f'commodity:repertory:records:{data.mall_id}:*')
                 try:
                     sql_user_data = await execute_db_query(db,'select * from seller_sing where user = %s',(token_data.get('user')))
                     if not sql_user_data:

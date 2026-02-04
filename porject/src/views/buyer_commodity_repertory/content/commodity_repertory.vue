@@ -245,7 +245,7 @@
         <el-table-column prop="type" label="操作类型" width="100">
           <template #default="scope">
             <el-tag :type="getRecordTypeType(scope.row.type)">
-              {{ getRecordTypeText(scope.row.type) }}
+              {{ scope.row.type }}
             </el-tag>
           </template>
         </el-table-column>
@@ -402,9 +402,9 @@ const handleExportSuccess = () => {
 const handleExportError = () => {
   ElMessage.error('库存数据导出失败');
 };
-onMounted(() => {
-  fetchStockData()
-  fetchStatistics()
+onMounted(async() => {
+  await fetchStockData()
+  await fetchStatistics()
 })
 const fetchStockData = async () => {
   loading.value = true
@@ -446,7 +446,7 @@ const fetchStockData = async () => {
               currentStock: spec.stock || 0,
               minStock: spec.minimum_balance || 0,
               maxStock: spec.maximum_inventory || 0,
-              lastUpdated: item.time
+              lastUpdated: spec.time || item.time
             });
           });
         } else {
@@ -576,17 +576,16 @@ const handleStockRecord = async (row: StockItem) => {
       token: token.value
     }
 
-    const response = await axiosInstance.post('/buyer/commodity_repertory_list/records',
-      new URLSearchParams(params as Record<string, string>),
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'access-token': token.value
-        }
-      }
+    const framData = new FormData()
+    framData.append('token', token.value)
+    framData.append('stroe_id', String(storeId.value))
+    framData.append('shopping_id', String(row.productId))
+    framData.append('sku_id', String(row.specification))
+    const response = await axiosInstance.post('/buyer_commodity_repertory_list_records',
+      framData
     )
 
-    if (response.data.success) {
+    if (response.data.current) {
       stockRecords.value = response.data.data.items || []
       recordTotal.value = response.data.data.total || 0
     } else {
@@ -626,7 +625,10 @@ const handleSubmitStock = async () => {
         const res = await axiosInstance.patch('/buyer_commofity_inventory_change', formData)
         if (res.status == 200) {
           if (res.data.current) {
+             await fetchStockData()
+             await fetchStatistics()
             ElMessage.success('库存修改成功')
+
             editDialogVisible.value = false
             fetchStockData()
           } else {
@@ -693,17 +695,17 @@ const getStockStatusText = (currentStock: number, minStock: number) => {
 
 const getRecordTypeType = (type: string) => {
   switch (type) {
-    case 'increase': return 'success'
-    case 'decrease': return 'danger'
-    case 'set': return 'primary'
+    case '增加': return 'success'
+    case '减少': return 'danger'
+    case '设置': return 'primary'
     default: return 'info'
   }
 }
 
 const getRecordTypeText = (type: string) => {
   switch (type) {
-    case 'increase': return '增加'
-    case 'decrease': return '减少'
+    case '1': return '增加'
+    case '0': return '减少'
     case 'set': return '设置'
     default: return '其他'
   }

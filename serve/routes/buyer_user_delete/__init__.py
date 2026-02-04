@@ -48,7 +48,9 @@ async def buyer_user_delete(data:Annotated[DeleteMallUser,Form()],
         if token_data.get('station') == '1':
             sql_data = await execute_db_query(db,'select user from seller_sing where user = %s',(token_data.get('user')))
             verify_data = await verify_duter_token.verify_token(sql_data)
-            if verify_data:
+            if verify_data[0]:
+                if data.strore_id not in token_data.get('state_id_list'):
+                    return {'code':403,'msg':'您没有权限执行此操作','success':False}
                 return await execute()
             else:
                 return {'code':400,'msg':'用户不存在','current':False}
@@ -64,7 +66,10 @@ async def buyer_user_delete(data:Annotated[DeleteMallUser,Form()],
             if execute_code[3] and execute_code[4]:
                 sql_data = await execute_db_query(db,'select user from store_user where store_id = %s and user = %s',(data.strore_id,token_data.get('user')))
                 verify_data = await verify_duter_token.verify_token(sql_data)
-                if verify_data:
+                if verify_data[0]:
+                    if data.strore_id != token_data.get('mall_id'):
+                        return {'code':403,'msg':'您没有权限执行此操作','success':False}
+
                     if token_data.get('user') in data.user_name:
                         return {'code':400,'msg':'不能删除自己','current':False}
                     return await execute()

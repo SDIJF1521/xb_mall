@@ -46,7 +46,9 @@ async def buyer_classify_edit(data:Annotated[BuyerCommodityClassifyEdit,Form(...
     if token_data.get('station') == '1':
         sql_data = await sql.execute_query('select user from seller_sing where user = %s',(token_data.get('user')))
         verify_data = await verify_duter_token.verify_token(sql_data)
-        if verify_data:
+        if verify_data[0]:
+            if data.stroe_id not in token_data.get('state_id_list'):
+                return {"code":400,"msg":"权限不足","data":None,'current':False}
             return await execute()
         else:
             return {"code":400,"msg":"验证失败","data":None,'current':False}
@@ -61,7 +63,9 @@ async def buyer_classify_edit(data:Annotated[BuyerCommodityClassifyEdit,Form(...
         execute_code = await role_authority_service.authority_resolver(int(role_authority[0][0]))
         sql_data = await sql.execute_query('select user from store_user where user = %s and store_id = %s',(token_data.get('user'),token_data.get('mall_id')))
         verify_data = await verify_duter_token.verify_token(sql_data)
-        if execute_code[1] and execute_code[4] and verify_data:
+        if execute_code[1] and execute_code[4] and verify_data[0]:
+            if data.stroe_id != token_data.get('mall_id'):
+                return {"code":400,"msg":"权限不足","data":None,'current':False}
             return await execute()
         else:
             return {"code":400,"msg":"权限不足","data":None,'current':False}

@@ -27,7 +27,7 @@ async def buyer_get_mall_name(data:Annotated[GetMallName,Form()] ,db: Connection
             verify_data = await verify_duter_token.verify_token(sql_data)
             mall_name = []
             if data.mall_name is None:
-                if verify_data:
+                if verify_data[0]:
                     cache_key = cache._make_key('mall_name:user', token_data.get('user'))
                     cached_data = await cache.get(cache_key)
                     if cached_data:
@@ -63,7 +63,7 @@ async def buyer_get_mall_name(data:Annotated[GetMallName,Form()] ,db: Connection
             verify_data = await verify_duter_token.verify_token(sql_data)
             mall_name = []
             if data.mall_name is None:
-                if execute_code[2] and verify_data:
+                if execute_code[2] and verify_data[0]:
                     cache_key = cache._make_key('mall_name:mall', token_data.get('mall_id'))
                     cached_data = await cache.get(cache_key)
                     if cached_data:

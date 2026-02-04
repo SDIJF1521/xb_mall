@@ -68,7 +68,7 @@ async def buyer_commodity_inform(access_token:str = Header(...),
         if token_data.get('station') == '1':
             sql_data = await execute_db_query(db,'select user from seller_sing where user = %s',(token_data.get('user')))
             verify_data = await verify_duter_token.verify_token(sql_data)
-            if verify_data:
+            if verify_data[0]:
                 mall_id_list = token_data.get('state_id_list', [])
                 if not mall_id_list:
                     return {'code':200,'msg':'没有店铺','current':True,'flag':False,'data':[]}
@@ -87,7 +87,7 @@ async def buyer_commodity_inform(access_token:str = Header(...),
             execute_code = await role_authority_service.authority_resolver(int(role_authority[0][0]))
             sql_data = await execute_db_query(db,'select user from store_user where user = %s and store_id = %s',(token_data.get('user'),token_data.get('mall_id')))
             verify_data = await verify_duter_token.verify_token(sql_data)
-            if execute_code and len(execute_code) > 2 and execute_code[2] and verify_data:
+            if execute_code and len(execute_code) > 2 and execute_code[2] and verify_data[0]:
                 mall_id = token_data.get('mall_id')
                 if not mall_id:
                     return {'code':200,'msg':'没有店铺信息','current':True,'flag':False,'data':[]}

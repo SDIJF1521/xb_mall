@@ -109,10 +109,11 @@ async def buyer_r_commodity_inform_read(
         verify_data = await verify_duter_token.verify_token(sql_data)
         print(verify_data)
         if verify_data[0]:
+            if data.mall_id not in token_data.get('state_id_list'):
+                return {'code': 403, 'msg': '您没有权限操作该店铺的通知', 'current': False}
             mall_id_list = token_data.get('state_id_list', [])
             if not mall_id_list:
                 return {'code': 400, 'msg': '用户没有关联的店铺', 'current': False}
-            print(data.info_id)
             return await execute(mall_id_list)
         else:
             return {'code': 403, 'msg': '验证失败', 'current': False}
@@ -138,7 +139,9 @@ async def buyer_r_commodity_inform_read(
         )
         verify_data = await verify_duter_token.verify_token(sql_data)
         
-        if execute_code[2] and verify_data:
+        if execute_code[2] and verify_data[0]:
+            if data.mall_id != token_data.get('mall_id'):
+                return {'code': 403, 'msg': '您没有权限操作该店铺的通知', 'current': False}
             mall_id = token_data.get('mall_id')
             if not mall_id:
                 return {'code': 400, 'msg': '用户没有关联的店铺', 'current': False}

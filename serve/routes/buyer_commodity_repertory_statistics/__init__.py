@@ -1,4 +1,3 @@
-from typing import Annotated
 import logging
 
 from aiomysql import Connection
@@ -114,6 +113,8 @@ async def buyer_commodity_repertory_statistics(
             return {'code': 403, 'msg': '商家用户不存在', 'current': False}
         verify_data = await verify_duter_token.verify_token(sql_data)
         if verify_data:
+            if stroe_id not in token_data.get('state_id_list'):
+                return {'code': 403, 'msg': '您没有权限操作该店铺的库存统计', 'current': False}
             return await execute()
         else:
             return {'code': 403, 'msg': 'Token验证失败', 'current': False}
@@ -130,7 +131,9 @@ async def buyer_commodity_repertory_statistics(
         sql_data = await sql.execute_query('select user from store_user where user = %s and store_id = %s',
                                           (token_data.get('user'),token_data.get('mall_id')))
         verify_data = await verify_duter_token.verify_token(sql_data)
-        if execute_code and len(execute_code) > 2 and execute_code[2] and verify_data:
+        if execute_code and len(execute_code) > 2 and execute_code[2] and verify_data[0]:
+            if stroe_id != token_data.get('mall_id'):
+                return {'code': 403, 'msg': '您没有权限操作该店铺的库存统计', 'current': False}
             return await execute()
         else:
             return {'code': 403, 'msg': '您没有权限执行此操作', 'current': False}

@@ -73,7 +73,7 @@ async def buyer_commodity_repertory_list(
                 if all_matching_shopping_ids:
                     placeholders_all = ','.join(['%s'] * len(all_matching_shopping_ids))
                     sql_specification_info_all = await sql.execute_query(
-                        f'''SELECT shopping_id, specification_id, price, stock, maximum_inventory, minimum_balance 
+                        f'''SELECT shopping_id, specification_id, price, stock, maximum_inventory, minimum_balance, time 
                             FROM specification 
                             WHERE mall_id = %s AND shopping_id IN ({placeholders_all})''',
                         (data.stroe_id, *all_matching_shopping_ids)
@@ -89,7 +89,8 @@ async def buyer_commodity_repertory_list(
                             'price': float(spec[2]) if spec[2] else 0.0,
                             'stock': int(spec[3]) if spec[3] else 0,
                             'maximum_inventory': int(spec[4]) if spec[4] else 0,
-                            'minimum_balance': int(spec[5]) if spec[5] else 0
+                            'minimum_balance': int(spec[5]) if spec[5] else 0,
+                            'time': spec[6].strftime('%Y-%m-%d') if spec[6] else ''
                         }
                         if spec_info['stock'] <= 0:
                             stock_status = '缺货'
@@ -124,7 +125,7 @@ async def buyer_commodity_repertory_list(
                         )
                         
                         sql_specification_info = await sql.execute_query(
-                            f'''SELECT shopping_id, specification_id, price, stock, maximum_inventory, minimum_balance 
+                            f'''SELECT shopping_id, specification_id, price, stock, maximum_inventory, minimum_balance, time 
                                 FROM specification 
                                 WHERE mall_id = %s AND shopping_id IN ({placeholders})''',
                             (data.stroe_id, *paginated_shopping_ids)
@@ -155,7 +156,7 @@ async def buyer_commodity_repertory_list(
                     if all_shopping_ids:
                         placeholders_all = ','.join(['%s'] * len(all_shopping_ids))
                         sql_specification_info_all = await sql.execute_query(
-                            f'''SELECT shopping_id, specification_id, price, stock, maximum_inventory, minimum_balance 
+                            f'''SELECT shopping_id, specification_id, price, stock, maximum_inventory, minimum_balance, time 
                                 FROM specification 
                                 WHERE mall_id = %s AND shopping_id IN ({placeholders_all})''',
                             (data.stroe_id, *all_shopping_ids)
@@ -171,7 +172,8 @@ async def buyer_commodity_repertory_list(
                                 'price': float(spec[2]) if spec[2] else 0.0,
                                 'stock': int(spec[3]) if spec[3] else 0,
                                 'maximum_inventory': int(spec[4]) if spec[4] else 0,
-                                'minimum_balance': int(spec[5]) if spec[5] else 0
+                                'minimum_balance': int(spec[5]) if spec[5] else 0,
+                                'time': spec[6].strftime('%Y-%m-%d') if spec[6] else ''
                             }
                             if spec_info['stock'] <= 0:
                                 stock_status = '缺货'
@@ -237,7 +239,7 @@ async def buyer_commodity_repertory_list(
                         shopping_ids = [item[0] for item in sql_commodity_info]
                         placeholders = ','.join(['%s'] * len(shopping_ids))
                         sql_specification_info = await sql.execute_query(
-                            f'''SELECT shopping_id, specification_id, price, stock, maximum_inventory, minimum_balance 
+                            f'''SELECT shopping_id, specification_id, price, stock, maximum_inventory, minimum_balance, time 
                                 FROM specification 
                                 WHERE mall_id = %s AND shopping_id IN ({placeholders})''',
                             (data.stroe_id, *shopping_ids)
@@ -264,7 +266,8 @@ async def buyer_commodity_repertory_list(
                         'price': float(spec[2]) if spec[2] else 0.0,
                         'stock': int(spec[3]) if spec[3] else 0,
                         'maximum_inventory': int(spec[4]) if spec[4] else 0,
-                        'minimum_balance': int(spec[5]) if spec[5] else 0
+                        'minimum_balance': int(spec[5]) if spec[5] else 0,
+                        'time': spec[6].strftime('%Y-%m-%d') if spec[6] else ''
                     }
                     if spec_info['stock'] <= 0:
                         stock_status = '缺货'
@@ -295,11 +298,15 @@ async def buyer_commodity_repertory_list(
                     
                     total_stock = sum(spec['stock'] for spec in spec_dic.get(shopping_id, []))
                     
+                    # 使用规格中的最新时间作为商品时间
+                    spec_times = [spec['time'] for spec in spec_dic.get(shopping_id, []) if spec.get('time')]
+                    commodity_time = max(spec_times) if spec_times else (commodity[2].strftime('%Y-%m-%d') if commodity[2] else '')
+                    
                     item = {
                         'shopping_id': shopping_id,
                         'name': mongodb_info.get('name', ''),
                         'classify_categorize': commodity[1],
-                        'time': commodity[2].strftime('%Y-%m-%d') if commodity[2] else '',
+                        'time': commodity_time,
                         'audit': commodity[3] if len(commodity) > 3 else 0,
                         'total_stock': total_stock,
                         'specifications': spec_dic.get(shopping_id, [])
@@ -348,7 +355,9 @@ async def buyer_commodity_repertory_list(
         if not sql_data:
             return {'code': 403, 'msg': '商家用户不存在', 'current': False}
         verify_data = await verify_duter_token.verify_token(sql_data)
-        if verify_data:
+        if verify_data[0]:
+            if data.stroe_id not in token_data.get('state_id_list'):
+                return {'code':400,'msg':'权限不足','current':False}
             return await execute()
         else:
             return {'code': 403, 'msg': 'Token验证失败', 'current': False}
@@ -366,7 +375,9 @@ async def buyer_commodity_repertory_list(
         sql_data = await sql.execute_query('select user from store_user where user = %s and store_id = %s',
                                           (token_data.get('user'),token_data.get('mall_id')))
         verify_data = await verify_duter_token.verify_token(sql_data)
-        if execute_code and len(execute_code) > 2 and execute_code[2] and verify_data:
+        if execute_code and len(execute_code) > 2 and execute_code[2] and verify_data[0]:
+            if data.stroe_id != token_data.get('mall_id'):
+                return {'code':400,'msg':'权限不足','current':False}
             return await execute()
         else:
             return {'code': 403, 'msg': '您没有权限执行此操作', 'current': False}

@@ -253,6 +253,8 @@ function handleEditSuccess() {
 function delete_commodity(data: Commodity) {
   currentCommodity.value = data
   deleteDialogVisible.value = true
+  getCommodityList(currentPage.value, search.value)
+
 }
 
 // 取消删除
@@ -279,6 +281,7 @@ function handleDeleteSuccess() {
 function delisting_commodity(data: Commodity) {
   currentCommodity.value = data
   delistingDialogVisible.value = true
+  getCommodityList(currentPage.value, search.value)
 }
 
 // 取消下架
@@ -301,6 +304,7 @@ function handleDelistingSuccess() {
 function putaway_commodity(data: Commodity) {
   currentCommodity.value = data
   putawayDialogVisible.value = true
+  getCommodityList(currentPage.value, search.value)
 }
 
 // 取消上架

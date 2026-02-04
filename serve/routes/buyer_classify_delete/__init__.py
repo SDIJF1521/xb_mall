@@ -37,7 +37,9 @@ async def buyer_classify_delete(data:Annotated[BuyerCommodityClassifyDelete,Form
     if token_data.get('station') == '1':
         sql_data = await sql.execute_query('select user from seller_sing where user = %s',(token_data.get('user')))
         verify_data = await verify_duter_token.verify_token(sql_data)
-        if verify_data:
+        if verify_data[0]:
+            if data.stroe_id not in token_data.get('state_id_list'):
+                return {"code":400,"msg":"您没有权限删除该店铺分类","data":None,'current':False}
             return await execute()
         else:
             return {'code':400,'msg':'token验证失败','current':False}
@@ -50,7 +52,9 @@ async def buyer_classify_delete(data:Annotated[BuyerCommodityClassifyDelete,Form
         
         role_authority = await role_authority_service.get_authority(token_data.get('mall_id'))
         execute_code = await role_authority_service.authority_resolver(int(role_authority[0][0]))
-        if execute_code[3] and execute_code[4] and verify_data:
+        if execute_code[3] and execute_code[4] and verify_data[0]:
+            if data.stroe_id != token_data.get('mall_id'):
+                return {"code":400,"msg":"您没有权限删除该店铺分类","data":None,'current':False}
             return await execute()
         else:
             return {'code':400,'msg':'您没有权限执行此操作','current':False}
