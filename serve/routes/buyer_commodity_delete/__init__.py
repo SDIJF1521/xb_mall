@@ -63,6 +63,7 @@ async def buyer_commodity_delete(data:Annotated[BuyerDeleteCommodity,Form()],
         await cache.delete_pattern(f'commodity:repertory:list:{data.stroe_id}')
         await cache.delete_pattern(f'commodity:repertory:search:{data.stroe_id}:*')
         await cache.delete_pattern(f'commodity:repertory:records:{data.stroe_id}:{data.shopping_id}:*')
+        await cache.delete_pattern(f'commodity:repertory:all:{data.stroe_id}')
         await mongodb.delete_many(
             'inventory_records',
             {'mall_id':data.stroe_id,'shopping_id':data.shopping_id}

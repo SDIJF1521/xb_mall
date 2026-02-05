@@ -55,7 +55,7 @@ async def change_commodity_repertory(
             await cache.delete_pattern(f'commodity:repertory:list:{data.stroe_id}:*')
             await cache.delete_pattern(f'commodity:list:{data.stroe_id}:*')
             await cache.delete_pattern(f'commodity:repertory:records:{data.stroe_id}:{data.shopping_id}:{data.sku_id}:*')
-
+            await cache.delete_pattern(f'commodity:repertory:all:{data.stroe_id}')
         if data.maximum_inventory < data.minimum_balance:
             return {"code":400,"msg":"最大库存不能小于最小库存",'current':False}
         

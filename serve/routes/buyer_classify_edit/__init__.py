@@ -40,6 +40,7 @@ async def buyer_classify_edit(data:Annotated[BuyerCommodityClassifyEdit,Form(...
         await cache.delete_pattern(f'admin:commodity:detail:{data.stroe_id}:*')
         await cache.delete_pattern(f'admin:commodity:apply:*')
         await cache.delete_pattern(f'classify:{data.stroe_id}')
+        await cache.delete_pattern(f'commodity:repertory:all:{data.stroe_id}')
         return {'code':200,'msg':'修改成功','current':True}
         
 

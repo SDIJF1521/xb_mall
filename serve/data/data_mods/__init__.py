@@ -397,3 +397,7 @@ class CommodityRepertoryRecord(BaseModel):
     start_time: Optional[str] = None  # 开始时间，格式：YYYY-MM-DD HH:MM:SS
     end_time: Optional[str] = None    # 结束时间，格式：YYYY-MM-DD HH:MM:SS
     change_type: Optional[str] = None  # 变更类型：'设置', '增加', '减少'
+
+class CommodityRepertoryAllModel(BaseModel):
+    token: str
+    stroe_id: int

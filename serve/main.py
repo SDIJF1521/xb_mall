@@ -86,6 +86,7 @@ from routes.buyer_classify_add import router as buyer_classify_add_router
 from routes.buyer_classify_delete import router as buyer_classify_delete_router
 from routes.buyer_classify_edit import router as  buyer_classify_edit_router
 from routes.buyer_commodity_repertory_list import router as buyer_commodity_repertory_list_router
+from routes.buyer_commodity_repertory_all import router as buyer_commodity_repertory_all_router
 from routes.buyer_commodity_repertory_statistics import router as buyer_commodity_repertory_statistics_router
 from routes.buyer_commofity_inventory_change import router as buyer_commodity_inventory_change_router
 from routes.buyer_commodity_repertory_list_records import router as buyer_commodity_repertory_list_records_router
@@ -735,6 +736,9 @@ app.include_router(buyer_classify_edit_router,prefix='/api')
 
 # 买家端商品库存列表路由
 app.include_router(buyer_commodity_repertory_list_router,prefix='/api')
+
+# 买家端商品库存全量列表路由
+app.include_router(buyer_commodity_repertory_all_router,prefix='/api')
 
 # 买家端商品库存统计路由
 app.include_router(buyer_commodity_repertory_statistics_router,prefix='/api')

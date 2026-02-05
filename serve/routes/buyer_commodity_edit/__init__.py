@@ -130,6 +130,7 @@ async def buyer_commodity_edit(data:Annotated[SellerCommodityEdit,Form(),File()]
         await cache.delete_pattern(f'admin:commodity:apply:*')
         await cache.delete_pattern(f'commodity:repertory:list:{data.stroe_id}:*')
         await cache.delete_pattern(f'commodity:repertory:search:{data.stroe_id}:*')
+        await cache.delete_pattern(f'commodity:repertory:all:{data.stroe_id}')
         
         old_img_list = old_mongodb_data.get('img_list', [])
         for old_img in old_img_list:

@@ -33,6 +33,7 @@
           <el-checkbox label="currentStock">当前库存</el-checkbox>
           <el-checkbox label="minStock">最低库存</el-checkbox>
           <el-checkbox label="maxStock">最高库存</el-checkbox>
+          <el-checkbox label="stockStatus">库存状态</el-checkbox>
           <el-checkbox label="lastUpdated">更新时间</el-checkbox>
         </el-checkbox-group>
       </el-form-item>
@@ -57,11 +58,14 @@
 <script setup lang="ts">
 import { ref, reactive, watch } from 'vue';
 import { ElMessage } from 'element-plus';
+import axios from 'axios';
 
 const props = defineProps<{
   modelValue: boolean;
   currentData?: any[];
   selectedData?: any[];
+  storeId?: string | number;
+  token?: string;
 }>();
 
 const emit = defineEmits<{
@@ -73,10 +77,19 @@ const emit = defineEmits<{
 const dialogVisible = ref(props.modelValue);
 const exportLoading = ref(false);
 
+// 创建axios实例
+const axiosInstance = axios.create({
+  baseURL: 'http://127.0.0.1:8000/api',
+  timeout: 30000, // 导出全部数据可能需要更长时间
+  headers: {
+    'Content-Type': 'application/x-www-form-urlencoded'
+  }
+});
+
 const formData = reactive({
   exportScope: 'current' as 'current' | 'selected' | 'all',
   fileName: `库存数据_${new Date().toISOString().slice(0, 10)}.csv`,
-  selectedFields: ['id', 'name', 'specification', 'currentStock', 'minStock', 'maxStock'] as string[],
+  selectedFields: ['id', 'name', 'specification', 'currentStock', 'minStock', 'maxStock', 'stockStatus'] as string[],
 });
 
 watch(() => props.modelValue, (newValue) => {
@@ -105,6 +118,7 @@ const exportToCSV = (data: any[], fields: string[], filename: string) => {
       case 'currentStock': return '当前库存';
       case 'minStock': return '最低库存';
       case 'maxStock': return '最高库存';
+      case 'stockStatus': return '库存状态';
       case 'lastUpdated': return '更新时间';
       default: return field;
     }
@@ -137,6 +151,18 @@ const exportToCSV = (data: any[], fields: string[], filename: string) => {
   document.body.removeChild(link);
 };
 
+const ensureStockStatus = (data: any[]): any[] => {
+  return data.map(item => ({
+    ...item,
+    stockStatus: item.stockStatus || (() => {
+      if (item.currentStock <= 0) return '缺货';
+      if (item.currentStock <= item.minStock) return '库存不足';
+      if (item.currentStock <= item.minStock * 2) return '库存较低';
+      return '库存充足';
+    })()
+  }));
+};
+
 const handleExport = async () => {
   if (!formData.selectedFields.length) {
     ElMessage.warning('请至少选择一个导出字段');
@@ -149,12 +175,61 @@ const handleExport = async () => {
     let exportData: any[] = [];
 
     if (formData.exportScope === 'current' && props.currentData) {
-      exportData = [...props.currentData];
+      exportData = ensureStockStatus([...props.currentData]);
     } else if (formData.exportScope === 'selected' && props.selectedData) {
-      exportData = [...props.selectedData];
+      exportData = ensureStockStatus([...props.selectedData]);
     } else if (formData.exportScope === 'all') {
-      ElMessage.warning('导出全部数据功能开发中...');
-      exportData = props.currentData ? [...props.currentData] : [];
+      if (!props.storeId || !props.token) {
+        ElMessage.error('缺少必要的参数');
+        return;
+      }
+
+      try {
+        const params = new URLSearchParams({
+          stroe_id: String(Array.isArray(props.storeId) ? props.storeId[0] : props.storeId),
+          token: props.token
+        });
+
+        const response = await axiosInstance.post('/buyer_commodity_repertory_all', params);
+
+        if (response.data.success && response.data.data) {
+          exportData = [];
+          response.data.data.forEach((item: any) => {
+            if (item.specifications && item.specifications.length > 0) {
+              item.specifications.forEach((spec: any) => {
+                exportData.push({
+                id: `${item.shopping_id}`,
+                name: item.name,
+                specification: spec.specification_id.toString(),
+                currentStock: spec.stock || 0,
+                minStock: spec.minimum_balance || 0,
+                maxStock: spec.maximum_inventory || 0,
+                stockStatus: spec.stock_status || '',
+                lastUpdated: spec.time || item.time
+              });
+              });
+            } else {
+              exportData.push({
+                id: item.shopping_id,
+                name: item.name,
+                specification: '无规格',
+                currentStock: 0,
+                minStock: 0,
+                maxStock: 0,
+                stockStatus: '缺货',
+                lastUpdated: item.time
+              });
+            }
+          });
+        } else {
+          ElMessage.error(response.data.msg || '获取全部数据失败');
+          exportData = props.currentData ? [...props.currentData] : [];
+        }
+      } catch (error) {
+        console.error('获取全部数据失败:', error);
+        ElMessage.error('获取全部数据失败，将使用当前页面数据');
+        exportData = props.currentData ? [...props.currentData] : [];
+      }
     } else {
       exportData = props.currentData ? [...props.currentData] : [];
     }

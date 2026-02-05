@@ -270,6 +270,8 @@
       v-model="exportDialogVisible"
       :current-data="exportCurrentData"
       :selected-data="exportSelectedData"
+      :store-id="storeId"
+      :token="token"
       @export-success="handleExportSuccess"
       @export-error="handleExportError"
     />
@@ -286,7 +288,7 @@ import { Warning, CircleCheck, Goods, Search, Edit, Download, Document } from '@
 import RepertoryExportData from './repertory_export_data.vue'
 
 const route = useRoute()
-const storeId = ref(route.params.id)
+const storeId = ref(Array.isArray(route.params.id) ? route.params.id[0] : route.params.id)
 
 const token = ref(localStorage.getItem('buyer_access_token') || '')
 
@@ -307,6 +309,7 @@ interface StockItem {
   currentStock: number
   minStock: number
   maxStock: number
+  stockStatus?: string
   lastUpdated: string
 }
 
@@ -446,6 +449,7 @@ const fetchStockData = async () => {
               currentStock: spec.stock || 0,
               minStock: spec.minimum_balance || 0,
               maxStock: spec.maximum_inventory || 0,
+              stockStatus: spec.stock_status || '',
               lastUpdated: spec.time || item.time
             });
           });
@@ -458,6 +462,7 @@ const fetchStockData = async () => {
             currentStock: 0,
             minStock: 0,
             maxStock: 0,
+            stockStatus: '缺货',
             lastUpdated: item.time
           });
         }

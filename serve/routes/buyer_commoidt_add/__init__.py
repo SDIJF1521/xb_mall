@@ -106,6 +106,7 @@ async def commodity_add(data:Annotated[CommodityAdd,Form(),File()],
         await cache.delete_pattern(f'commodity:search:{data.stroe_id}:*')
         await cache.delete_pattern(f'commodity:repertory:list:{data.stroe_id}')
         await cache.delete_pattern(f'commodity:repertory:search:{data.stroe_id}:*')
+        await cache.delete_pattern(f'commodity:repertory:all:{data.stroe_id}')
 
         return {"code":200,"msg":"添加成功",'current':True}
 
@@ -129,7 +130,7 @@ async def commodity_add(data:Annotated[CommodityAdd,Form(),File()],
             execute_code = await role_authority_service.authority_resolver(int(role_authority[0][0]))
             sql_data = await execute_db_query(db,'select user from store_user where user = %s and store_id = %s',(token_data.get('user'),token_data.get('mall_id')))
             verify_data = await verify_duter_token.verify_token(sql_data)
-            if execute_code[1] and execute_code[2] and verify_data:
+            if execute_code[1] and execute_code[2] and verify_data[0]:
                 if data.stroe_id != token_data.get('mall_id'):
                     return {'code': 403, 'msg': '您没有权限操作该店铺的商品', 'current': False}
                 return await execute()
