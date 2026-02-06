@@ -41,7 +41,7 @@ async def buyer_delete_mall(data: Annotated[DeleteMall, Form()], db: Connection 
                 cache = CacheService(redis)
                 user_name = token_data.get('user')
                 await execute_db_query(db,'delete from store where mall_id = %s and user = %s',(data.mall_id,token_data.get('user')))
-                await execute_db_query(db,'update mall_info set mall_state = mall_state - 1 where user = %s',(token_data.get('user')))
+                await execute_db_query(db,'update mall_info set mall_number = mall_number - 1 where user = %s',(token_data.get('user')))
                 if img_path and img_path[0][0]:
                     img_path_str = img_path[0][0]
                     try:
@@ -62,10 +62,10 @@ async def buyer_delete_mall(data: Annotated[DeleteMall, Form()], db: Connection 
                 await cache.delete_pattern(f'img_base64:./mall_img/{data.mall_id}.png')
                 await cache.delete_pattern(f'mall_info:user:{user_name}')
                 await cache.delete_pattern(f'admin:mall:info:%d'%(data.mall_id))
-                await cache.delete_pattern(f'admin:mall:info:{data.user}')
+                await cache.delete_pattern(f'admin:mall:info:{user_name}')
                 await cache.delete_pattern(f'commodity:repertory:list:{data.mall_id}:*')
                 await cache.delete_pattern(f'commodity:repertory:records:{data.mall_id}:*')
-                await cache.delete_pattern(f'commodity:repertory:all:{data.stroe_id}')
+                await cache.delete_pattern(f'commodity:repertory:all:{data.mall_id}')
                 try:
                     sql_user_data = await execute_db_query(db,'select * from seller_sing where user = %s',(token_data.get('user')))
                     if not sql_user_data:

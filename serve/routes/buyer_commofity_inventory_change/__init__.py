@@ -71,8 +71,8 @@ async def change_commodity_repertory(
                 await sql.execute_query(
                                             'update specification set stock = %s, ' \
                                                                   'maximum_inventory = %s, ' \
-                                                                  'minimum_balance = %s ' \
-                                                                  'time = %s'\
+                                                                  'minimum_balance = %s, ' \
+                                                                  '`time` = %s ' \
                                             'where mall_id = %s '
                                             'and (shopping_id = %s and specification_id = %s)',
                                             (data.change_num,
@@ -97,8 +97,8 @@ async def change_commodity_repertory(
                 await sql.execute_query(
                                         'update specification set stock = stock + %s, ' \
                                                                 'maximum_inventory = %s, ' \
-                                                                'minimum_balance = %s,' \
-                                                                 'time = %s'\
+                                                                'minimum_balance = %s, ' \
+                                                                 '`time` = %s ' \
                                         'where mall_id = %s '
                                         'and (shopping_id = %s and specification_id = %s)',
                                         (data.change_num,
@@ -122,8 +122,8 @@ async def change_commodity_repertory(
                 await sql.execute_query(
                                         'update specification set stock = stock - %s, ' \
                                                                 'maximum_inventory = %s, ' \
-                                                                'minimum_balance = %s,' \
-                                                                 'time = %s'\
+                                                                'minimum_balance = %s, ' \
+                                                                 '`time` = %s ' \
                                         'where mall_id = %s '
                                         'and (shopping_id = %s and specification_id = %s)',
                                         (data.change_num,
