@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from datetime import datetime,date
+from datetime import date
 from aiomysql import Connection
 from fastapi import APIRouter,Depends,Form,HTTPException
 
@@ -46,7 +46,7 @@ async def change_commodity_repertory(
                        'change_num':data.change_num,
                        'maximum_inventory':data.maximum_inventory,
                        'minimum_balance':data.minimum_balance,
-                       "time":datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                       "time":date.today().strftime("%Y-%m-%d"),
                        'info':None
                        }
             if data.info is not None:
@@ -78,7 +78,7 @@ async def change_commodity_repertory(
                                             (data.change_num,
                                              data.maximum_inventory,
                                              data.minimum_balance,
-                                             datetime.now().strftime("%Y-%m-%d"),
+                                             date.today().strftime("%Y-%m-%d"),
                                              data.stroe_id,
                                              data.shopping_id,
                                              data.sku_id)
@@ -104,7 +104,7 @@ async def change_commodity_repertory(
                                         (data.change_num,
                                             data.maximum_inventory,
                                             data.minimum_balance,
-                                            datetime.now().strftime("%Y-%m-%d"),
+                                            date.today().strftime("%Y-%m-%d"),
                                             data.stroe_id,
                                             data.shopping_id,
                                             data.sku_id)
@@ -129,7 +129,7 @@ async def change_commodity_repertory(
                                         (data.change_num,
                                             data.maximum_inventory,
                                             data.minimum_balance,
-                                            datetime.now().strftime("%Y-%m-%d"),
+                                            date.today().strftime("%Y-%m-%d"),
                                             data.stroe_id,
                                             data.shopping_id,
                                             data.sku_id)

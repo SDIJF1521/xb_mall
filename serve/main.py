@@ -53,6 +53,9 @@ from routes.buyer_side_token import router as buyer_side_token_router
 from routes.buyer_side_sgin import router as buyer_side_sgin_router
 from routes.mall_img_upload import router as mall_img_upload_router
 from routes.add_mall import router as add_mall_router
+from routes.recommend_commodity_list import router as recommend_commodity_list_router
+
+
 from routes.buyer_repeat_show import router as buyer_repeat_show_router
 from routes.buyer_get_mall_name import router as buyer_get_mall_name_router
 from routes.buyer_delete_show import router as buyer_delete_show_router
@@ -749,7 +752,8 @@ app.include_router(buyer_commodity_inventory_change_router,prefix='/api')
 # 买家端商品库存记录路由
 app.include_router(buyer_commodity_repertory_list_records_router,prefix='/api')
 
-
+# 推荐商品列表路由
+app.include_router(recommend_commodity_list_router,prefix='/api')
 
 # cs路由
 app.include_router(cs_router,prefix='/api')
