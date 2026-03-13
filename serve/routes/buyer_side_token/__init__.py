@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import jwt
 from aiomysql import Connection
 from fastapi import APIRouter,Form,Depends,HTTPException
+from config.jwt_config import jwt_settings
 
 
 from data.data_mods import SellerSignIn
@@ -27,7 +28,7 @@ async def  DuyerSideToken(data: Annotated[SellerSignIn,Form()], db: Connection =
     - station='1': 主商户登录（可管理多个店铺，role=-1表示超级管理员）
     - station='2': 店铺用户登录（只能管理指定店铺，role为具体角色ID）
     """
-    SECRET_KEY = "$@?%^159ASx"
+    SECRET_KEY = jwt_settings.JWT_SELLER_SECRET_KEY
     expire_minutes = 7
     expire = datetime.utcnow() + timedelta(days=expire_minutes)
     expire_timestamp = int(expire.timestamp())

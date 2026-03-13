@@ -2,6 +2,7 @@ import jwt
 import base64
 from datetime import datetime, timedelta
 from data.redis_client import RedisClient
+from config.jwt_config import jwt_settings
 
 class Token:
     """用户端登录Token生成服务"""
@@ -16,7 +17,7 @@ class Token:
             return {'msg':'没有该用户名','token':None}
         else:
             if data[0][1] == self.password:
-                SECRET_KEY = "$@?123App"
+                SECRET_KEY = jwt_settings.JWT_USER_SECRET_KEY
                 expire_minutes = 7
                 expire = datetime.utcnow() + timedelta(days=expire_minutes)
                 expire_timestamp = int(expire.timestamp())

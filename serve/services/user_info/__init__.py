@@ -1,9 +1,10 @@
 import jwt
+from config.jwt_config import jwt_settings
 class UserInfo:
     def __init__(self,token):
         self.token = token
     async def token_analysis(self):
-        SECRET_KEY = "$@?123App"
+        SECRET_KEY = jwt_settings.JWT_USER_SECRET_KEY
         try:
             if not self.token or not isinstance(self.token, str):
                 return {'msg':'token格式错误',"current":False}

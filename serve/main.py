@@ -293,7 +293,13 @@ async def lifespan(app: FastAPI):
         from services.bloom_filter_manager import init_bloom_filter_manager
         bloom_filter_manager = init_bloom_filter_manager(redis_client)
         logger.info("布隆过滤器管理器已初始化")
-        
+
+        # 启动时立即执行一次布隆过滤器重建，加载数据库中已有的数据
+        # 避免启动后 1 小时内过滤器为空、防穿透功能失效
+        logger.info("正在执行启动时布隆过滤器初始化重建...")
+        await rebuild_bloom_filters()
+        logger.info("布隆过滤器初始化重建完成")
+
         # 定时任务
         logger.info("正在配置定时任务...")
         scheduler.add_job(

@@ -1,6 +1,7 @@
 from datetime import date
 
 import jwt
+from config.jwt_config import jwt_settings
 
 
 class Register:
@@ -11,7 +12,7 @@ class Register:
         self.user = user
     
     async def verify(self):
-        SECRET_KEY = "$@#233"
+        SECRET_KEY = jwt_settings.JWT_CODE_SECRET_KEY
         if not self.code:
             return '缺少 Authorization 头部'
         try:

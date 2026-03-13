@@ -45,8 +45,16 @@ class BloomFilterManager:
         return self.secondary_filter if self.active_instance == 0 else self.primary_filter
     
     async def add(self, item: str) -> bool:
-        """向当前活跃的布隆过滤器添加元素"""
-        return await self.active_filter.add(item)
+        """
+        向布隆过滤器添加元素。
+        若重建锁被持有（正在重建），则同时写入 standby filter，
+        防止切换后新增元素丢失。
+        """
+        result = await self.active_filter.add(item)
+        # 重建期间同步写 standby，避免切换后出现漏判
+        if self.rebuild_lock.locked():
+            await self.standby_filter.add(item)
+        return result
     
     async def exists(self, item: str) -> bool:
         """检查元素是否存在于当前活跃的布隆过滤器中"""
@@ -60,36 +68,39 @@ class BloomFilterManager:
         async with self.rebuild_lock:
             try:
                 logger.info(f"开始重建布隆过滤器，当前活跃实例: {'primary' if self.active_instance == 0 else 'secondary'}")
-                
+
                 # 确定备用实例
                 target_filter = self.standby_filter
                 target_instance_name = 'secondary' if self.active_instance == 0 else 'primary'
-                
+
+                # 清空备用实例的 Redis 位图，避免旧数据残留导致误判率持续升高
                 logger.info(f"正在清空备用实例: {target_instance_name}")
-                # 清空备用实例（如果有相应方法的话，这里可能需要手动实现）
-                
+                cleared = await target_filter.clear()
+                if not cleared:
+                    logger.error("备用实例清空失败，终止重建，避免数据污染")
+                    return
+
                 # 从数据库加载数据
                 logger.info("从数据库加载数据...")
                 data_items = await load_data_func()
-                
+
                 logger.info(f"准备向备用实例添加 {len(data_items)} 个元素")
-                
+
                 # 批量添加到备用实例
-                batch_size = 1000  # 分批处理，避免一次性处理太多数据
+                batch_size = 1000
                 for i in range(0, len(data_items), batch_size):
                     batch = data_items[i:i + batch_size]
                     for item in batch:
                         await target_filter.add(item)
-                    
                     logger.info(f"已处理 {min(i + batch_size, len(data_items))}/{len(data_items)} 个元素")
-                
+
                 # 切换活跃实例
                 old_active = self.active_instance
                 self.active_instance = 1 if self.active_instance == 0 else 0
-                
+
                 logger.info(f"布隆过滤器重建完成，切换到实例: {'primary' if self.active_instance == 0 else 'secondary'}")
                 logger.info(f"原活跃实例: {'primary' if old_active == 0 else 'secondary'}")
-                
+
             except Exception as e:
                 logger.error(f"布隆过滤器重建失败: {str(e)}", exc_info=True)
                 raise

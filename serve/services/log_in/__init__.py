@@ -1,10 +1,11 @@
 import jwt
 from data.redis_client import RedisClient
+from config.jwt_config import jwt_settings
 class LogIn:
     def __init__(self,token):
         self.token = token
     async def run(self,data,redis_cli:RedisClient) -> bool:
-        SECRET_KEY = "$@?123App"
+        SECRET_KEY = jwt_settings.JWT_USER_SECRET_KEY
         try:
             token = self.token.split(" ")[1]
             payload:dict = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])

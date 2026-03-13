@@ -6,6 +6,7 @@ from fastapi import APIRouter,Form,Depends
 
 from data.redis_client import RedisClient,get_redis
 from data.data_mods import DeleteToken
+from config.jwt_config import jwt_settings
 
 
 router = APIRouter()
@@ -22,9 +23,9 @@ async def delete_token_time(data:Annotated[DeleteToken,Form()],redis_cli:RedisCl
         "3":'admin'
     }
     secret_key_dic={
-        "user":'$@?123App',
-        "seller":"$@?%^159ASx",
-        "admin":"1352%!#$@awdS"
+        "user": jwt_settings.JWT_USER_SECRET_KEY,
+        "seller": jwt_settings.JWT_SELLER_SECRET_KEY,
+        "admin": jwt_settings.JWT_ADMIN_SECRET_KEY,
     }
     token = data.token.split(" ")[1]
 

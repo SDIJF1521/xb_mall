@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import jwt
 
 from data.redis_client import RedisClient
+from config.jwt_config import jwt_settings
 
 class ManageLogin:
     def __init__(self,user:str,password:str,redis_client: RedisClient):
@@ -23,7 +24,7 @@ class ManageLogin:
         expire_timestamp = int(expire.timestamp())
         await self.redis_client.set(f'admin_{self.user}',expire_timestamp)
 
-        SECRET_KEY = '1352%!#$@awdS'
+        SECRET_KEY = jwt_settings.JWT_ADMIN_SECRET_KEY
         payload = {
                     'user': self.user,
                     'exp':str(expire_timestamp)

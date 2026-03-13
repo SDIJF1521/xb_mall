@@ -4,6 +4,7 @@ import time
 import jwt
 from pydantic import EmailStr
 from fastapi import APIRouter, Depends, HTTPException
+from config.jwt_config import jwt_settings
 
 
 router = APIRouter()
@@ -30,7 +31,7 @@ async def verify_code(email: EmailStr, code: str,verifier = Depends(get_verifier
                 'code': code,
                 'exp':expire
             }
-            SECRET_KEY = "$@#233"
+            SECRET_KEY = jwt_settings.JWT_CODE_SECRET_KEY
             return {"code": 200, "message": "验证成功", "data": {"access_token": jwt.encode(payload, SECRET_KEY, algorithm="HS256"), "token_type": "bearer",
             'timestamp': time.time()}}
         else:

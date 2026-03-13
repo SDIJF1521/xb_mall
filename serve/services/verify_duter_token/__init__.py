@@ -1,5 +1,6 @@
 import jwt
 from data.redis_client import RedisClient
+from config.jwt_config import jwt_settings
 
 class VerifyDuterToken:
     """商户端Token验证服务 - 区分主商户(station=1)和店铺用户(station=2)"""
@@ -7,7 +8,7 @@ class VerifyDuterToken:
     def __init__(self,token:str,redis_client:RedisClient):
         self.redis_client = redis_client
         self.token = token
-        self.SECRET_KEY = "$@?%^159ASx"
+        self.SECRET_KEY = jwt_settings.JWT_SELLER_SECRET_KEY
     
     async def token_data(self):
         """解析JWT Token获取载荷数据"""

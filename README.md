@@ -34,6 +34,47 @@ xb_mall/
 └── README.md             # 📄 项目文档
 ```
 
+## 🏗️ 系统架构
+
+```mermaid
+flowchart TB
+    subgraph Client[前端客户端层]
+        C1[用户端 Web<br/>Vue3 + TS + Element Plus]
+        C2[商家/店员端 Web<br/>Vue3 + Pinia + Router]
+        C3[平台管理端 Web<br/>Vue3 + ECharts]
+    end
+
+    subgraph Gateway[接口接入层]
+        G1[FastAPI 应用入口<br/>main.py]
+        G2[统一中间件<br/>CORS / 异常处理 / 日志]
+        G3[路由聚合<br/>routes/*]
+    end
+
+    subgraph Service[业务服务层]
+        S1[认证授权服务<br/>JWT + Redis 二次校验]
+        S2[用户与商家服务<br/>注册/登录/入驻/审核]
+        S3[商品与库存服务<br/>增删改查/上架下架/库存变更]
+        S4[角色权限服务<br/>RBAC + 角色码]
+        S5[在线状态服务<br/>上线/心跳/下线]
+        S6[推荐与行为服务<br/>浏览记录 + 推荐]
+        S7[缓存与防穿透<br/>Cache + BloomFilter]
+        S8[调度任务服务<br/>APScheduler]
+    end
+
+    subgraph Data[数据与基础设施层]
+        D1[(MySQL<br/>用户/商家/商品主数据)]
+        D2[(MongoDB<br/>商品详情/评论/行为数据)]
+        D3[(Redis<br/>Token状态/在线状态/缓存/Bloom位图)]
+        D4[文件存储<br/>头像/商品图片]
+        D5[日志系统<br/>log_config + logs]
+        D6[配置中心<br/>config/*.py + .env]
+    end
+
+    Client --> Gateway
+    Gateway --> Service
+    Service --> Data
+```
+
 ## ⚙️ 技术栈
 
 <div align="center">

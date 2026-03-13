@@ -9,6 +9,7 @@ from fastapi import APIRouter,Depends,Form
 
 from services.verify_duter_token import VerifyDuterToken
 from services.cache_service import CacheService
+from config.jwt_config import jwt_settings
 
 from data.sql_client import get_db,execute_db_query
 from data.redis_client import RedisClient,get_redis
@@ -58,7 +59,7 @@ async def add_mall(data:Annotated[AddMallData,Form()],db:Connection=Depends(get_
                 mall_id = await execute_db_query(db,'select mall_id from store where user = %s',(data.user))
                 mall_id_list = [i[0] for i in mall_id]
                 
-                SECRET_KEY = "$@?%^159ASx"
+                SECRET_KEY = jwt_settings.JWT_SELLER_SECRET_KEY
                 expire_minutes = 7
                 expire = datetime.utcnow() + timedelta(days=expire_minutes)
                 expire_timestamp = int(expire.timestamp())

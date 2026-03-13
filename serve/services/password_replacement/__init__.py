@@ -1,4 +1,5 @@
 import jwt
+from config.jwt_config import jwt_settings
 class PasswordReplacement:
     def __init__(self,email,password,token):
         self.email = email
@@ -6,7 +7,7 @@ class PasswordReplacement:
         self.token = token
     
     async def verify(self):
-        SECRET_KEY = "$@#233"
+        SECRET_KEY = jwt_settings.JWT_CODE_SECRET_KEY
         if not self.token:
             return '缺少 Authorization 头部'
         try:

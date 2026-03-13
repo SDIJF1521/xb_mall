@@ -108,6 +108,14 @@ class RedisClient:
         """增量扫描哈希表中的字段"""
         return await self.redis.hscan(name, cursor=cursor, count=count)
 
+    async def setbit(self, name: str, offset: int, value: int) -> int:
+        """设置位图中指定偏移量的位值"""
+        return await self.redis.setbit(name, offset, value)
+
+    async def getbit(self, name: str, offset: int) -> int:
+        """获取位图中指定偏移量的位值"""
+        return await self.redis.getbit(name, offset)
+
     async def hmset(self, name: str, mapping: Dict[str, str]) -> None:
         """批量设置哈希表中的多个字段值"""
         # 注意：redis.asyncio的hmset已被hset替代，使用方式略有不同

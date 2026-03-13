@@ -1,6 +1,7 @@
 import jwt
 
 from data.redis_client import RedisClient
+from config.jwt_config import jwt_settings
 class ManagementTokenVerify:
     def __init__(self,token,redis_client: RedisClient):
         self.token = token
@@ -8,7 +9,7 @@ class ManagementTokenVerify:
 
     async def token_admin(self):
         try:
-            SECRET_KEY = "1352%!#$@awdS"
+            SECRET_KEY = jwt_settings.JWT_ADMIN_SECRET_KEY
             token = self.token.split(" ")[1]
             payload:dict = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
             user = payload.get("user")
@@ -19,7 +20,7 @@ class ManagementTokenVerify:
             return {'mag':'token已过期',"current":False}
 
     async def run(self,data) -> bool:
-        SECRET_KEY = "1352%!#$@awdS"
+        SECRET_KEY = jwt_settings.JWT_ADMIN_SECRET_KEY
         try:
             token = self.token.split(" ")[1]
             payload:dict = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
