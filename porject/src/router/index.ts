@@ -35,7 +35,7 @@ import BuyerCommodityList from '@/views/buyer_commodity_list/buyer_commodity_lis
 import ManagementCommodityApply from '@/views/management_commodity_apply/management_commodity_apply.vue'
 import BuyerCommodityClassify from '@/views/buyer_commodity_classify/buyer_commodity_classify.vue'
 import BuyerCommodityRepertory from '@/views/buyer_commodity_repertory/buyer_commodity_repertory.vue'
-
+import CommoditContent from '@/views/commodit_content/commodit_cotent.vue'
 
 import { setupHeartbeatGuard } from './heartbeatGuard'
 import { setupAuthGuard } from './authGuard';
@@ -243,6 +243,12 @@ const routes: Array<RouteRecordRaw> = [
     component:BuyerCommodityRepertory
   },
     {
+    // 商品详情页
+    path: '/commodity/:mall_id/:shopping_id',
+    name: 'CommoditContent',
+    component: CommoditContent
+  },
+  {
     // 404 页面 - 匹配所有未定义的路由
     path: '/:pathMatch(.*)*',
     name: 'NotFound',

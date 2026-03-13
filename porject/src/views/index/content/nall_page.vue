@@ -60,24 +60,6 @@
 
           <div class="product-price">
             <span class="current-price">¥{{ product.price }}</span>
-            <span v-if="product.originalPrice" class="original-price">
-              ¥{{ product.originalPrice }}
-            </span>
-          </div>
-
-          <div class="product-stats">
-            <div class="stat-item">
-              <el-icon><ShoppingBag /></el-icon>
-              <span>已售 {{ product.sales }}</span>
-            </div>
-            <div class="stat-item rating-item">
-              <el-rate
-                v-model="product.rating"
-                disabled
-                size="small"
-              />
-              <span class="rating-text">{{ product.rating }}</span>
-            </div>
           </div>
 
           <div class="product-actions">
@@ -132,24 +114,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { ShoppingCart, Star, Picture, ShoppingBag } from '@element-plus/icons-vue'
+import { ShoppingCart, Star, Picture } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
 
 // 定义商品接口
 interface Product {
   id: number
+  mallId: number
   name: string
   description: string
   price: number
-  originalPrice?: number
   image: string
-  sales: number
-  rating: number
-  isWishlisted: boolean
   category: string
-  stock: number
+  isWishlisted: boolean
 }
 
 // 组件配置
@@ -167,59 +147,47 @@ const pageSize = ref(12)
 const total = ref(0)
 const cartLoading = reactive<Record<number, boolean>>({})
 
+const Axios = axios.create({
+  baseURL: 'http://127.0.0.1:8000/api'
+})
+
 // 商品列表
 const products = ref<Product[]>([])
-
-// 假数据生成函数
-const generateMockProducts = (page: number, size: number): Product[] => {
-  const mockProducts: Product[] = []
-  const startId = (page - 1) * size + 1
-
-  for (let i = 0; i < size; i++) {
-    const id = startId + i
-    mockProducts.push({
-      id,
-      name: `商品名称 ${id}`,
-      description: `这是商品 ${id} 的详细描述，展示商品的特点和优势。`,
-      price: Math.floor(Math.random() * 900) + 100,
-      originalPrice: Math.random() > 0.5 ? Math.floor(Math.random() * 1200) + 200 : undefined,
-      image: `https://picsum.photos/300/300?random=${id}`,
-
-      sales: Math.floor(Math.random() * 1000),
-      rating: Math.round((Math.random() * 2 + 3) * 10) / 10,
-      isWishlisted: Math.random() > 0.8,
-      category: ['电子产品', '服装', '家居', '食品', '图书'][Math.floor(Math.random() * 5)],
-      stock: Math.floor(Math.random() * 100)
-    })
-  }
-
-  return mockProducts
-}
 
 // 获取商品列表
 const fetchProducts = async (page: number = 1) => {
   try {
     loading.value = true
 
-    // TODO: 替换为实际的API调用
-    // const response = await axios.get('/api/products', {
-    //   params: {
-    //     page,
-    //     pageSize: pageSize.value,
-    //     category: selectedCategory.value,
-    //     sort: sortBy.value
-    //   }
-    // })
-    // products.value = response.data.products
-    // total.value = response.data.total
+    const token = localStorage.getItem('buyer_access_token')
+    const headers: Record<string, string> = {}
+    if (token) {
+      headers['access-token'] = token
+    }
 
-    // 模拟API延迟
-    await new Promise(resolve => setTimeout(resolve, 800))
+    const res = await Axios.get('/recommend_commodity_list', {
+      params: { page },
+      headers,
+    })
 
-    // 使用假数据
-    products.value = generateMockProducts(page, pageSize.value)
-    total.value = 100 // 模拟总商品数
+    if (!res.data.success) {
+      ElMessage.warning(res.data.msg || '暂无商品')
+      products.value = []
+      return
+    }
 
+    products.value = (res.data.data as any[]).map((item) => ({
+      id: item.shopping_id,
+      mallId: item.mall_id,
+      name: item.name,
+      description: item.info,
+      price: item.price,
+      image: item.img ? `data:image/jpeg;base64,${item.img}` : '',
+      category: Array.isArray(item.type) && item.type.length > 0 ? item.type[0] : '其他',
+      isWishlisted: false,
+    }))
+
+    total.value = products.value.length
   } catch (error) {
     console.error('获取商品列表失败:', error)
     ElMessage.error('获取商品列表失败')
@@ -238,32 +206,7 @@ const handlePageChange = (page: number) => {
 
 // 处理商品点击 - 跳转到商品详情页
 const handleProductClick = (product: Product) => {
-  console.log('点击商品:', product)
-
-  // TODO: 配置商品跳转链接
-  // 在这里配置你的商品跳转逻辑，例如：
-
-  // 方式1: 内部路由跳转（需要在router中定义对应路由）
-  // router.push({
-  //   name: 'ProductDetail',
-  //   params: { id: product.id }
-  // })
-
-  // 方式2: 外部链接跳转
-  // window.open('https://your-external-link.com/product/' + product.id, '_blank')
-
-  // 方式3: 新标签页打开内部路由
-  // const route = router.resolve({
-  //   name: 'ProductDetail',
-  //   params: { id: product.id }
-  // })
-  // window.open(route.href, '_blank')
-
-  // 方式4: 当前页面跳转外部链接
-  // window.location.href = 'https://your-external-link.com/product/' + product.id
-
-  // 默认：暂不跳转，等待配置
-  console.log('商品跳转功能已准备就绪，请在 handleProductClick 函数中配置跳转链接')
+  router.push(`/commodity/${product.mallId}/${product.id}`)
 }
 
 // 处理加入购物车
@@ -271,13 +214,7 @@ const handleAddToCart = async (product: Product) => {
   try {
     cartLoading[product.id] = true
 
-    // TODO: 替换为实际的API调用
-    // await axios.post('/api/cart/add', {
-    //   productId: product.id,
-    //   quantity: 1
-    // })
 
-    // 模拟API延迟
     await new Promise(resolve => setTimeout(resolve, 500))
 
     ElMessage.success(`已将 ${product.name} 加入购物车`)
@@ -292,16 +229,7 @@ const handleAddToCart = async (product: Product) => {
 // 处理收藏
 const handleAddToWishlist = async (product: Product) => {
   try {
-    // TODO: 替换为实际的API调用
-    // if (product.isWishlisted) {
-    //   await axios.delete(`/api/wishlist/${product.id}`)
-    // } else {
-    //   await axios.post('/api/wishlist/add', {
-    //     productId: product.id
-    //   })
-    // }
 
-    // 模拟API延迟
     await new Promise(resolve => setTimeout(resolve, 300))
 
     product.isWishlisted = !product.isWishlisted

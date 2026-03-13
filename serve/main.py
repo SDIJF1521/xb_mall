@@ -54,6 +54,9 @@ from routes.buyer_side_sgin import router as buyer_side_sgin_router
 from routes.mall_img_upload import router as mall_img_upload_router
 from routes.add_mall import router as add_mall_router
 from routes.recommend_commodity_list import router as recommend_commodity_list_router
+from routes.commodity_content import router as commodity_content_router
+from routes.commodity_comments import router as commodity_comments_router
+from routes.commodity_comment import router as commodity_comment_router
 
 
 from routes.buyer_repeat_show import router as buyer_repeat_show_router
@@ -754,6 +757,15 @@ app.include_router(buyer_commodity_repertory_list_records_router,prefix='/api')
 
 # 推荐商品列表路由
 app.include_router(recommend_commodity_list_router,prefix='/api')
+
+# 商品详情路由
+app.include_router(commodity_content_router,prefix='/api')
+
+# 商品评论列表路由
+app.include_router(commodity_comments_router,prefix='/api')
+
+# 发布商品评论路由
+app.include_router(commodity_comment_router,prefix='/api')
 
 # cs路由
 app.include_router(cs_router,prefix='/api')

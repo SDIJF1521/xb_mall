@@ -4,4 +4,27 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+    "fastapi[standard]>=0.100.0,<1.0.0",
+    "torch>=2.0.0",
+    "numpy>=1.24.0",
+    "apscheduler>=3.11.2",
+    "pymongo>=4.16.0",
+    "aiomysql>=0.3.2",
+    "pyjwt>=2.11.0",
+    "aiofiles>=25.1.0",
+    "fastapi-cdn-host>=0.10.0",
+    "redis>=7.2.1",
+    "motor>=3.7.1",
+    "cryptography>=46.0.5",
+    "torchvision>=0.25.0",
+]
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }
+torchvision = { index = "pytorch-cu128" }
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
