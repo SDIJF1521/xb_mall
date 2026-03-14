@@ -57,6 +57,9 @@ from routes.recommend_commodity_list import router as recommend_commodity_list_r
 from routes.commodity_content import router as commodity_content_router
 from routes.commodity_comments import router as commodity_comments_router
 from routes.commodity_comment import router as commodity_comment_router
+from routes.browsing_history import router as browsing_history_router
+from routes.delete_browsing_history import router as delete_browsing_history_router
+from routes.clear_browsing_history import router as clear_browsing_history_router
 
 
 from routes.buyer_repeat_show import router as buyer_repeat_show_router
@@ -120,6 +123,8 @@ from routes.address_show import router as address_show_router
 from routes.delete_token_time import router as delete_token_time_router
 from routes.cs import router as cs_router
 from services.bloom_filter_manager import init_bloom_filter_manager
+from services.recommend import RecommendCommodity
+from services.recommend.trainer import RecommendTrainer
 
 redis_client = RedisClient()
 scheduler = AsyncIOScheduler()
@@ -241,6 +246,39 @@ async def user_sql_redis_state():
         logger.error(f"错误信息: {str(e)}")
         logger.error(f"错误堆栈:\n{error_traceback}")
         logger.error("=" * 60)
+
+
+async def run_incremental_recommend_training():
+    """定时执行 Wide & Deep 增量训练。"""
+    start_time = time.time()
+    try:
+        trainer = RecommendTrainer(mongodb_client, redis_client=redis_client)
+        result = await trainer.run_scheduled_training()
+        elapsed = time.time() - start_time
+
+        if result.get("status") == "trained":
+            RecommendCommodity.force_reload()
+            logger.info(
+                "推荐模型训练完成 | mode: %s | samples: %s | latest_record_at: %s | 耗时: %.2fs",
+                result.get("last_training_mode"),
+                result.get("last_training_samples"),
+                result.get("last_trained_at"),
+                elapsed,
+            )
+        else:
+            logger.info(
+                "推荐模型训练跳过 | reason: %s | latest_record_at: %s | 耗时: %.2fs",
+                result.get("reason"),
+                result.get("latest_record_at"),
+                elapsed,
+            )
+    except Exception as e:
+        import traceback
+
+        logger.error("=" * 60)
+        logger.error(f"推荐模型训练任务失败 | 错误类型: {type(e).__name__} | 错误信息: {str(e)}")
+        logger.error(f"错误堆栈:\n{traceback.format_exc()}")
+        logger.error("=" * 60)
     
 
 # 定义 lifespan 事件处理器
@@ -321,10 +359,21 @@ async def lifespan(app: FastAPI):
             misfire_grace_time=60
         )
         logger.info("每小时布隆过滤器重建任务已配置")
+
+        scheduler.add_job(
+            run_incremental_recommend_training,
+            IntervalTrigger(minutes=5),
+            id='incremental_recommend_training',
+            max_instances=1,
+            coalesce=True,
+            misfire_grace_time=300
+        )
+        logger.info("每5分钟推荐增量训练任务已配置")
         
         scheduler.start()
         logger.info("定时任务已启动 | 任务ID: user_sql_redis_state | 执行间隔: 10秒")
         logger.info("定时任务已启动 | 任务ID: rebuild_bloom_filters | 执行间隔: 1小时")
+        logger.info("定时任务已启动 | 任务ID: incremental_recommend_training | 执行间隔: 5分钟")
         logger.info("=" * 60)
         logger.info("应用启动完成，所有服务已就绪")
     except Exception as e:
@@ -390,6 +439,16 @@ async def lifespan(app: FastAPI):
     logger.info("应用已完全关闭")
 
 logger = logging.getLogger("fastapi_logger")
+
+# 避免 APScheduler 的运行/成功日志持续刷屏控制台
+for logger_name in (
+    "apscheduler",
+    "apscheduler.scheduler",
+    "apscheduler.executors",
+    "apscheduler.executors.default",
+):
+    logging.getLogger(logger_name).setLevel(logging.WARNING)
+
 # 注册fatsApi应用
 app = FastAPI(lifespan=lifespan)
 
@@ -772,6 +831,15 @@ app.include_router(commodity_comments_router,prefix='/api')
 
 # 发布商品评论路由
 app.include_router(commodity_comment_router,prefix='/api')
+
+# 浏览历史路由
+app.include_router(browsing_history_router,prefix='/api')
+
+# 删除浏览历史路由
+app.include_router(delete_browsing_history_router,prefix='/api')
+
+# 清空浏览历史路由
+app.include_router(clear_browsing_history_router,prefix='/api')
 
 # cs路由
 app.include_router(cs_router,prefix='/api')

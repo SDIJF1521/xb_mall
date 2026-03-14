@@ -141,7 +141,7 @@ const imgList = computed(() => {
 })
 
 const getHeaders = () => {
-  const token = localStorage.getItem('buyer_access_token')
+  const token = localStorage.getItem('access_token')
   return token ? { 'access-token': token } : {}
 }
 
@@ -167,7 +167,7 @@ const fetchCommodity = async () => {
 }
 
 const handleBuy = async ({ specIndex, quantity }: { specIndex: number; quantity: number }) => {
-  if (!localStorage.getItem('buyer_access_token')) {
+  if (!localStorage.getItem('access_token')) {
     ElMessage.warning('请先登录')
     router.push('/register')
     return
@@ -182,7 +182,7 @@ const handleBuy = async ({ specIndex, quantity }: { specIndex: number; quantity:
 }
 
 const handleAddToCart = async ({ specIndex, quantity }: { specIndex: number; quantity: number }) => {
-  if (!localStorage.getItem('buyer_access_token')) {
+  if (!localStorage.getItem('access_token')) {
     ElMessage.warning('请先登录')
     router.push('/register')
     return
@@ -212,7 +212,7 @@ const handleAddToCart = async ({ specIndex, quantity }: { specIndex: number; qua
 }
 
 const handleWishlist = async () => {
-  if (!localStorage.getItem('buyer_access_token')) {
+  if (!localStorage.getItem('access_token')) {
     ElMessage.warning('请先登录')
     return
   }

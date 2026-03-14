@@ -5,7 +5,7 @@
         <AppNavigation/>
       </el-header>
       <el-main>
-        
+
           <el-row>
               <!-- 菜单 -->
                 <el-menu
@@ -32,6 +32,11 @@
                     <el-menu-item index="3" @mouseenter="handleMouseEnter('3')">
                       <el-icon><Edit /></el-icon>
                       <template #title>评论管理</template>
+                    </el-menu-item>
+                    <!--浏览历史-->
+                    <el-menu-item index="5" @mouseenter="handleMouseEnter('5')">
+                      <el-icon><Clock /></el-icon>
+                      <template #title>浏览历史</template>
                     </el-menu-item>
                     <!--设置-->
                     <el-menu-item index="4" @mouseenter="handleMouseEnter('4')">
@@ -61,6 +66,7 @@ import CenterIndex from './content/center_index.vue'
 import CenterCollect from './content/center_collect.vue'
 import ConterComment from './content/conter_comment.vue'
 import Set from './content/set.vue'
+import BrowsingHistory from './content/browsing_history.vue'
 
 export default {
   name: 'Center',
@@ -80,19 +86,20 @@ export default {
     CenterIndex,
     CenterCollect,
     ConterComment,
-    Set
+    Set,
+    BrowsingHistory
   },
   setup() {
     const url = 'http://127.0.0.1:8000/api';
     const token = async() => {
       const token = localStorage.getItem('access_token');
       console.log(token);
-      
+
       if (token == null) {
         router.push('/register');
       } else {
         const fromdata = new FormData();
-        fromdata.append('token', token); 
+        fromdata.append('token', token);
         await axios({
           method: 'Post',
           url: url + '/user_sign_in',
@@ -113,27 +120,15 @@ export default {
   computed: {
     // 子组件动态选择
     currentComponent() {
-      if (this.hoverType == '1'){
-        return 'CenterIndex'
+      const map = {
+        '1': 'CenterIndex',
+        '2': 'CenterCollect',
+        '3': 'ConterComment',
+        '4': 'Set',
+        '5': 'BrowsingHistory',
       }
-      else if(this.hoverType == '2'){
-        console.log('yes');
-        return 'CenterCollect'
-      }else if(this.hoverType == '3') {
-        return 'ConterComment'
-      }else if(this.hoverType == '4'){
-        return 'Set'
-      }
-      
-      if (this.hoverType == '' && this.selectedType == '1'){
-        return 'CenterIndex'
-      }else if(this.hoverType == '' && this.selectedType == '2'){
-        return 'CenterCollect'
-      }else if(this.hoverType == '' && this.selectedType == '3'){
-        return 'ConterComment'
-      }else if(this.hoverType == '' && this.selectedType == '4'){
-        return 'Set'
-      }
+      if (this.hoverType && map[this.hoverType]) return map[this.hoverType]
+      if (!this.hoverType && this.selectedType && map[this.selectedType]) return map[this.selectedType]
       return 'CenterIndex'
 
     }

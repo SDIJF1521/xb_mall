@@ -23,10 +23,10 @@ class Token:
                 expire_timestamp = int(expire.timestamp())
                 payload = {
                     'user': self.username,
-                    'exp': str(expire_timestamp)
+                    'exp': expire_timestamp
                 }
                 # 将Token过期时间存入Redis，用于后续验证Token有效性
-                await redis_cli.set(f"user_{self.username}",str(expire_timestamp))
+                await redis_cli.set(f"user_{self.username}", str(expire_timestamp))
                 return {'msg':'token生成成功','token':jwt.encode(payload, SECRET_KEY, algorithm="HS256"),"token_type": "bearer"}
             else:
                 return {'msg':'密码错误','token':None}       

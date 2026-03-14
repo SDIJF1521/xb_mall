@@ -1,12 +1,12 @@
 """GET /commodity_detail 获取商品详情（登录后记录浏览行为，供推荐模型训练）"""
 import asyncio
-from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Header
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Header
 
+from config.log_config import logger
 from services.user_info import UserInfo
-from services.cache_service import CacheService
+from services.record import Record
 from data.redis_client import get_redis, RedisClient
 from data.file_client import read_file_base64_with_cache
 from data.mongodb_client import get_mongodb_client, MongoDBClient
@@ -14,38 +14,26 @@ from data.mongodb_client import get_mongodb_client, MongoDBClient
 router = APIRouter()
 
 
-async def _record_browse(user: str, shopping_id: int, mall_id: int, mongodb: MongoDBClient):
+async def _record_browse(
+    user: str,
+    shopping_id: int,
+    mall_id: int,
+    mongodb: MongoDBClient,
+    redis: RedisClient,
+):
     """记录用户浏览行为（供推荐模型训练使用），写入失败不影响主流程"""
     try:
-        existing = await mongodb.find_one(
-            'user_browse_record',
-            {'user': user, 'shopping_id': shopping_id},
-        )
-        now = datetime.now().isoformat()
-        if existing:
-            await mongodb.update_one(
-                'user_browse_record',
-                {'user': user, 'shopping_id': shopping_id},
-                {'$set': {'updated_at': now}, '$inc': {'count': 1}},
-            )
-        else:
-            await mongodb.insert_one(
-                'user_browse_record',
-                {
-                    'user': user,
-                    'shopping_id': shopping_id,
-                    'mall_id': mall_id,
-                    'count': 1,
-                    'created_at': now,
-                    'updated_at': now,
-                },
-            )
-    except Exception:
-        pass
+        logger.info(f"[浏览记录] 开始写入 user={user} shopping_id={shopping_id} mall_id={mall_id}")
+        recorder = Record(mongodb, redis_client=redis)
+        result = await recorder.browse_record(user, shopping_id, mall_id)
+        logger.info(f"[浏览记录] 写入结果={result} user={user} shopping_id={shopping_id}")
+    except Exception as e:
+        logger.error(f"[浏览记录] 写入异常 user={user} shopping_id={shopping_id} error={e}")
 
 
 @router.get('/commodity_detail')
 async def commodity_detail(
+    background_tasks: BackgroundTasks,
     mall_id: int = Query(..., description='店铺ID'),
     shopping_id: int = Query(..., description='商品ID'),
     access_token: Annotated[str, Header()] = None,
@@ -69,10 +57,14 @@ async def commodity_detail(
     if access_token:
         user_info = UserInfo(access_token)
         verify = await user_info.token_analysis()
+        logger.info(f"[商品详情] token验证结果={verify} shopping_id={shopping_id}")
         if verify.get('current'):
-            asyncio.create_task(
-                _record_browse(verify['user'], shopping_id, mall_id, mongodb)
+            logger.info(f"[商品详情] 触发浏览记录 user={verify['user']} shopping_id={shopping_id}")
+            background_tasks.add_task(
+                _record_browse, verify['user'], shopping_id, mall_id, mongodb, redis
             )
+    else:
+        logger.info(f"[商品详情] 未携带token(未登录) shopping_id={shopping_id}")
 
     return {
         'code': 200,

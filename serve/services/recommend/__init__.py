@@ -5,6 +5,7 @@ AI商品推荐服务
 - Deep: 嵌入 + MLP, 泛化到未见组合
 数据来源: user_browse_record, shopping
 """
+import logging
 from pathlib import Path
 from typing import List
 
@@ -13,29 +14,56 @@ from data.sql_client_pool import db_pool
 
 # Wide & Deep 模型目录
 WIDE_DEEP_MODEL_DIR = Path(__file__).resolve().parent / "models" / "wide_deep"
+logger = logging.getLogger("fastapi_logger")
 
 
 class RecommendCommodity:
     """基于 Wide & Deep 的商品推荐服务"""
 
+    _wide_deep = None
+    _wd_loaded = False
+    _artifact_signature = None
+
     def __init__(self, mongodb: MongoDBClient):
         self.mongodb = mongodb
-        self._wide_deep = None
-        self._wd_loaded = False
+
+    @classmethod
+    def _get_artifact_signature(cls):
+        paths = [
+            WIDE_DEEP_MODEL_DIR / "config.json",
+            WIDE_DEEP_MODEL_DIR / "model.pt",
+            WIDE_DEEP_MODEL_DIR / "vocab.json",
+            WIDE_DEEP_MODEL_DIR / "training_state.json",
+        ]
+        if not all(path.exists() for path in paths[:3]):
+            return None
+        return tuple(path.stat().st_mtime_ns if path.exists() else 0 for path in paths)
+
+    @classmethod
+    def force_reload(cls):
+        cls._wide_deep = None
+        cls._wd_loaded = False
+        cls._artifact_signature = None
 
     def _get_wide_deep(self):
         """懒加载 Wide & Deep 模型"""
-        if self._wd_loaded:
-            return self._wide_deep
+        artifact_signature = self._get_artifact_signature()
+        if artifact_signature != self.__class__._artifact_signature:
+            self.__class__.force_reload()
+            self.__class__._artifact_signature = artifact_signature
+
+        if self.__class__._wd_loaded:
+            return self.__class__._wide_deep
         try:
             from services.recommend.wide_deep import WideDeepRecommender
+
             rec = WideDeepRecommender(model_dir=WIDE_DEEP_MODEL_DIR)
             if rec.load():
-                self._wide_deep = rec
-        except Exception:
-            pass
-        self._wd_loaded = True
-        return self._wide_deep
+                self.__class__._wide_deep = rec
+        except Exception as exc:
+            logger.warning(f"加载 Wide & Deep 模型失败: {exc}")
+        self.__class__._wd_loaded = True
+        return self.__class__._wide_deep
 
     async def _index_recommend_commodity(self, user: str) -> List[int]:
         """

@@ -3,11 +3,11 @@ Wide & Deep 数据准备
 从 user_browse_record 和 shopping 构建训练样本
 """
 import json
-import os
 import random
 from collections import defaultdict
+from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Tuple, Any
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
 
@@ -15,6 +15,15 @@ import numpy as np
 def _get_shopping_id(r: dict) -> int | None:
     sid = r.get("shopping_id") or r.get("commodity_id")
     return int(sid) if sid is not None else None
+
+
+def _parse_iso_datetime(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value))
+    except ValueError:
+        return None
 
 
 def build_vocab(
@@ -51,6 +60,56 @@ def build_vocab(
     return user2idx, item2idx, type2idx
 
 
+def summarize_vocab(
+    user2idx: Dict[str, int],
+    item2idx: Dict[int, int],
+    type2idx: Dict[str, int],
+) -> Dict[str, int]:
+    return {
+        "users": max(0, len(user2idx) - 1),
+        "items": max(0, len(item2idx) - 1),
+        "types": max(0, len(type2idx) - 1),
+    }
+
+
+def detect_vocab_changes(
+    user_records: List[dict],
+    shopping_items: List[dict],
+    user2idx: Dict[str, int],
+    item2idx: Dict[int, int],
+    type2idx: Dict[str, int],
+) -> Dict[str, bool]:
+    has_new_user = False
+    has_new_item = False
+    has_new_type = False
+
+    for record in user_records:
+        user = record.get("user")
+        if user and user not in user2idx:
+            has_new_user = True
+            break
+
+    for item in shopping_items:
+        sid = item.get("shopping_id")
+        if sid is not None and int(sid) not in item2idx:
+            has_new_item = True
+            break
+
+        types = item.get("type") or []
+        if isinstance(types, str):
+            types = [types]
+        if any(str(type_name) not in type2idx for type_name in types if type_name):
+            has_new_type = True
+            break
+
+    return {
+        "has_new_user": has_new_user,
+        "has_new_item": has_new_item,
+        "has_new_type": has_new_type,
+        "requires_full_rebuild": has_new_user or has_new_item or has_new_type,
+    }
+
+
 def get_item_features(
     shopping_items: List[dict],
     item2idx: Dict[int, int],
@@ -83,6 +142,33 @@ def get_item_features(
             item_feats[iid] = (idx, tidx, np.log1p(p) / np.log1p(max_p))
 
     return item_feats
+
+
+def filter_records_after(
+    user_records: List[dict],
+    last_trained_at: str | None,
+) -> List[dict]:
+    cutoff = _parse_iso_datetime(last_trained_at)
+    if cutoff is None:
+        return list(user_records)
+
+    out: List[dict] = []
+    for record in user_records:
+        updated_at = _parse_iso_datetime(record.get("updated_at"))
+        if updated_at is not None and updated_at > cutoff:
+            out.append(record)
+    return out
+
+
+def get_latest_record_timestamp(user_records: List[dict]) -> str | None:
+    latest: datetime | None = None
+    for record in user_records:
+        updated_at = _parse_iso_datetime(record.get("updated_at"))
+        if updated_at is None:
+            continue
+        if latest is None or updated_at > latest:
+            latest = updated_at
+    return latest.isoformat() if latest else None
 
 
 def build_training_data(
@@ -118,6 +204,45 @@ def build_training_data(
         for iid in random.sample(list(neg_pool), n_neg):
             idx, tidx, pnorm = item_feats[iid]
             samples.append((uidx, idx, tidx, pnorm, 0))
+
+    random.shuffle(samples)
+    return samples
+
+
+def build_incremental_training_data(
+    user_records: List[dict],
+    item_feats: Dict[int, Tuple[int, int, float]],
+    user2idx: Dict[str, int],
+    negative_ratio: int = 4,
+) -> List[Tuple[int, int, int, float, int]]:
+    """
+    仅根据新增行为构建增量训练样本。
+    只使用已存在词表内的 user/item，超出词表的情况应由外部触发全量重建。
+    """
+    user_items: Dict[str, set[int]] = defaultdict(set)
+    all_items = set(item_feats.keys())
+
+    for record in user_records:
+        user = record.get("user")
+        sid = _get_shopping_id(record)
+        if not user or user not in user2idx or sid is None or sid not in item_feats:
+            continue
+        user_items[user].add(sid)
+
+    samples: List[Tuple[int, int, int, float, int]] = []
+    for user, items in user_items.items():
+        user_idx = user2idx.get(user, 0)
+        for item_id in items:
+            item_idx, type_idx, price_norm = item_feats[item_id]
+            samples.append((user_idx, item_idx, type_idx, price_norm, 1))
+
+        neg_pool = list(all_items - items)
+        neg_count = min(len(items) * negative_ratio, len(neg_pool))
+        if neg_count <= 0:
+            continue
+        for item_id in random.sample(neg_pool, neg_count):
+            item_idx, type_idx, price_norm = item_feats[item_id]
+            samples.append((user_idx, item_idx, type_idx, price_norm, 0))
 
     random.shuffle(samples)
     return samples
