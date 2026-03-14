@@ -41,6 +41,7 @@ class RecommendTrainer:
         self.model_dir = Path(model_dir)
         self.state_path = self.model_dir / self.STATE_FILE_NAME
 
+    # 加载训练状态
     def load_state(self) -> dict[str, Any]:
         if not self.state_path.exists():
             return {}
@@ -51,6 +52,7 @@ class RecommendTrainer:
             logger.warning(f"读取推荐训练状态失败: {exc}")
             return {}
 
+    # 保存训练状态
     def save_state(self, state: dict[str, Any]) -> None:
         self.model_dir.mkdir(parents=True, exist_ok=True)
         with tempfile.NamedTemporaryFile(
@@ -65,6 +67,7 @@ class RecommendTrainer:
         shopping_items = await self.mongodb.find_many("shopping", {})
         return user_records, shopping_items
 
+    # 清理推荐缓存
     async def _invalidate_recommend_cache(self) -> None:
         if self.redis_client is None:
             return
@@ -74,10 +77,12 @@ class RecommendTrainer:
         except Exception as exc:
             logger.warning(f"清理推荐缓存失败: {exc}")
 
+    # 检查 artifacts 是否存在
     def _artifacts_exist(self) -> bool:
         required = ("config.json", "model.pt", "vocab.json")
         return all((self.model_dir / file_name).exists() for file_name in required)
 
+    # 运行定时训练
     async def run_scheduled_training(
         self,
         full_epochs: int = 10,

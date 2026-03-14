@@ -45,6 +45,7 @@ class RecommendCommodity:
         cls._wd_loaded = False
         cls._artifact_signature = None
 
+    # 获取 Wide & Deep 模型
     def _get_wide_deep(self):
         """懒加载 Wide & Deep 模型"""
         artifact_signature = self._get_artifact_signature()
@@ -65,6 +66,7 @@ class RecommendCommodity:
         self.__class__._wd_loaded = True
         return self.__class__._wide_deep
 
+    # 基于 Wide & Deep 的智能推荐
     async def _index_recommend_commodity(self, user: str) -> List[int]:
         """
         基于 Wide & Deep 的智能推荐
@@ -125,6 +127,7 @@ class RecommendCommodity:
             return ids
         return await self._fallback_collaborative_filter(user)
 
+    # 无 Wide & Deep 模型时, 使用协同过滤回退
     async def _fallback_collaborative_filter(self, user: str) -> List[int]:
         """无 Wide & Deep 模型时, 使用协同过滤回退"""
         from collections import defaultdict

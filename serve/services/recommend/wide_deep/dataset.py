@@ -11,12 +11,12 @@ from typing import Any, Dict, List, Tuple
 
 import numpy as np
 
-
+# 获取商品ID
 def _get_shopping_id(r: dict) -> int | None:
     sid = r.get("shopping_id") or r.get("commodity_id")
     return int(sid) if sid is not None else None
 
-
+# 解析ISO时间
 def _parse_iso_datetime(value: str | None) -> datetime | None:
     if not value:
         return None
@@ -25,7 +25,7 @@ def _parse_iso_datetime(value: str | None) -> datetime | None:
     except ValueError:
         return None
 
-
+# 构建词表
 def build_vocab(
     user_records: List[dict],
     shopping_items: List[dict],
@@ -59,7 +59,7 @@ def build_vocab(
 
     return user2idx, item2idx, type2idx
 
-
+# 总结词表
 def summarize_vocab(
     user2idx: Dict[str, int],
     item2idx: Dict[int, int],
@@ -71,7 +71,7 @@ def summarize_vocab(
         "types": max(0, len(type2idx) - 1),
     }
 
-
+# 检测词汇表变化
 def detect_vocab_changes(
     user_records: List[dict],
     shopping_items: List[dict],
@@ -109,7 +109,7 @@ def detect_vocab_changes(
         "requires_full_rebuild": has_new_user or has_new_item or has_new_type,
     }
 
-
+# 获取商品特征
 def get_item_features(
     shopping_items: List[dict],
     item2idx: Dict[int, int],
@@ -143,7 +143,7 @@ def get_item_features(
 
     return item_feats
 
-
+# 过滤记录
 def filter_records_after(
     user_records: List[dict],
     last_trained_at: str | None,
@@ -159,7 +159,7 @@ def filter_records_after(
             out.append(record)
     return out
 
-
+# 获取最新记录时间戳
 def get_latest_record_timestamp(user_records: List[dict]) -> str | None:
     latest: datetime | None = None
     for record in user_records:
@@ -170,7 +170,7 @@ def get_latest_record_timestamp(user_records: List[dict]) -> str | None:
             latest = updated_at
     return latest.isoformat() if latest else None
 
-
+# 构建训练数据
 def build_training_data(
     user_records: List[dict],
     shopping_items: List[dict],
@@ -208,7 +208,7 @@ def build_training_data(
     random.shuffle(samples)
     return samples
 
-
+# 构建增量训练数据
 def build_incremental_training_data(
     user_records: List[dict],
     item_feats: Dict[int, Tuple[int, int, float]],
@@ -247,7 +247,7 @@ def build_incremental_training_data(
     random.shuffle(samples)
     return samples
 
-
+# 保存词表
 def save_vocab(
     user2idx: Dict[str, int],
     item2idx: Dict[int, int],
@@ -265,7 +265,7 @@ def save_vocab(
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-
+# 加载词表
 def load_vocab(path: str) -> Tuple[Dict[str, int], Dict[int, int], Dict[str, int]]:
     """加载词表"""
     with open(path, "r", encoding="utf-8") as f:
