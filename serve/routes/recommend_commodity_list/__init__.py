@@ -49,7 +49,12 @@ async def recommend_commodity_list(
 
     async def execute():
         """随机推荐 (未登录或无历史时)"""
-        commodity_id_list = await sql.execute_query('select shopping_id from shopping where audit = 1')
+        commodity_id_list = await sql.execute_query(
+            'SELECT s.shopping_id '
+            'FROM shopping s '
+            'JOIN store st ON s.mall_id = st.mall_id '
+            'WHERE s.audit = 1 AND st.state = 1'
+        )
         if not commodity_id_list:
             return {'code': 404, 'msg': '暂无商品', 'success': False}
         select_id_list = [i[0] for i in commodity_id_list]

@@ -387,6 +387,7 @@ class BuyerCommodityRepertoryChange(BaseModel):
     minimum_balance: Optional[int] = 5  # 新增最小库存字段
     info: Optional[str] = None
 
+# 定义卖家商品库存变更记录查询路由数据模型
 class CommodityRepertoryRecord(BaseModel):
     token: str
     stroe_id: int
@@ -398,6 +399,27 @@ class CommodityRepertoryRecord(BaseModel):
     end_time: Optional[str] = None    # 结束时间，格式：YYYY-MM-DD HH:MM:SS
     change_type: Optional[str] = None  # 变更类型：'设置', '增加', '减少'
 
+# 定义卖家商品库存查询路由数据模型
 class CommodityRepertoryAllModel(BaseModel):
     token: str
     stroe_id: int
+
+# 定义购物车添加路由数据模型（前端 JSON 请求体，token 从 Header 获取）
+class ShoppingCartAddBody(BaseModel):
+    mall_id: int
+    shopping_id: int
+    spec_index: int = Field(..., ge=0, description="规格在 specification_list 中的索引")
+    quantity: int = Field(..., ge=1, description="购买数量，至少为 1")
+
+# 定义购物车添加路由数据模型（Form 格式，兼容旧版）
+class ShoppingCartAdd(BaseModel):
+    token: str
+    stroe_id: int
+    shopping_id: int
+    sku_id: int
+    quantity: int
+
+# 定义购物车更改路由数据模型（修改数量）
+class ShoppingCartUpdateBody(BaseModel):
+    id: int = Field(..., description="购物车项 ID")
+    quantity: int = Field(..., ge=1, description="新数量，至少为 1")

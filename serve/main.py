@@ -60,6 +60,11 @@ from routes.commodity_comment import router as commodity_comment_router
 from routes.browsing_history import router as browsing_history_router
 from routes.delete_browsing_history import router as delete_browsing_history_router
 from routes.clear_browsing_history import router as clear_browsing_history_router
+from routes.shopping_cart_add import router as shopping_cart_add_router
+from routes.shopping_cart_list import router as shopping_cart_list_router
+from routes.shopping_cart_update import router as shopping_cart_update_router
+from routes.shopping_cart_delete import router as shopping_cart_delete_router
+from routes.shopping_cart_clear import router as shopping_cart_clear_router
 
 
 from routes.buyer_repeat_show import router as buyer_repeat_show_router
@@ -840,6 +845,13 @@ app.include_router(delete_browsing_history_router,prefix='/api')
 
 # 清空浏览历史路由
 app.include_router(clear_browsing_history_router,prefix='/api')
+
+# 购物车路由
+app.include_router(shopping_cart_add_router, prefix='/api')
+app.include_router(shopping_cart_list_router, prefix='/api')
+app.include_router(shopping_cart_update_router, prefix='/api')
+app.include_router(shopping_cart_delete_router, prefix='/api')
+app.include_router(shopping_cart_clear_router, prefix='/api')
 
 # cs路由
 app.include_router(cs_router,prefix='/api')

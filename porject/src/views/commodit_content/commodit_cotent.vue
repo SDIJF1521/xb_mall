@@ -141,7 +141,7 @@ const imgList = computed(() => {
 })
 
 const getHeaders = () => {
-  const token = localStorage.getItem('access_token')
+  const token = localStorage.getItem('access_token') || localStorage.getItem('buyer_access_token')
   return token ? { 'access-token': token } : {}
 }
 
@@ -167,7 +167,8 @@ const fetchCommodity = async () => {
 }
 
 const handleBuy = async ({ specIndex, quantity }: { specIndex: number; quantity: number }) => {
-  if (!localStorage.getItem('access_token')) {
+  const token = localStorage.getItem('access_token') || localStorage.getItem('buyer_access_token')
+  if (!token) {
     ElMessage.warning('请先登录')
     router.push('/register')
     return
@@ -182,7 +183,8 @@ const handleBuy = async ({ specIndex, quantity }: { specIndex: number; quantity:
 }
 
 const handleAddToCart = async ({ specIndex, quantity }: { specIndex: number; quantity: number }) => {
-  if (!localStorage.getItem('access_token')) {
+  const token = localStorage.getItem('access_token') || localStorage.getItem('buyer_access_token')
+  if (!token) {
     ElMessage.warning('请先登录')
     router.push('/register')
     return
@@ -204,8 +206,14 @@ const handleAddToCart = async ({ specIndex, quantity }: { specIndex: number; qua
     } else {
       ElMessage.warning(res.data.msg || '操作失败')
     }
-  } catch {
-    ElMessage.error('加入购物车失败')
+  } catch (err: unknown) {
+    const status = (err as { response?: { status?: number } })?.response?.status
+    if (status === 401 || status === 403) {
+      ElMessage.warning('请先登录')
+      router.push('/register')
+    } else {
+      ElMessage.error('加入购物车失败')
+    }
   } finally {
     cartLoading.value = false
   }

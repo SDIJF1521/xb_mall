@@ -17,7 +17,8 @@ class LogIn:
             if user is None:
                 return {'msg':'无法验证',"current":False}
             if user in data_list:
-                if await redis_cli.get(f"user_{user}") == expire_timestamp:
+                redis_val = await redis_cli.get(f"user_{user}")
+                if redis_val is not None and redis_val == str(expire_timestamp):
                     return {'msg':'验证通过',"current":True}
                 else:
                     return {'msg':'token已过期',"current":False}

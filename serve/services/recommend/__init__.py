@@ -79,7 +79,10 @@ class RecommendCommodity:
 
         # 获取已审核候选商品
         audit_rows = await db_pool.execute_query(
-            "SELECT shopping_id FROM shopping WHERE audit = 1"
+            "SELECT s.shopping_id "
+            "FROM shopping s "
+            "JOIN store st ON s.mall_id = st.mall_id "
+            "WHERE s.audit = 1 AND st.state = 1"
         )
         if not audit_rows:
             return []
@@ -185,7 +188,10 @@ class RecommendCommodity:
             item_scores[item] = item_scores.get(item, 0) * 0.6 + type_scores.get(item, 0) * 0.4
 
         audit_rows = await db_pool.execute_query(
-            "SELECT shopping_id FROM shopping WHERE audit = 1"
+            "SELECT s.shopping_id "
+            "FROM shopping s "
+            "JOIN store st ON s.mall_id = st.mall_id "
+            "WHERE s.audit = 1 AND st.state = 1"
         )
         if not audit_rows:
             return []

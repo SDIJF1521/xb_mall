@@ -209,18 +209,46 @@ const handleProductClick = (product: Product) => {
   router.push(`/commodity/${product.mallId}/${product.id}`)
 }
 
+// 获取请求头（支持 C 端与商家端 token）
+const getCartHeaders = () => {
+  const token = localStorage.getItem('access_token') || localStorage.getItem('buyer_access_token')
+  return token ? { 'access-token': token } : {}
+}
+
 // 处理加入购物车
 const handleAddToCart = async (product: Product) => {
+  const token = localStorage.getItem('access_token') || localStorage.getItem('buyer_access_token')
+  if (!token) {
+    ElMessage.warning('请先登录')
+    router.push('/register')
+    return
+  }
   try {
     cartLoading[product.id] = true
-
-
-    await new Promise(resolve => setTimeout(resolve, 500))
-
-    ElMessage.success(`已将 ${product.name} 加入购物车`)
-  } catch (error) {
+    const res = await Axios.post(
+      '/shopping_cart_add',
+      {
+        mall_id: product.mallId,
+        shopping_id: product.id,
+        spec_index: 0,
+        quantity: 1,
+      },
+      { headers: getCartHeaders() }
+    )
+    if (res.data.success) {
+      ElMessage.success(`已将 ${product.name} 加入购物车`)
+    } else {
+      ElMessage.warning(res.data.msg || '操作失败')
+    }
+  } catch (error: unknown) {
     console.error('加入购物车失败:', error)
-    ElMessage.error('加入购物车失败')
+    const status = (error as { response?: { status?: number } })?.response?.status
+    if (status === 401 || status === 403) {
+      ElMessage.warning('请先登录')
+      router.push('/register')
+    } else {
+      ElMessage.error('加入购物车失败')
+    }
   } finally {
     cartLoading[product.id] = false
   }

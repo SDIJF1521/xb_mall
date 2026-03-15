@@ -40,7 +40,8 @@ import CommoditContent from '@/views/commodit_content/commodit_cotent.vue'
 import { setupHeartbeatGuard } from './heartbeatGuard'
 import { setupAuthGuard } from './authGuard';
 import { setupAdminAuthGuard } from './admin_authGuard'
-import {setupBuyerAuthGuard} from './buyer_authGuard'
+import { setupBuyerAuthGuard } from './buyer_authGuard'
+import { setupShoppingCartGuard } from './shoppingCartGuard'
 
 
 const routes: Array<RouteRecordRaw> = [
@@ -271,5 +272,8 @@ setupHeartbeatGuard(router);
 
 // 买家端认证守卫
 setupBuyerAuthGuard(router)
+
+// 购物车守卫：未登录跳转登录页
+setupShoppingCartGuard(router)
 
 export default router;

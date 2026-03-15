@@ -46,20 +46,13 @@ export function setupAuthGuard(router: Router) {
     // 需要认证的路由处理
     if (requiresAuth) {
       if (!token) {
-        // 无令牌，重定向到登录页
         return next('/register');
       }
-
-      // 验证Token有效性
       const isTokenValid = await verifyToken(token);
-
       if (!isTokenValid) {
-        // 令牌无效，清除本地存储并重定向到登录页
         localStorage.removeItem('access_token');
         return next('/register');
       }
-
-      // 认证通过，允许访问
       return next();
     }
 

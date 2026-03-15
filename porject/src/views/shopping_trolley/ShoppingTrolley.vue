@@ -2,14 +2,13 @@
   <div class="common-layout">
     <el-container>
       <el-header>
-        <!-- 使用注册的组件名称 -->
         <AppNavigation/>
       </el-header>
-      <el-header> <!-- 修正：el-header -->
-        <HodeTrolley/>
+      <el-header>
+        <HodeTrolley v-model:search-keyword="searchKeyword" @search="onCartSearch" />
       </el-header>
-      <el-main>
-        <component :is="mods"></component> <!-- 使用v-bind语法 -->
+      <el-main class="trolley-main">
+        <NallTrolley ref="nallTrolleyRef" :search-keyword="searchKeyword" />
       </el-main>
       <el-footer class="footer-content">版权所有 © [小白的商城]，保留所有权利。</el-footer>
     </el-container>
@@ -23,7 +22,7 @@ export default {
   name: 'ShoppingTrolley',
   data() {
     return {
-      mods: 'NallTrolley' // 返回一个对象，包含mods属性
+      searchKeyword: ''
     }
   },
   components: {
@@ -31,11 +30,30 @@ export default {
     NallTrolley,
     HodeTrolley
   },
+  methods: {
+    onCartSearch() {
+      this.$refs.nallTrolleyRef?.fetchList?.()
+    }
+  }
 }
 </script>
 <style scoped>
+.trolley-main {
+  padding: 20px 24px;
+  min-height: 60vh;
+  background: var(--color-background-soft);
+}
+
 .footer-content {
-  text-align: center; /* 文字内容水平居中 */
-  color: darkgray;
+  text-align: center;
+  color: var(--vt-c-text-light-2);
+}
+
+html.dark .trolley-main {
+  background: #1a1a1a;
+}
+
+html.dark .footer-content {
+  color: rgba(255, 255, 255, 0.5);
 }
 </style>

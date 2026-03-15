@@ -82,7 +82,7 @@
   <el-table-column prop="audit" label="商品状态">
     <template #default="scope">
       <el-tag :type="scope.row.audit === 1 ? 'primary' : scope.row.audit === 0 ? 'warning' : scope.row.audit === 3 ? 'danger' : 'danger'">
-        {{ scope.row.audit === 1 ? '已上架' : scope.row.audit === 0 ? '待审核' : scope.row.audit === 3 ? '已下架' : '审核未通过' }}
+        {{ scope.row.audit === 1 ? '已上架' : scope.row.audit === 0 ? '待审核' : scope.row.audit === 3 ? '已下架' :scope.row.audit === 4 ? '店铺关闭异常状态': '审核未通过' }}
       </el-tag>
     </template>
   </el-table-column>

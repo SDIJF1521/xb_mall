@@ -5,7 +5,7 @@
       <el-descriptions-item label="商品名称">{{ displayCommodity.name }}</el-descriptions-item>
       <el-descriptions-item label="商品状态">
         <el-tag :type="displayCommodity.audit === 1 ? 'primary' : displayCommodity.audit === 0 ? 'warning' : displayCommodity.audit === 3 ? 'danger' : 'danger'">
-          {{ displayCommodity.audit === 1 ? '审核通过' : displayCommodity.audit === 0 ? '待审核' : displayCommodity.audit === 3 ? '已下架' : '审核未通过' }}
+          {{ displayCommodity.audit === 1 ? '审核通过' : displayCommodity.audit === 0 ? '待审核' : displayCommodity.audit === 3 ? '已下架' : displayCommodity.audit === 4 ? '店铺关闭异常状态': '审核未通过' }}
         </el-tag>
       </el-descriptions-item>
       <el-descriptions-item label="创建时间">{{ displayCommodity.time }}</el-descriptions-item>
@@ -134,7 +134,7 @@ onMounted(async () => {
         'access-token': token.value
       }
     })
-    
+
     if (res.data.current && res.data.data) {
       categoryMap.value = {}
       for (const item in res.data.data) {

@@ -31,8 +31,8 @@
       </template>
     </router-link>
     
-    <!-- 购物车 -->
-    <router-link to="/shopping_trolley" custom>
+    <!-- 购物车（仅登录显示） -->
+    <router-link v-if="isLoggedIn" to="/shopping_trolley" custom>
       <template #default="{ navigate, isActive }">
         <el-menu-item 
           :class="{ 'is-active': isActive }"
@@ -73,7 +73,7 @@
 </template>
 
 <script>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
 export default {
@@ -84,6 +84,11 @@ export default {
     
     // 状态管理
     const darkMode = ref(false);
+    const isLoggedIn = ref(false);
+
+    const checkLogin = () => {
+      isLoggedIn.value = !!(localStorage.getItem('access_token') || localStorage.getItem('buyer_access_token'));
+    };
     const isTransitioning = ref(false);
     
     // 计算当前激活的菜单项
@@ -135,10 +140,13 @@ export default {
     
     // 初始化
     initTheme();
-    
+    checkLogin();
+    watch(() => route.path, checkLogin);
+
     return {
       darkMode,
       isTransitioning,
+      isLoggedIn,
       activeIndex,
       handleSelect,
       toggleTheme
