@@ -1,4 +1,4 @@
 {
-    "python-envs.pythonProjects": [],
-    "python-envs.defaultEnvManager": "ms-python.python:system"
+  "typescript.tsdk": "porject/node_modules/typescript/lib",
+  "python-envs.pythonProjects": []
 }

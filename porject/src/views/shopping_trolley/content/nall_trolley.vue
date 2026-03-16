@@ -103,7 +103,7 @@
                 size="small"
                 controls-position="right"
                 class="qty-input"
-                @update:model-value="(val: number | undefined) => handleQtyChange(item, val)"
+                @change="(val: number | undefined) => handleQtyChange(item, val)"
               />
             </div>
           </div>
@@ -167,7 +167,8 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
+import ElMessage from '@/utils/message'
 import { Picture, Delete, ShoppingCart } from '@element-plus/icons-vue'
 
 defineOptions({ name: 'NallTrolley' })
@@ -328,6 +329,7 @@ const onPageSizeChange = () => {
 const handleQtyChange = async (item: CartItem, newVal: number | undefined) => {
   if (newVal == null || newVal < 1) return
   if (newVal === item.quantity) return
+  if (updatingId.value === item.id) return
   updatingId.value = item.id
   try {
     const res = await Axios.patch(

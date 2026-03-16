@@ -34,6 +34,88 @@ xb_mall/
 └── README.md             # 📄 项目文档
 ```
 
+## 🚀 快速启动
+
+### 1) 环境准备
+
+- Node.js `>= 18`（前端）
+- Python `>= 3.10`（后端）
+- MySQL、MongoDB、Redis（本地或远程实例均可）
+- 可选：`uv`（推荐，用于 Python 依赖管理）
+
+### 2) 后端配置与启动（FastAPI）
+
+1. 进入后端目录：
+
+```bash
+cd serve
+```
+
+1. 复制环境变量模板并按需修改：
+
+```bash
+cp .env.example .env
+```
+
+Windows PowerShell 可用：
+
+```powershell
+Copy-Item .env.example .env
+```
+
+1. 至少确认以下配置项可用：
+
+- `DB_HOST` `DB_PORT` `DB_USER` `DB_PASSWORD` `DB_NAME`
+- `MONGODB_HOST` `MONGODB_PORT` `MONGODB_DATABASE`
+- `REDIS_HOST` `REDIS_PORT` `REDIS_DB`
+- `JWT_USER_SECRET_KEY` `JWT_CODE_SECRET_KEY` `JWT_ADMIN_SECRET_KEY` `JWT_SELLER_SECRET_KEY`
+
+1. 启动后端（任选一种方式）：
+
+使用 `uv`（推荐）：
+
+```bash
+uv sync
+uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+使用 `pip`：
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+Windows PowerShell（`pip` 方式激活虚拟环境）：
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -e .
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+后端默认地址：`http://127.0.0.1:8000`  
+接口文档：`http://127.0.0.1:8000/docs`
+
+### 3) 前端安装与启动（Vue3 + Vite）
+
+```bash
+cd porject
+npm install
+npm run dev
+```
+
+前端默认地址：`http://127.0.0.1:5173`
+
+### 4) 安全提示
+
+- 建议将 `JWT_*` 等密钥改为你自己的随机强密钥，不要使用默认值。
+- 生产环境不要在代码中保留明文邮箱凭证，建议改为环境变量注入。
+- 请确保 `.env` 不提交到公开仓库。
+
 ## 🏗️ 系统架构
 
 ```mermaid
@@ -270,6 +352,21 @@ services/store_chat_auth/__init__.py     # 鉴权服务（复用 VerifyDuterToke
 ```
 ws://host/api/ws/store_chat/{mall_id}?token=<buyer_access_token>
 ```
+
+## 🧪 常用开发命令
+
+### 前端（`porject/`）
+
+- `npm run dev`：本地开发
+- `npm run build`：类型检查 + 打包
+- `npm run preview`：预览生产构建
+- `npm run lint`：ESLint 自动修复
+- `npm run format`：格式化 `src/`
+
+### 后端（`serve/`）
+
+- `uv run uvicorn main:app --reload`：开发模式启动
+- `uv run python -m services.recommend.wide_deep.train`：手动全量训练推荐模型
 
 ## 项目维护
 

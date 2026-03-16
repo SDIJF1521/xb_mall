@@ -101,13 +101,16 @@
     </div>
 
     <!-- 分页 -->
-    <div v-if="total > pageSize" class="pagination-container">
+    <div v-if="total > 0" class="pagination-container">
       <el-pagination
         v-model:current-page="currentPage"
-        :page-size="pageSize"
+        v-model:page-size="pageSize"
+        :page-sizes="[12, 25, 50, 100]"
         :total="total"
-        layout="prev, pager, next, jumper, total"
+        layout="total, sizes, prev, pager, next, jumper"
+        background
         @current-change="handlePageChange"
+        @size-change="handlePageSizeChange"
       />
     </div>
   </div>
@@ -115,7 +118,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import ElMessage from '@/utils/message'
 import { ShoppingCart, Star, Picture } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
@@ -166,13 +169,14 @@ const fetchProducts = async (page: number = 1) => {
     }
 
     const res = await Axios.get('/recommend_commodity_list', {
-      params: { page },
+      params: { page, page_size: pageSize.value },
       headers,
     })
 
     if (!res.data.success) {
       ElMessage.warning(res.data.msg || '暂无商品')
       products.value = []
+      total.value = 0
       return
     }
 
@@ -187,7 +191,7 @@ const fetchProducts = async (page: number = 1) => {
       isWishlisted: false,
     }))
 
-    total.value = products.value.length
+    total.value = res.data.total ?? 0
   } catch (error) {
     console.error('获取商品列表失败:', error)
     ElMessage.error('获取商品列表失败')
@@ -200,8 +204,13 @@ const fetchProducts = async (page: number = 1) => {
 const handlePageChange = (page: number) => {
   currentPage.value = page
   fetchProducts(page)
-  // 滚动到顶部
   window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+// 处理每页数量变化
+const handlePageSizeChange = () => {
+  currentPage.value = 1
+  fetchProducts(1)
 }
 
 // 处理商品点击 - 跳转到商品详情页

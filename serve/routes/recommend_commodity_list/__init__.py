@@ -39,6 +39,7 @@ async def _build_output_list(id_list: list, mongodb: MongoDBClient, redis: Redis
 async def recommend_commodity_list(
     access_token: Annotated[str, Header()] = None,
     page: int = Query(1, description='页码'),
+    page_size: int = Query(50, description='每页数量'),
     db: Connection = Depends(get_db_pool),
     redis: RedisClient = Depends(get_redis),
     mongodb: MongoDBClient = Depends(get_mongodb_client),
@@ -56,13 +57,14 @@ async def recommend_commodity_list(
             'WHERE s.audit = 1 AND st.state = 1'
         )
         if not commodity_id_list:
-            return {'code': 404, 'msg': '暂无商品', 'success': False}
+            return {'code': 404, 'msg': '暂无商品', 'success': False, 'total': 0}
         select_id_list = [i[0] for i in commodity_id_list]
-        vlu = min(12, len(select_id_list))
-        id_list = [select_id_list.pop(select_id_list.index(choice(select_id_list))) for _ in range(vlu)]
-        out_list = await _build_output_list(id_list, mongodb, redis)
-        out = {'code': 200, 'msg': '成功', 'data': out_list, 'success': True}
-        await cache.set(f'recommend_commodity_list:{page}', out, expire=60 * 5)
+        total_count = len(select_id_list)
+        offset = (page - 1) * page_size
+        page_ids = select_id_list[offset:offset + page_size]
+        out_list = await _build_output_list(page_ids, mongodb, redis) if page_ids else []
+        out = {'code': 200, 'msg': '成功', 'data': out_list, 'success': True, 'total': total_count}
+        await cache.set(f'recommend_commodity_list:{page}:{page_size}', out, expire=60 * 5)
         return out
 
     if access_token is None:
@@ -75,11 +77,14 @@ async def recommend_commodity_list(
 
     # 已登录: 尝试AI推荐
     recommend_svc = RecommendCommodity(mongodb)
-    id_list = await recommend_svc._index_recommend_commodity(verify_token['user'])
-    if id_list:
-        out_list = await _build_output_list(id_list, mongodb, redis)
-        cache_key = f'recommend_commodity_list:user:{verify_token["user"]}:{page}'
-        out = {'code': 200, 'msg': '成功', 'data': out_list, 'success': True}
+    all_ids = await recommend_svc._index_recommend_commodity(verify_token['user'])
+    if all_ids:
+        total_count = len(all_ids)
+        offset = (page - 1) * page_size
+        page_ids = all_ids[offset:offset + page_size]
+        out_list = await _build_output_list(page_ids, mongodb, redis) if page_ids else []
+        cache_key = f'recommend_commodity_list:user:{verify_token["user"]}:{page}:{page_size}'
+        out = {'code': 200, 'msg': '成功', 'data': out_list, 'success': True, 'total': total_count}
         await cache.set(cache_key, out, expire=60 * 5)
         return out
 
