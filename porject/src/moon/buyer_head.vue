@@ -127,55 +127,127 @@
                         </template>
                     </el-dropdown>
                 </el-badge>
+
+                <!-- 聊天按钮 -->
                 <el-badge :value="messageCount" :hidden="messageCount === 0" :max="99">
                     <el-button :icon="ChatDotRound" size="small" circle @click="openMessageDrawer" />
                 </el-badge>
 
-                <!-- 聊天侧边抽屉 -->
+                <!-- 员工聊天抽屉 -->
                 <el-drawer
                     v-model="messageDrawerVisible"
-                    title="聊天室"
+                    title="员工聊天室"
                     direction="rtl"
-                    size="450px"
+                    size="460px"
                     :z-index="2000"
+                    @open="onDrawerOpen"
+                    @close="onDrawerClose"
                 >
                     <div class="chat-container">
-                        <div class="chat-header">
-                            <h3>对话</h3>
-                            <el-tag type="success" size="small">在线</el-tag>
+                        <!-- 主商户：店铺选择 -->
+                        <div v-if="userStation === '1'" class="store-selector">
+                            <el-select
+                                v-model="selectedMallId"
+                                placeholder="选择要加入的店铺聊天室"
+                                style="width: 100%"
+                                :loading="mallListLoading"
+                                @change="connectToStore"
+                            >
+                                <el-option
+                                    v-for="m in mallList"
+                                    :key="m.id"
+                                    :label="m.name"
+                                    :value="m.id"
+                                />
+                            </el-select>
                         </div>
 
+                        <!-- 连接状态栏 -->
+                        <div class="ws-status-bar" :class="`ws-status-bar--${wsState}`">
+                            <template v-if="wsState === 'open'">
+                                <span class="status-dot status-dot--green" />
+                                <span>已连接</span>
+                                <span class="online-info">
+                                    <el-icon><User /></el-icon>
+                                    在线：{{ onlineUsers.join('、') || '仅你' }}
+                                </span>
+                            </template>
+                            <template v-else-if="wsState === 'connecting'">
+                                <el-icon class="is-loading"><Loading /></el-icon>
+                                <span>连接中...</span>
+                            </template>
+                            <template v-else-if="wsState === 'idle'">
+                                <span class="status-dot status-dot--gray" />
+                                <span>{{ userStation === '1' ? '请选择店铺' : '等待连接' }}</span>
+                            </template>
+                            <template v-else>
+                                <span class="status-dot status-dot--red" />
+                                <span>已断开</span>
+                                <el-button size="small" type="primary" text @click="reconnectWs">重连</el-button>
+                            </template>
+                        </div>
+
+                        <!-- 消息列表 -->
                         <div class="chat-messages" ref="chatMessagesRef">
-                            <div
-                                v-for="(msg, index) in chatMessages"
-                                :key="index"
-                                class="message-bubble"
-                                :class="{ 'my-message': msg.sender === 'me', 'other-message': msg.sender !== 'me' }"
-                            >
-                                <div class="message-avatar">
-                                    <el-avatar
-                                        :size="30"
-                                        :src="msg.sender === 'me' ? myAvatar : otherAvatar"
-                                    />
+                            <template v-for="(msg, index) in chatMessages" :key="index">
+                                <!-- 系统通知 -->
+                                <div v-if="msg.type === 'system'" class="sys-message">
+                                    <el-icon><InfoFilled /></el-icon>
+                                    <span>{{ msg.content }}</span>
+                                    <span class="sys-time">{{ formatMsgTime(msg.created_at) }}</span>
                                 </div>
-                                <div class="message-content">
-                                    <div class="message-text">{{ msg.text }}</div>
-                                    <div class="message-time">{{ msg.time }}</div>
+
+                                <!-- 他人消息 -->
+                                <div
+                                    v-else-if="msg.username !== currentUser"
+                                    class="message-bubble other-message"
+                                >
+                                    <div class="message-avatar">
+                                        <el-avatar :size="30" class="avatar-other">
+                                            {{ (msg.username || '?').slice(0, 1).toUpperCase() }}
+                                        </el-avatar>
+                                    </div>
+                                    <div class="message-content">
+                                        <div class="message-sender">{{ msg.username }}</div>
+                                        <div class="message-text other-text">{{ msg.content }}</div>
+                                        <div class="message-time">{{ formatMsgTime(msg.created_at) }}</div>
+                                    </div>
                                 </div>
+
+                                <!-- 自己消息 -->
+                                <div v-else class="message-bubble my-message">
+                                    <div class="message-content">
+                                        <div class="message-text my-text">{{ msg.content }}</div>
+                                        <div class="message-time" style="text-align:right">{{ formatMsgTime(msg.created_at) }}</div>
+                                    </div>
+                                    <div class="message-avatar">
+                                        <el-avatar :size="30" class="avatar-self">
+                                            {{ (msg.username || '?').slice(0, 1).toUpperCase() }}
+                                        </el-avatar>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- 空状态 -->
+                            <div v-if="chatMessages.length === 0 && wsState === 'open'" class="empty-chat">
+                                <el-icon :size="36"><ChatRound /></el-icon>
+                                <p>暂无消息，快来打个招呼吧！</p>
                             </div>
                         </div>
 
+                        <!-- 输入区域 -->
                         <div class="chat-input-area">
                             <el-input
                                 v-model="chatInput"
-                                placeholder="输入消息..."
-                                @keyup.enter="sendMessage"
+                                placeholder="输入消息，Enter 发送…"
+                                @keydown.enter.exact.prevent="sendMessage"
+                                :disabled="wsState !== 'open'"
                                 class="chat-input"
                             />
                             <el-button
                                 type="primary"
                                 @click="sendMessage"
-                                :disabled="!chatInput.trim()"
+                                :disabled="!chatInput.trim() || wsState !== 'open'"
                                 class="send-button"
                             >
                                 发送
@@ -192,103 +264,71 @@
 <script lang="ts" setup>
 import {ref, onMounted, onUnmounted, computed, nextTick} from 'vue'
 import axios from 'axios'
-import {Bell, ChatDotRound, Search, CircleCheck, CircleClose, Clock, User, ArrowDown, ArrowUp, Delete} from '@element-plus/icons-vue'
+import {
+    Bell, ChatDotRound, Search,
+    CircleCheck, CircleClose, Clock, User,
+    ArrowDown, ArrowUp, Delete,
+    InfoFilled, Loading, ChatRound,
+} from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from 'element-plus'
 
 const Axios = axios.create({
     baseURL: 'http://127.0.0.1:8000/api'
 })
 
+// ── 通知相关 ──────────────────────────────────────────────────────────────
+
 const inform = ref<any[]>([])
-const messageCount = ref(0)
-const expandedItems = ref<Record<number, boolean>>({}) // 跟踪每个通知项的展开状态
-const messageDrawerVisible = ref(false)
-const chatMessages = ref<any[]>([])
-const chatInput = ref('')
-const chatMessagesRef = ref<HTMLElement>()
-const myAvatar = ref(`data:image/png;base64,${localStorage.getItem('img')}` || 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png')
-const otherAvatar = ref('https://cube.elemecdn.com/3/73/750154eb595ab21efae0d53a836c7.png') // 默认头像
-const MAX_PREVIEW_LENGTH = 150 // 预览最大字符数
+const expandedItems = ref<Record<number, boolean>>({})
+const MAX_PREVIEW_LENGTH = 150
 
-defineOptions({
-    name: "BuyerHead"
-})
+defineOptions({ name: "BuyerHead" })
+
 const input = ref('')
-const value = ref('')
 const user = localStorage.getItem('buyer_user')
-const data = ref({'img':`data:image/png;base64,${localStorage.getItem('img')}`||'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png','userName':user||'小白'})
-
-// 计算未读通知数量
-const unreadCount = computed(() => {
-    return inform.value.filter(item => item.read === 0).length
+const data = ref({
+    img: `data:image/png;base64,${localStorage.getItem('img')}` || 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png',
+    userName: user || '小白'
 })
 
-// 获取商品通知
+const unreadCount = computed(() => inform.value.filter(item => item.read === 0).length)
+
 async function getCommodityInform() {
     try {
         const token = localStorage.getItem('buyer_access_token')
-        if (!token) {
-            console.warn('未找到访问令牌')
-            return
-        }
-        const res = await Axios.get('/buyer_commodity_inform', {
-            headers: {
-                'access-token': token
-            }
-        })
+        if (!token) return
+        const res = await Axios.get('/buyer_commodity_inform', { headers: { 'access-token': token } })
         if (res.status == 200) {
-            if (res.data.current && res.data.flag) {
-                inform.value = res.data.data || []
-            } else {
-                inform.value = []
-            }
+            inform.value = res.data.current && res.data.flag ? (res.data.data || []) : []
         }
-    } catch (error) {
-        console.error('获取通知失败:', error)
+    } catch {
         ElMessage.error('获取通知失败')
     }
 }
 
-// 处理通知下拉菜单显示/隐藏
 function handleNotificationVisible(visible: boolean) {
-    if (visible) {
-        getCommodityInform()
-    }
+    if (visible) getCommodityInform()
 }
 
-// 标记单个通知为已读
-async function markNotificationAsRead(mall_id: number, shopping_id: number,_id:string) {
+async function markNotificationAsRead(mall_id: number, shopping_id: number, _id: string) {
     try {
         const token = localStorage.getItem('buyer_access_token')
-        if (!token) {
-            console.warn('未找到访问令牌')
-            return false
-        }
+        if (!token) return false
         const formData = new FormData()
         formData.append('token', token)
         formData.append('info_id', _id.toString())
         formData.append('mall_id', mall_id.toString())
         formData.append('shopping_id', shopping_id.toString())
         const res = await Axios.post('/buyer_r_commodity_inform_read', formData)
-        if (res.status === 200 && res.data.current) {
-            return true
-        } else {
-            console.error('标记已读失败:', res.data.msg)
-            return false
-        }
-    } catch (error) {
-        console.error('标记已读失败:', error)
+        return res.status === 200 && res.data.current
+    } catch {
         return false
     }
 }
 
-// 处理通知点击
 async function handleNotificationClick(item: any) {
-    console.log('点击通知:', item)
     if (item.read === 0 && item.mall_id && item.shopping_id) {
-        console.log(item);
-
-        const success = await markNotificationAsRead(item.mall_id, item.shopping_id,item._id)
+        const success = await markNotificationAsRead(item.mall_id, item.shopping_id, item._id)
         if (success) {
             item.read = 1
             ElMessage.success('已标记为已读')
@@ -298,228 +338,293 @@ async function handleNotificationClick(item: any) {
     }
 }
 
-// 标记全部为已读
 async function markAllAsRead() {
     try {
         const token = localStorage.getItem('buyer_access_token')
-        if (!token) {
-            ElMessage.error('未找到访问令牌')
-            return
-        }
-
+        if (!token) { ElMessage.error('未找到访问令牌'); return }
         const formData = new FormData()
         formData.append('token', token)
-
         const res = await Axios.post('/buyer_r_commodity_inform_read', formData)
         if (res.status === 200 && res.data.current) {
-            inform.value.forEach(item => {
-                item.read = 1
-            })
+            inform.value.forEach(item => { item.read = 1 })
             ElMessage.success(`已标记全部为已读（共${res.data.updated_count || 0}条）`)
         } else {
             ElMessage.error(res.data.msg || '标记全部已读失败')
         }
-    } catch (error) {
-        console.error('标记全部已读失败:', error)
+    } catch {
         ElMessage.error('标记全部已读失败')
     }
 }
 
 function shouldShowExpandButton(msg: string | undefined): boolean {
-    if (!msg) return false
-    return msg.length > MAX_PREVIEW_LENGTH
+    return !!msg && msg.length > MAX_PREVIEW_LENGTH
 }
 
 function toggleExpand(index: number) {
     expandedItems.value[index] = !expandedItems.value[index]
 }
 
-// 打开聊天抽屉
-function openMessageDrawer() {
-    messageDrawerVisible.value = true
-    // 初始化聊天记录
-    initChat()
-}
-
-// 初始化聊天
-function initChat() {
-    // 模拟初始聊天记录
-    chatMessages.value = [
-        {
-            id: 1,
-            sender: 'other',
-            text: '您好，欢迎来到我们的商城！有什么可以帮助您的吗？',
-            time: formatTime(new Date(Date.now() - 300000)) // 5分钟前
-        },
-        {
-            id: 2,
-            sender: 'me',
-            text: '我想咨询一下最近的促销活动',
-            time: formatTime(new Date(Date.now() - 240000)) // 4分钟前
-        },
-        {
-            id: 3,
-            sender: 'other',
-            text: '我们最近有春季大促活动，全场商品8折起，还有满减优惠哦！',
-            time: formatTime(new Date(Date.now() - 180000)) // 3分钟前
-        }
-    ]
-    // 自动滚动到底部
-    nextTick(() => {
-        scrollToBottom()
-    })
-}
-
-// 格式化时间
-function formatTime(date: Date) {
-    const hours = date.getHours().toString().padStart(2, '0')
-    const minutes = date.getMinutes().toString().padStart(2, '0')
-    return `${hours}:${minutes}`
-}
-
-// 发送消息
-function sendMessage() {
-    if (!chatInput.value.trim()) return
-
-    // 添加用户消息
-    const userMessage = {
-        id: Date.now(),
-        sender: 'me',
-        text: chatInput.value,
-        time: formatTime(new Date())
-    }
-
-    chatMessages.value.push(userMessage)
-    chatInput.value = ''
-
-    // 自动滚动到底部
-    nextTick(() => {
-        scrollToBottom()
-    })
-
-    // 回复
-    setTimeout(() => {
-        const replyMessage = {
-            id: Date.now() + 1,
-            sender: 'other',
-            text: '好的，我会尽快为您处理这个问题。',
-            time: formatTime(new Date())
-        }
-        chatMessages.value.push(replyMessage)
-
-        nextTick(() => {
-            scrollToBottom()
-        })
-    }, 1000)
-}
-
-// 滚动到聊天底部
-function scrollToBottom() {
-    if (chatMessagesRef.value) {
-        chatMessagesRef.value.scrollTop = chatMessagesRef.value.scrollHeight
-    }
-}
-
-// 删除单个通知
 async function deleteNotification(item: any, index: number) {
     try {
-        await ElMessageBox.confirm(
-            '确定要删除这条通知吗？',
-            '删除通知',
-            {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
-                type: 'warning'
-            }
-        )
-
+        await ElMessageBox.confirm('确定要删除这条通知吗？', '删除通知', {
+            confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning'
+        })
         const token = localStorage.getItem('buyer_access_token')
-        if (!token) {
-            ElMessage.error('未找到访问令牌')
-            return
-        }
-
+        if (!token) { ElMessage.error('未找到访问令牌'); return }
         const formData = new FormData()
         formData.append('token', token)
         formData.append('info_id', item._id.toString())
-         formData.append('token', token)
-        formData.append('info_id', item._id.toString())
         formData.append('mall_id', item.mall_id.toString())
         formData.append('shopping_id', item.shopping_id.toString())
-
-
         const res = await Axios.post('/buyer_r_commodity_inform_delete', formData)
         if (res.status === 200 && res.data.current) {
-            // 从本地数组中移除该通知
             inform.value.splice(index, 1)
             ElMessage.success('通知删除成功')
         } else {
             ElMessage.error(res.data.msg || '删除通知失败')
         }
     } catch (error) {
-        if (error !== 'cancel') {
-            console.error('删除通知失败:', error)
-            ElMessage.error('删除通知失败')
-        }
+        if (error !== 'cancel') ElMessage.error('删除通知失败')
     }
 }
 
-// 删除所有已读通知
 async function deleteAllReadNotifications() {
     try {
-        await ElMessageBox.confirm(
-            '确定要删除所有已读通知吗？',
-            '删除通知',
-            {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
-                type: 'warning'
-            }
-        )
-
+        await ElMessageBox.confirm('确定要删除所有已读通知吗？', '删除通知', {
+            confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning'
+        })
         const token = localStorage.getItem('buyer_access_token')
-        if (!token) {
-            ElMessage.error('未找到访问令牌')
-            return
-        }
-
+        if (!token) { ElMessage.error('未找到访问令牌'); return }
         const formData = new FormData()
         formData.append('token', token)
-
         const res = await Axios.post('/buyer_r_commodity_inform_delete', formData)
         if (res.status === 200 && res.data.current) {
-            // 重新获取通知列表
             getCommodityInform()
             ElMessage.success(`已删除所有已读通知（共${res.data.deleted_count || 0}条）`)
         } else {
             ElMessage.error(res.data.msg || '删除已读通知失败')
         }
     } catch (error) {
-        if (error !== 'cancel') {
-            console.error('删除已读通知失败:', error)
-            ElMessage.error('删除已读通知失败')
+        if (error !== 'cancel') ElMessage.error('删除已读通知失败')
+    }
+}
+
+// ── WebSocket 员工聊天 ─────────────────────────────────────────────────────
+
+interface ChatMsg {
+    type: 'chat' | 'system'
+    username?: string
+    content: string
+    created_at: string
+}
+
+const messageCount = ref(0)
+const messageDrawerVisible = ref(false)
+const chatMessages = ref<ChatMsg[]>([])
+const chatInput = ref('')
+const chatMessagesRef = ref<HTMLElement>()
+const onlineUsers = ref<string[]>([])
+const currentUser = ref('')
+
+type WsState = 'idle' | 'connecting' | 'open' | 'closed'
+const wsState = ref<WsState>('idle')
+
+// 登录身份
+const userStation = ref<'1' | '2' | ''>('')
+const mallList = ref<{ id: number; name: string }[]>([])
+const mallListLoading = ref(false)
+const selectedMallId = ref<number | null>(null)
+const userMallIdFromToken = ref<number | null>(null)   // station='2' 使用
+
+let ws: WebSocket | null = null
+let autoReconnect = true
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+let activeMallId: number | null = null
+
+/** 解析 JWT payload（仅用于读取 claims，无需验签） */
+function parseJwtPayload(raw: string): Record<string, any> | null {
+    try {
+        const jwt = raw.trim().split(' ').pop()!
+        const b64 = jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+        return JSON.parse(atob(b64))
+    } catch {
+        return null
+    }
+}
+
+function initTokenInfo() {
+    const raw = localStorage.getItem('buyer_access_token') || ''
+    const payload = parseJwtPayload(raw)
+    if (!payload) return
+    userStation.value = payload.station ?? ''
+    if (payload.station === '2') {
+        userMallIdFromToken.value = payload.mall_id ?? null
+    }
+    currentUser.value = payload.user ?? ''
+}
+
+/** 加载主商户的店铺列表（station='1'） */
+async function loadMallList() {
+    mallListLoading.value = true
+    try {
+        const token = localStorage.getItem('buyer_access_token') || ''
+        const form = new FormData()
+        form.append('token', token)
+        const res = await Axios.post('/buyer_get_mall_info', form)
+        if (res.status === 200 && res.data.current && res.data.data) {
+            mallList.value = res.data.data.map((s: any) => ({ id: s.id, name: s.mall_name || `店铺 ${s.id}` }))
+        }
+    } catch {
+        // ignore
+    } finally {
+        mallListLoading.value = false
+    }
+}
+
+function connectWs(mallId: number) {
+    if (ws) { ws.onclose = null; ws.close(); ws = null }
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null }
+
+    activeMallId = mallId
+    wsState.value = 'connecting'
+    autoReconnect = true
+
+    const raw = localStorage.getItem('buyer_access_token') || ''
+    const encoded = encodeURIComponent(raw)
+    ws = new WebSocket(`ws://127.0.0.1:8000/api/ws/store_chat/${mallId}?token=${encoded}`)
+
+    ws.onopen = () => {
+        wsState.value = 'open'
+    }
+
+    ws.onmessage = (event) => {
+        try { handleServerMsg(JSON.parse(event.data)) } catch { /* ignore */ }
+    }
+
+    ws.onerror = () => {
+        wsState.value = 'closed'
+    }
+
+    ws.onclose = (e) => {
+        wsState.value = 'closed'
+        if (e.code === 4001) {
+            ElMessage.error('Token 无效或已过期，请重新登录')
+            autoReconnect = false
+        } else if (e.code === 4003) {
+            ElMessage.error('无权限访问该店铺聊天室')
+            autoReconnect = false
+        } else if (autoReconnect && activeMallId !== null) {
+            reconnectTimer = setTimeout(() => connectWs(activeMallId!), 3000)
         }
     }
 }
 
+function handleServerMsg(data: any) {
+    if (data.type === 'history') {
+        chatMessages.value = data.data || []
+        scrollToBottom()
+        return
+    }
+    if (data.type === 'system') {
+        if (Array.isArray(data.online_users)) onlineUsers.value = data.online_users
+        chatMessages.value.push({ type: 'system', content: data.content, created_at: data.created_at })
+        scrollToBottom()
+        return
+    }
+    if (data.type === 'chat') {
+        chatMessages.value.push({
+            type: 'chat',
+            username: data.username,
+            content: data.content,
+            created_at: data.created_at,
+        })
+        // 未打开抽屉时增加未读数
+        if (!messageDrawerVisible.value) messageCount.value++
+        scrollToBottom()
+    }
+}
+
+function sendMessage() {
+    const content = chatInput.value.trim()
+    if (!content || wsState.value !== 'open') return
+    if (content.length > 500) { ElMessage.warning('消息不能超过 500 个字符'); return }
+    ws?.send(JSON.stringify({ type: 'chat', content }))
+    chatInput.value = ''
+}
+
+function disconnectWs() {
+    autoReconnect = false
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null }
+    if (ws) { ws.onclose = null; ws.close(); ws = null }
+    wsState.value = 'idle'
+    activeMallId = null
+}
+
+function reconnectWs() {
+    if (activeMallId !== null) {
+        autoReconnect = true
+        connectWs(activeMallId)
+    }
+}
+
+function scrollToBottom() {
+    nextTick(() => {
+        if (chatMessagesRef.value) {
+            chatMessagesRef.value.scrollTop = chatMessagesRef.value.scrollHeight
+        }
+    })
+}
+
+function formatMsgTime(ts: string): string {
+    if (!ts) return ''
+    const d = new Date(ts)
+    if (isNaN(d.getTime())) return ''
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
+function openMessageDrawer() {
+    messageDrawerVisible.value = true
+    messageCount.value = 0
+}
+
+function onDrawerOpen() {
+    messageCount.value = 0
+    if (userStation.value === '2' && userMallIdFromToken.value !== null && wsState.value === 'idle') {
+        connectWs(userMallIdFromToken.value)
+    } else if (userStation.value === '1' && mallList.value.length === 0) {
+        loadMallList()
+    }
+}
+
+function onDrawerClose() {
+    // 保持 WS 连接以便后台收到消息后更新 messageCount
+}
+
+/** 主商户在下拉框选择店铺后触发 */
+function connectToStore(mallId: number) {
+    chatMessages.value = []
+    onlineUsers.value = []
+    connectWs(mallId)
+}
+
+// ── 生命周期 ──────────────────────────────────────────────────────────────
 
 let intervalId: number | null = null
 
-
 onMounted(() => {
+    initTokenInfo()
     getCommodityInform()
-    intervalId = setInterval(() => {
-        getCommodityInform()
-    }, 60000*5)
+    // station='2' 员工：静默后台连接，以便接收消息计数
+    if (userStation.value === '2' && userMallIdFromToken.value !== null) {
+        connectWs(userMallIdFromToken.value)
+    }
+    intervalId = setInterval(() => { getCommodityInform() }, 60000 * 5)
 })
 
 onUnmounted(() => {
-    if (intervalId !== null) {
-        clearInterval(intervalId)
-        intervalId = null
-    }
+    if (intervalId !== null) { clearInterval(intervalId); intervalId = null }
+    disconnectWs()
 })
-
 </script>
 <style scoped>
     .header-content{
@@ -671,14 +776,8 @@ onUnmounted(() => {
         animation: pulse 2s infinite;
     }
     @keyframes pulse {
-        0%, 100% {
-            opacity: 1;
-            transform: translateY(-50%) scale(1);
-        }
-        50% {
-            opacity: 0.7;
-            transform: translateY(-50%) scale(1.2);
-        }
+        0%, 100% { opacity: 1; transform: translateY(-50%) scale(1); }
+        50%       { opacity: 0.7; transform: translateY(-50%) scale(1.2); }
     }
 
     .notification-content {
@@ -708,15 +807,9 @@ onUnmounted(() => {
         font-size: 18px;
         flex-shrink: 0;
     }
-    .title-icon:not(.error-icon):not(.info-icon) {
-        color: #46e2cb;
-    }
-    .error-icon {
-        color: #f56c6c;
-    }
-    .info-icon {
-        color: var(--el-text-color-placeholder);
-    }
+    .title-icon:not(.error-icon):not(.info-icon) { color: #46e2cb; }
+    .error-icon { color: #f56c6c; }
+    .info-icon  { color: var(--el-text-color-placeholder); }
     .notification-actions {
         display: flex;
         align-items: center;
@@ -731,7 +824,6 @@ onUnmounted(() => {
         opacity: 0.7;
         transition: all 0.2s;
     }
-
     .delete-notification-btn:hover {
         opacity: 1;
         transform: scale(1.1);
@@ -740,7 +832,6 @@ onUnmounted(() => {
     .notification-message-wrapper {
         padding-left: 26px;
     }
-
     .notification-message {
         font-size: 13px;
         color: var(--el-text-color-regular);
@@ -763,8 +854,6 @@ onUnmounted(() => {
         line-clamp: unset;
         display: block;
     }
-
-
     .expand-btn {
         margin-top: 6px;
         padding: 0;
@@ -778,7 +867,6 @@ onUnmounted(() => {
         font-size: 12px;
         transition: transform 0.3s ease;
     }
-
 
     .notification-footer {
         display: flex;
@@ -794,10 +882,7 @@ onUnmounted(() => {
         font-size: 12px;
         color: var(--el-text-color-placeholder);
     }
-    .notification-auditor .el-icon {
-        font-size: 14px;
-    }
-
+    .notification-auditor .el-icon { font-size: 14px; }
 
     .empty-notification {
         padding: 40px 20px;
@@ -809,7 +894,6 @@ onUnmounted(() => {
         opacity: 0.5;
     }
 
-
     .dark .notification-btn:hover {
         background-color: rgba(70, 226, 203, 0.15);
     }
@@ -817,12 +901,8 @@ onUnmounted(() => {
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
         border-color: rgba(255, 255, 255, 0.1);
     }
-    .dark .notification-item {
-        border-bottom-color: rgba(255, 255, 255, 0.1);
-    }
-    .dark .notification-item:hover {
-        background-color: rgba(255, 255, 255, 0.05);
-    }
+    .dark .notification-item { border-bottom-color: rgba(255, 255, 255, 0.1); }
+    .dark .notification-item:hover { background-color: rgba(255, 255, 255, 0.05); }
     .dark .notification-item.unread {
         background: linear-gradient(to right, rgba(70, 226, 203, 0.2) 0%, var(--el-bg-color) 8%);
     }
@@ -830,116 +910,169 @@ onUnmounted(() => {
         background: linear-gradient(to right, rgba(70, 226, 203, 0.3) 0%, rgba(255, 255, 255, 0.05) 8%);
     }
 
-    /* 聊天界面样式 */
+    /* ── 聊天抽屉内部 ─────────────────────────────── */
     .chat-container {
         display: flex;
         flex-direction: column;
         height: 100%;
+        gap: 10px;
     }
 
-    .chat-header {
+    /* 店铺选择器 */
+    .store-selector {
+        flex-shrink: 0;
+    }
+
+    /* 连接状态栏 */
+    .ws-status-bar {
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding-bottom: 16px;
-        border-bottom: 1px solid var(--el-border-color);
-        margin-bottom: 16px;
+        gap: 6px;
+        font-size: 12px;
+        padding: 6px 10px;
+        border-radius: 8px;
+        flex-shrink: 0;
+        color: var(--el-text-color-secondary);
+        background: var(--el-fill-color-lighter);
+    }
+    .ws-status-bar--open   { background: rgba(103, 194, 58, 0.1); color: #67c23a; }
+    .ws-status-bar--closed { background: rgba(245, 108, 108, 0.1); color: #f56c6c; }
+    .ws-status-bar--connecting { color: #e6a23c; background: rgba(230, 162, 60, 0.1); }
+
+    .status-dot {
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+    .status-dot--green { background: #67c23a; }
+    .status-dot--red   { background: #f56c6c; }
+    .status-dot--gray  { background: var(--el-border-color-darker); }
+
+    .online-info {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11px;
+        opacity: 0.8;
     }
 
-    .chat-header h3 {
-        margin: 0;
-        font-size: 16px;
-        font-weight: 600;
-    }
-
+    /* 消息列表 */
     .chat-messages {
         flex: 1;
         overflow-y: auto;
-        padding: 0 10px 16px;
+        padding: 4px 4px 8px;
         display: flex;
         flex-direction: column;
-        gap: 16px;
+        gap: 10px;
+        min-height: 0;
+    }
+    .chat-messages::-webkit-scrollbar { width: 6px; }
+    .chat-messages::-webkit-scrollbar-track { background: var(--el-fill-color-lighter); }
+    .chat-messages::-webkit-scrollbar-thumb { background: var(--el-border-color-darker); border-radius: 3px; }
+
+    /* 系统消息 */
+    .sys-message {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        font-size: 12px;
+        color: var(--el-text-color-placeholder);
+        background: var(--el-fill-color-light);
+        padding: 3px 12px;
+        border-radius: 20px;
+        align-self: center;
+    }
+    .sys-time {
+        margin-left: 4px;
+        font-size: 11px;
+        opacity: 0.7;
     }
 
-    .chat-messages::-webkit-scrollbar {
-        width: 6px;
-    }
-    .chat-messages::-webkit-scrollbar-track {
-        background: var(--el-fill-color-lighter);
-    }
-    .chat-messages::-webkit-scrollbar-thumb {
-        background: var(--el-border-color-darker);
-        border-radius: 3px;
-    }
-    .chat-messages::-webkit-scrollbar-thumb:hover {
-        background: var(--el-text-color-placeholder);
-    }
-
+    /* 气泡行 */
     .message-bubble {
         display: flex;
-        gap: 10px;
-        align-items: flex-start;
+        align-items: flex-end;
+        gap: 8px;
     }
+    .message-bubble.my-message { flex-direction: row-reverse; }
 
-    .message-bubble.my-message {
-        flex-direction: row-reverse;
-        margin-left: auto;
+    .message-avatar { flex-shrink: 0; }
+    .avatar-other {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: #fff;
+        font-weight: 600;
     }
-
-    .message-avatar {
-        flex-shrink: 0;
+    .avatar-self {
+        background: linear-gradient(135deg, #43e97b, #38f9d7);
+        color: #fff;
+        font-weight: 600;
     }
 
     .message-content {
         display: flex;
         flex-direction: column;
-        max-width: 70%;
+        max-width: 72%;
     }
+    .my-message .message-content { align-items: flex-end; }
 
-    .message-bubble.my-message .message-content {
-        align-items: flex-end;
+    .message-sender {
+        font-size: 11px;
+        color: var(--el-text-color-placeholder);
+        margin-bottom: 3px;
+        padding-left: 4px;
     }
 
     .message-text {
-        padding: 10px 14px;
-        border-radius: 18px;
+        padding: 9px 13px;
+        border-radius: 16px;
         font-size: 14px;
-        line-height: 1.5;
-        word-wrap: break-word;
+        line-height: 1.55;
+        word-break: break-word;
         white-space: pre-wrap;
     }
-
-    .message-bubble.my-message .message-text {
-        background-color: #409eff;
-        color: white;
-        border-bottom-right-radius: 4px;
-    }
-
-    .message-bubble.other-message .message-text {
+    .other-text {
         background-color: var(--el-bg-color-overlay);
         border: 1px solid var(--el-border-color);
         border-bottom-left-radius: 4px;
+        color: var(--el-text-color-primary);
+    }
+    .my-text {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: #fff;
+        border-bottom-right-radius: 4px;
     }
 
     .message-time {
-        font-size: 12px;
+        font-size: 11px;
         color: var(--el-text-color-secondary);
-        margin-top: 4px;
-        text-align: right;
+        margin-top: 3px;
+        padding: 0 4px;
     }
 
+    /* 空状态 */
+    .empty-chat {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        padding: 40px 0;
+        color: var(--el-text-color-placeholder);
+        font-size: 13px;
+        margin: auto;
+    }
+    .empty-chat .el-icon { opacity: 0.35; }
+    .empty-chat p { margin: 0; }
+
+    /* 输入区域 */
     .chat-input-area {
         display: flex;
         gap: 8px;
-        padding-top: 16px;
+        padding-top: 8px;
         border-top: 1px solid var(--el-border-color);
-    }
-
-    .chat-input {
-        flex: 1;
-    }
-
-    .send-button {
         flex-shrink: 0;
     }
+    .chat-input { flex: 1; }
+    .send-button { flex-shrink: 0; }
 </style>

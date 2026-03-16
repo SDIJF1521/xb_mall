@@ -9,6 +9,15 @@
       <h1 class="prod-name">{{ props.commodity.name }}</h1>
     </div>
 
+    <!-- 进入店铺入口 -->
+    <div class="store-entry" @click="goToStore">
+      <div class="store-entry-left">
+        <el-icon class="store-icon"><Shop /></el-icon>
+        <span class="store-entry-text">进入店铺</span>
+      </div>
+      <el-icon class="store-arrow"><ArrowRight /></el-icon>
+    </div>
+
     <div class="divider" />
 
     <!-- 价格区 -->
@@ -121,7 +130,8 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { ShoppingCart, Star, Van, RefreshLeft, Medal, Service } from '@element-plus/icons-vue'
+import { useRouter } from 'vue-router'
+import { ShoppingCart, Star, Van, RefreshLeft, Medal, Service, Shop, ArrowRight } from '@element-plus/icons-vue'
 import { Lightning } from '@element-plus/icons-vue'
 
 interface Spec {
@@ -139,11 +149,15 @@ interface Commodity {
 
 const props = defineProps<{
   commodity: Commodity
+  mallId: number
   buyLoading?: boolean
   cartLoading?: boolean
   wishlistLoading?: boolean
   isWishlisted?: boolean
 }>()
+
+const router = useRouter()
+const goToStore = () => router.push(`/store/${props.mallId}`)
 
 const emit = defineEmits<{
   (e: 'buy', payload: { specIndex: number; quantity: number }): void
@@ -465,6 +479,53 @@ const handleAddToCart = () => emit('add-to-cart', { specIndex: selectedSpecIndex
       color: #fff;
     }
   }
+}
+
+/* ── 进入店铺 ── */
+.store-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--el-border-color);
+  background: var(--color-background-soft);
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #667eea;
+    background: rgba(102, 126, 234, 0.05);
+
+    .store-icon,
+    .store-entry-text,
+    .store-arrow { color: #667eea; }
+  }
+}
+
+.store-entry-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.store-icon {
+  font-size: 18px;
+  color: var(--el-text-color-secondary);
+  transition: color 0.2s;
+}
+
+.store-entry-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+  transition: color 0.2s;
+}
+
+.store-arrow {
+  font-size: 14px;
+  color: var(--el-text-color-placeholder);
+  transition: color 0.2s;
 }
 
 /* ── 保障条 ── */

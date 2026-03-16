@@ -36,6 +36,8 @@ import ManagementCommodityApply from '@/views/management_commodity_apply/managem
 import BuyerCommodityClassify from '@/views/buyer_commodity_classify/buyer_commodity_classify.vue'
 import BuyerCommodityRepertory from '@/views/buyer_commodity_repertory/buyer_commodity_repertory.vue'
 import CommoditContent from '@/views/commodit_content/commodit_cotent.vue'
+import StorePage from '@/views/store_page/StorePage.vue'
+import BuyerStoreChat from '@/views/buyer_store_chat/BuyerStoreChat.vue'
 
 import { setupHeartbeatGuard } from './heartbeatGuard'
 import { setupAuthGuard } from './authGuard';
@@ -248,6 +250,18 @@ const routes: Array<RouteRecordRaw> = [
     path: '/commodity/:mall_id/:shopping_id',
     name: 'CommoditContent',
     component: CommoditContent
+  },
+  {
+    // 店铺展示页
+    path: '/store/:mall_id',
+    name: 'StorePage',
+    component: StorePage
+  },
+  {
+    // 买家端店铺内部聊天室
+    path: '/buyer_store_chat/:id',
+    name: 'BuyerStoreChat',
+    component: BuyerStoreChat
   },
   {
     // 404 页面 - 匹配所有未定义的路由

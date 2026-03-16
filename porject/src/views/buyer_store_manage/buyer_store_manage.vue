@@ -113,6 +113,7 @@
   function goToStoreDetail(id:number){
     router.push({name:'BuyerStoreManageIndex',params:{id:id}})
   }
+
 </script>
 
 <style scoped>

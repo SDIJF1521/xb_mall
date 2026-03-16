@@ -52,6 +52,7 @@
               <el-card shadow="never" class="purchase-card">
                 <CommodityPurchase
                   :commodity="commodity"
+                  :mall-id="commodity.mall_id"
                   :buy-loading="buyLoading"
                   :cart-loading="cartLoading"
                   :wishlist-loading="wishlistLoading"

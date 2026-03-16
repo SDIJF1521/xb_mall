@@ -1,5 +1,5 @@
 from typing import Optional,List,Tuple
-from fastapi import File, UploadFile
+from fastapi import File, UploadFile, Query
 from pydantic import BaseModel,EmailStr
 from datetime import time
 
@@ -423,3 +423,17 @@ class ShoppingCartAdd(BaseModel):
 class ShoppingCartUpdateBody(BaseModel):
     id: int = Field(..., description="购物车项 ID")
     quantity: int = Field(..., ge=1, description="新数量，至少为 1")
+
+# 定义店铺商品列表查询路由参数模型
+class StoreCommodityListQuery:
+    def __init__(
+        self,
+        mall_id: int = Query(..., ge=1, description="店铺ID"),
+        page: int = Query(1, ge=1, description="页码，从 1 开始"),
+        page_size: int = Query(12, ge=1, le=50, description="每页条数，最大 50"),
+        search: Optional[str] = Query(None, description="商品名称模糊搜索关键词"),
+    ):
+        self.mall_id = mall_id
+        self.page = page
+        self.page_size = page_size
+        self.search = search

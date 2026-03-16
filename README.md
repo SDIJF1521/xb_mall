@@ -59,11 +59,12 @@ flowchart TB
         S6[推荐与行为服务<br/>浏览记录 + 推荐]
         S7[缓存与防穿透<br/>Cache + BloomFilter]
         S8[调度任务服务<br/>APScheduler]
+        S9[员工聊天服务<br/>WS连接管理 + 店铺鉴权]
     end
 
     subgraph Data[数据与基础设施层]
         D1[(MySQL<br/>用户/商家/商品主数据)]
-        D2[(MongoDB<br/>商品详情/评论/行为数据)]
+        D2[(MongoDB<br/>商品详情/评论/行为数据/聊天消息)]
         D3[(Redis<br/>Token状态/在线状态/缓存/Bloom位图)]
         D4[文件存储<br/>头像/商品图片]
         D5[日志系统<br/>log_config + logs]
@@ -131,6 +132,7 @@ flowchart TB
 | **浏览历史** | 商品浏览记录、历史分页、删除清空 | MongoDB + Redis 缓存 |
 | **智能推荐** | 基于用户行为的商品推荐         | Wide & Deep + 增量训练 |
 | **购物车**   | 添加、列表、修改数量、删除、清空、结算 | MySQL + 分页 + 模糊搜索 |
+| **员工聊天** | 店铺内员工实时群聊、消息持久化、历史记录回溯 | WebSocket + MongoDB |
 
 </div>
 
@@ -145,6 +147,7 @@ flowchart TB
 - 📦 **商品管理** - 商品信息全生命周期管理
 - 🛒 **购物车** - 添加商品、修改数量、删除、清空、勾选合计、结算
 - 🏪 **店铺管理** - 店铺个性化配置与管理
+- 💬 **员工聊天** - 商家头部导航栏内嵌聊天抽屉，支持店铺内员工实时群聊
 - 🔐 **用户权限管理** - 细粒度权限控制
 - 👑 **角色分配** - 灵活的角色管理系统
 
@@ -162,6 +165,7 @@ flowchart TB
 - 🤖 **智能推荐服务** - 基于浏览/购买行为生成个性化推荐
 - 🔁 **增量训练调度** - 每 5 分钟检测新行为并自动训练或重建模型
 - 🛒 **购物车服务** - 添加、列表分页、修改数量、删除、清空，支持按商品名模糊搜索
+- 💬 **员工聊天服务** - WebSocket 全双工实时通信，按店铺隔离连接，消息持久化至 MongoDB，支持历史回溯
 
 ## 🧠 推荐系统
 
@@ -222,11 +226,56 @@ uv run python -m services.recommend.wide_deep.train
 - 支持最近浏览时间排序、分页读取、单条删除和全部清空。
 - 浏览行为变化后会自动失效对应历史缓存与推荐缓存，避免数据陈旧。
 
+## 💬 员工聊天室
+
+商家端（卖家后台）内置了基于 WebSocket 的**店铺内部实时聊天**功能，供同一店铺的员工进行即时沟通。
+
+### 入口
+
+商家端顶部导航栏（`buyer_head.vue`）右上角的聊天图标按钮，点击弹出侧边抽屉即可进入聊天室。
+
+- **主商户（station=1）**：抽屉顶部展示所有店铺的下拉选择器，选择目标店铺后自动连接对应聊天室。
+- **店铺员工（station=2）**：页面加载时自动在后台建立连接，收到新消息时导航栏徽标计数 +1，打开抽屉后清零。
+
+### 服务端架构
+
+```text
+routes/store_chat/__init__.py          # WebSocket 路由（仅编排，不含业务逻辑）
+services/store_chat_manager/__init__.py  # 连接池管理（按 mall_id 隔离）
+services/store_chat_auth/__init__.py     # 鉴权服务（复用 VerifyDuterToken）
+```
+
+### 鉴权流程
+
+1. 客户端连接时在 query 参数携带 `token`（格式与其他卖家端接口相同）。
+2. `StoreChatAuth` 调用 `VerifyDuterToken` 解析 JWT 并验证 Redis 中的过期时间戳。
+3. 按 `station` 区分身份：主商户校验 `state_id_list`，店铺员工校验绑定的 `mall_id`。
+4. 鉴权失败时以 WebSocket 关闭码 `4001` 断开连接。
+
+### 消息协议
+
+| 方向 | 消息类型 | 结构 |
+|---|---|---|
+| 服务端 → 客户端 | `history` | `{ "type": "history", "data": [...] }` |
+| 服务端 → 客户端 | `chat` | `{ "type": "chat", "username": "...", "content": "...", "created_at": "..." }` |
+| 服务端 → 客户端 | `system` | `{ "type": "system", "content": "...", "online_users": [...], "created_at": "..." }` |
+| 客户端 → 服务端 | `chat` | `{ "type": "chat", "content": "..." }` |
+
+### 持久化
+
+聊天消息写入 MongoDB `store_employee_chat` 集合，每次新连接时推送最近 **80 条**历史消息。
+
+### WebSocket 端点
+
+```
+ws://host/api/ws/store_chat/{mall_id}?token=<buyer_access_token>
+```
+
 ## 项目维护
 
 - **许可证**: GPLv3
 - **作者**: SDIJF1521
-- **版本**: 0.3.0
+- **版本**: 0.4.0
 
 ## 🤝贡献指南
 
