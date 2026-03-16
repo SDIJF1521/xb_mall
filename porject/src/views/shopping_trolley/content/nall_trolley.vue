@@ -179,12 +179,12 @@ const props = defineProps<{
 const router = useRouter()
 
 const getHeaders = () => {
-  const token = localStorage.getItem('access_token') || localStorage.getItem('buyer_access_token')
+  const token = localStorage.getItem('access_token')
   return token ? { 'access-token': token } : {}
 }
 
 const hasToken = computed(() => !!(
-  localStorage.getItem('access_token') || localStorage.getItem('buyer_access_token')
+  localStorage.getItem('access_token')
 ))
 
 const Axios = axios.create({

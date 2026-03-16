@@ -5,7 +5,6 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Header, Query
 
 from services.user_info import UserInfo
-from services.verify_duter_token import VerifyDuterToken
 from data.file_client import read_file_base64_with_cache
 from data.sql_client_pool import db_pool
 from data.redis_client import RedisClient, get_redis
@@ -17,16 +16,12 @@ _PAGE_SIZE_DEFAULT = 10
 _PAGE_SIZE_MAX = 50
 
 
-async def _resolve_user(access_token: str, redis: RedisClient) -> str | None:
-    """解析 token 获取用户标识"""
+async def _resolve_user(access_token: str) -> str | None:
+    """解析 C 端 access_token 获取用户标识"""
     user_info = UserInfo(access_token)
     token_data = await user_info.token_analysis()
     if token_data.get("current"):
         return token_data["user"]
-    verify = VerifyDuterToken(access_token, redis)
-    payload = await verify.token_data()
-    if payload and payload.get("user"):
-        return payload["user"]
     return None
 
 
@@ -43,7 +38,7 @@ async def shopping_cart_list(
     if not access_token:
         return {"code": 401, "msg": "请先登录", "success": False, "data": [], "total": 0}
 
-    user = await _resolve_user(access_token, redis)
+    user = await _resolve_user(access_token)
     if not user:
         return {"code": 403, "msg": "无效的token", "success": False, "data": [], "total": 0}
 

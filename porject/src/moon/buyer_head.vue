@@ -3,13 +3,35 @@
     <div>
         欢迎回来:{{ data.userName }}
     </div>
-    <el-input
-        style="width: 240px;"
+
+    <!-- 快捷导航搜索框 -->
+    <el-autocomplete
         v-model="input"
-        placeholder="搜索"
+        style="width: 260px;"
+        placeholder="搜索功能页面..."
         :prefix-icon="Search"
         clearable
-    />
+        :fetch-suggestions="querySearch"
+        :trigger-on-focus="true"
+        popper-class="nav-search-popper"
+        @select="handleNavSelect"
+        @keydown.enter.prevent="handleEnterNav"
+    >
+        <template #default="{ item }">
+            <div class="nav-item">
+                <el-icon class="nav-icon" :class="`nav-icon--${item.color}`">
+                    <component :is="item.icon" />
+                </el-icon>
+                <div class="nav-text">
+                    <span class="nav-label" v-html="item.highlight || item.label" />
+                    <span class="nav-desc">{{ item.desc }}</span>
+                </div>
+                <el-tag :type="item.tagType" size="small" effect="plain" class="nav-tag">
+                    {{ item.tag }}
+                </el-tag>
+            </div>
+        </template>
+    </el-autocomplete>
 
     <div class="header-content">
         <el-avatar size="large" :src="data.img" />
@@ -263,18 +285,217 @@
 </template>
 <script lang="ts" setup>
 import {ref, onMounted, onUnmounted, computed, nextTick} from 'vue'
+import { useRouter } from 'vue-router'
 import axios from 'axios'
 import {
     Bell, ChatDotRound, Search,
     CircleCheck, CircleClose, Clock, User,
     ArrowDown, ArrowUp, Delete,
     InfoFilled, Loading, ChatRound,
+    House, Shop, Plus, UserFilled, Avatar,
+    DataLine, Goods, List, Menu, Box, Setting,
+    Document, SwitchButton,
 } from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from 'element-plus'
 
 const Axios = axios.create({
     baseURL: 'http://127.0.0.1:8000/api'
 })
+const router = useRouter()
+
+// ── 快捷导航搜索 ───────────────────────────────────────────────────────────
+
+interface NavItem {
+    value: string        // el-autocomplete 必须字段（显示在输入框中）
+    label: string        // 页面名称
+    desc: string         // 简短描述
+    keywords: string[]   // 关键词列表，用于模糊匹配
+    icon: any            // Element Plus 图标组件
+    color: string        // 图标颜色 class
+    tag: string          // 右侧标签文字
+    tagType: string      // 标签类型
+    to?: string          // 固定路由（无需 id）
+    toFn?: (id: number) => string  // 需要 mall_id 的动态路由
+    action?: string      // 特殊动作（如 openChat）
+    highlight?: string   // 搜索关键词高亮（运行时填充）
+}
+
+const ALL_NAV_ITEMS: NavItem[] = [
+    {
+        value: '首页', label: '首页', desc: '买家端控制台首页',
+        keywords: ['首页', '控制台', '主页', 'home', 'index', '仪表盘'],
+        icon: House, color: 'blue', tag: '常用', tagType: 'primary',
+        to: '/buyer_index',
+    },
+    {
+        value: '店铺列表', label: '店铺列表', desc: '查看与管理你的所有店铺',
+        keywords: ['店铺', '管理', '商店', 'store', '我的店铺'],
+        icon: Shop, color: 'purple', tag: '店铺', tagType: 'warning',
+        to: '/buyer_store_manage',
+    },
+    {
+        value: '创建店铺', label: '创建店铺', desc: '新建一个店铺',
+        keywords: ['创建', '新建', '添加', '开店', 'add', 'create', '开店'],
+        icon: Plus, color: 'green', tag: '店铺', tagType: 'warning',
+        to: '/buyer_add_mall',
+    },
+    {
+        value: '删除店铺', label: '删除店铺', desc: '永久删除已有店铺',
+        keywords: ['删除', '移除', '关闭', 'delete', '注销'],
+        icon: Delete, color: 'red', tag: '店铺', tagType: 'warning',
+        to: '/buyer_delete_mall',
+    },
+    {
+        value: '用户管理', label: '用户管理', desc: '管理店铺员工账号',
+        keywords: ['用户', '员工', '人员', '成员', 'user', '账号'],
+        icon: User, color: 'blue', tag: '员工', tagType: 'info',
+        to: '/buyer_user_manage',
+    },
+    {
+        value: '用户列表', label: '用户列表', desc: '查看店铺全部用户',
+        keywords: ['用户列表', '员工列表', '人员列表', '成员列表'],
+        icon: UserFilled, color: 'blue', tag: '员工', tagType: 'info',
+        toFn: (id) => `/buyer_user_list_id/${id}`,
+    },
+    {
+        value: '角色管理', label: '角色管理', desc: '配置用户角色与操作权限',
+        keywords: ['角色', '权限', '职位', 'role', '授权', '分配'],
+        icon: Avatar, color: 'orange', tag: '权限', tagType: 'danger',
+        toFn: (id) => `/buyer_role_list/${id}`,
+    },
+    {
+        value: '用户统计', label: '用户统计', desc: '查看员工数据统计图表',
+        keywords: ['统计', '数据', '分析', 'statistics', '报表', '图表'],
+        icon: DataLine, color: 'cyan', tag: '统计', tagType: 'info',
+        toFn: (id) => `/buyer_user_statistics/${id}`,
+    },
+    {
+        value: '商品管理', label: '商品管理', desc: '上架、下架、编辑商品',
+        keywords: ['商品', '货物', '产品', 'commodity', '上架', '下架', '商品管理'],
+        icon: Goods, color: 'green', tag: '商品', tagType: 'success',
+        to: '/buyer_commodity_management',
+    },
+    {
+        value: '商品列表', label: '商品列表', desc: '浏览店铺全部商品',
+        keywords: ['商品列表', '货品', '商品目录', '产品列表'],
+        icon: List, color: 'green', tag: '商品', tagType: 'success',
+        toFn: (id) => `/buyer_commodity_list/${id}`,
+    },
+    {
+        value: '商品分类', label: '商品分类', desc: '管理商品分类目录',
+        keywords: ['分类', '类别', '类目', 'classify', 'category', '目录'],
+        icon: Menu, color: 'orange', tag: '商品', tagType: 'success',
+        toFn: (id) => `/buyer_commodity_classify/${id}`,
+    },
+    {
+        value: '库存管理', label: '库存管理', desc: '查看和调整商品库存数量',
+        keywords: ['库存', '存货', '库存管理', 'inventory', 'repertory', '仓库'],
+        icon: Box, color: 'purple', tag: '商品', tagType: 'success',
+        toFn: (id) => `/buyer_commodity_repertory/${id}`,
+    },
+    {
+        value: '店铺信息', label: '店铺信息', desc: '编辑店铺名称、地址、简介等',
+        keywords: ['店铺信息', '编辑店铺', '修改店铺', '店铺设置', '基本信息'],
+        icon: Setting, color: 'gray', tag: '店铺', tagType: 'warning',
+        toFn: (id) => `/buyer_store_manage_index/${id}`,
+    },
+    {
+        value: '员工聊天', label: '员工聊天', desc: '打开与店铺员工的聊天室',
+        keywords: ['聊天', '通讯', '沟通', '消息', 'chat', '内部沟通'],
+        icon: ChatDotRound, color: 'cyan', tag: '聊天', tagType: 'info',
+        action: 'openChat',
+    },
+    {
+        value: '商品通知', label: '商品通知', desc: '查看商品审核通知',
+        keywords: ['通知', '消息', '审核', '通告', 'notify', '提醒'],
+        icon: Bell, color: 'orange', tag: '通知', tagType: 'warning',
+        action: 'openNotify',
+    },
+]
+
+/** 解析当前用户的 mall_id（station='2' 直接返回；station='1' 取第一个） */
+function resolveCurrentMallId(): number | null {
+    if (userMallIdFromToken.value !== null) return userMallIdFromToken.value
+    if (mallList.value.length > 0) return mallList.value[0].id
+    // 尝试从 token 的 state_id_list 取第一个
+    const raw = localStorage.getItem('buyer_access_token') || ''
+    const payload = parseJwtPayload(raw)
+    const list: number[] = payload?.state_id_list ?? []
+    return list[0] ?? null
+}
+
+/** 关键词高亮（将匹配部分包裹 <em>） */
+function highlight(text: string, kw: string): string {
+    if (!kw) return text
+    const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    return text.replace(new RegExp(escaped, 'gi'), m => `<em>${m}</em>`)
+}
+
+/** el-autocomplete 的数据源函数 */
+function querySearch(queryStr: string, cb: (results: NavItem[]) => void) {
+    const q = queryStr.trim().toLowerCase()
+    const results = ALL_NAV_ITEMS
+        .filter(item =>
+            !q ||
+            item.label.toLowerCase().includes(q) ||
+            item.desc.toLowerCase().includes(q) ||
+            item.keywords.some(k => k.toLowerCase().includes(q))
+        )
+        .map(item => ({
+            ...item,
+            highlight: q ? highlight(item.label, q) : item.label,
+        }))
+    cb(results)
+}
+
+/** 点击或回车选中条目时执行跳转 */
+function handleNavSelect(item: NavItem) {
+    input.value = ''
+    execNav(item)
+}
+
+/** 回车时取第一条结果直接跳转 */
+function handleEnterNav() {
+    if (!input.value.trim()) return
+    const q = input.value.trim().toLowerCase()
+    const first = ALL_NAV_ITEMS.find(item =>
+        item.label.toLowerCase().includes(q) ||
+        item.keywords.some(k => k.toLowerCase().includes(q))
+    )
+    if (first) {
+        input.value = ''
+        execNav(first)
+    }
+}
+
+function execNav(item: NavItem) {
+    // 特殊动作
+    if (item.action === 'openChat') {
+        openMessageDrawer()
+        return
+    }
+    if (item.action === 'openNotify') {
+        ElMessage.info('请点击右上角铃铛图标查看通知')
+        return
+    }
+
+    // 固定路由
+    if (item.to) {
+        router.push(item.to)
+        return
+    }
+
+    // 需要 mall_id 的动态路由
+    if (item.toFn) {
+        const mallId = resolveCurrentMallId()
+        if (mallId === null) {
+            ElMessage.warning('请先选择或创建一个店铺')
+            router.push('/buyer_store_manage')
+            return
+        }
+        router.push(item.toFn(mallId))
+    }
+}
 
 // ── 通知相关 ──────────────────────────────────────────────────────────────
 
@@ -627,6 +848,77 @@ onUnmounted(() => {
 })
 </script>
 <style scoped>
+    /* ── 快捷导航搜索 ─────────────────────────────── */
+    :global(.nav-search-popper) {
+        min-width: 320px !important;
+        max-width: 360px !important;
+        border-radius: 12px !important;
+        overflow: hidden;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.18) !important;
+    }
+    :global(.nav-search-popper .el-autocomplete-suggestion__list) {
+        padding: 4px 0;
+    }
+    :global(.nav-search-popper .el-autocomplete-suggestion__wrap) {
+        max-height: 380px;
+    }
+
+    .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 2px;
+    }
+    .nav-icon {
+        font-size: 18px;
+        flex-shrink: 0;
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .nav-icon--blue   { background: rgba(64,158,255,.12);  color: #409eff; }
+    .nav-icon--purple { background: rgba(118,75,162,.12);  color: #764ba2; }
+    .nav-icon--green  { background: rgba(103,194,58,.12);  color: #67c23a; }
+    .nav-icon--red    { background: rgba(245,108,108,.12); color: #f56c6c; }
+    .nav-icon--orange { background: rgba(230,162,60,.12);  color: #e6a23c; }
+    .nav-icon--cyan   { background: rgba(0,194,255,.12);   color: #00c2ff; }
+    .nav-icon--gray   { background: rgba(144,147,153,.12); color: #909399; }
+
+    .nav-text {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    .nav-label {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--el-text-color-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    :global(.nav-label em) {
+        color: #409eff;
+        font-style: normal;
+        font-weight: 600;
+    }
+    .nav-desc {
+        font-size: 11px;
+        color: var(--el-text-color-placeholder);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .nav-tag {
+        flex-shrink: 0;
+        font-size: 10px;
+    }
+
     .header-content{
         display: flex;
         justify-content: flex-end;

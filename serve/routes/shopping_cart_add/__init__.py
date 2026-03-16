@@ -4,7 +4,6 @@ from typing import Annotated
 from fastapi import APIRouter, Body, Depends, Header
 
 from services.user_info import UserInfo
-from services.verify_duter_token import VerifyDuterToken
 from services.cache_service import CacheService
 
 from data.data_mods import ShoppingCartAddBody
@@ -15,18 +14,12 @@ from data.mongodb_client import MongoDBClient, get_mongodb_client
 router = APIRouter()
 
 
-async def _resolve_user(access_token: str, redis: RedisClient) -> str | None:
-    """解析 token 获取用户标识，支持 C 端 access_token 与商家端 buyer_access_token"""
-    # 1. 尝试 C 端 token (JWT_USER_SECRET_KEY)
+async def _resolve_user(access_token: str) -> str | None:
+    """解析 C 端 access_token 获取用户标识"""
     user_info = UserInfo(access_token)
     token_data = await user_info.token_analysis()
     if token_data.get("current"):
         return token_data["user"]
-    # 2. 尝试商家端 token (JWT_SELLER_SECRET_KEY)
-    verify = VerifyDuterToken(access_token, redis)
-    payload = await verify.token_data()
-    if payload and payload.get("user"):
-        return payload["user"]
     return None
 
 
@@ -39,14 +32,14 @@ async def shopping_cart_add(
 ):
     """
     添加商品到购物车
-    - 需登录，token 通过 access-token 请求头传递（支持 access_token / buyer_access_token）
+    - 需登录，token 通过 access-token 请求头传递（仅支持 C 端 access_token）
     - 支持同规格合并：若购物车已有相同商品规格，则累加数量
     - 校验商品存在、上架、库存充足
     """
     if not access_token:
         return {"code": 401, "msg": "请先登录", "success": False}
 
-    user = await _resolve_user(access_token, redis)
+    user = await _resolve_user(access_token)
     if not user:
         return {"code": 403, "msg": "无效的token", "success": False}
     mall_id = data.mall_id
