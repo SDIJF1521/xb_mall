@@ -67,6 +67,7 @@ async def buyer_delete_mall(data: Annotated[DeleteMall, Form()], db: Connection 
                 await cache.delete_pattern(f'commodity:repertory:list:{data.mall_id}:*')
                 await cache.delete_pattern(f'commodity:repertory:records:{data.mall_id}:*')
                 await cache.delete_pattern(f'commodity:repertory:all:{data.mall_id}')
+                await cache.delete(cache._make_key('store_page_info', data.mall_id))
                 try:
                     sql_user_data = await execute_db_query(db,'select * from seller_sing where user = %s',(token_data.get('user')))
                     if not sql_user_data:

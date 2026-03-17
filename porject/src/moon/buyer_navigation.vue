@@ -60,49 +60,48 @@
 
 </template>
 <script setup lang="ts">
-import { ref,onMounted} from 'vue'
+import { ref, onMounted } from 'vue'
 import router from '@/router'
 import { useRoute } from 'vue-router';
-import {Eleme,Odometer,Shop,List,Handbag,User,DocumentCopy,Box,Setting,Service} from '@element-plus/icons-vue'
+import { Eleme, Odometer, Shop, List, Handbag, User, DocumentCopy, Box, Setting, Service } from '@element-plus/icons-vue'
 import { useBuyerNavigationStore } from '@/moon/buyer_navigatiom_pinia'
-import { el } from 'element-plus/es/locales.mjs';
-// 引入导航栏状态管理
+
 const store = useBuyerNavigationStore();
 
 const selected = ref('1')
 
-// 监听页面路由变化，更新导航栏选中项
-onMounted(()=>{
+onMounted(() => {
     const route = useRoute();
-    switch(route.path){
+    switch (route.path) {
         case '/buyer_index':
-            selected.value = '1'
-            break;
+            selected.value = '1'; break;
         case '/buyer_store_management':
-            selected.value = '2'
-            break;
+            selected.value = '2'; break;
         case '/buyer_user_manage':
-            selected.value = '5'
-            break;
+            selected.value = '5'; break;
         case '/buyer_commodity_management':
-            selected.value = '4'
+            selected.value = '4'; break;
+        case '/buyer_cs_select':
+            selected.value = '6'; break;
+        default:
+            if (route.path.startsWith('/buyer_customer_service')) {
+                selected.value = '6';
+            }
             break;
-
-
     }
 })
 
-// 处理菜单选择事件
-const handleSelect = (index:string)=>{
-    console.log('选中的菜单 index:',index);
-    if (index =='1'){
+const handleSelect = (index: string) => {
+    if (index === '1') {
         router.push('/buyer_index')
-    }else if (index =='2'){
+    } else if (index === '2') {
         router.push('/buyer_store_management')
-    }else if (index =='5'){
-        router.push('/buyer_user_manage')
-    }else if (index =='4'){
+    } else if (index === '4') {
         router.push('/buyer_commodity_management')
+    } else if (index === '5') {
+        router.push('/buyer_user_manage')
+    } else if (index === '6') {
+        router.push('/buyer_cs_select')
     }
 }
 

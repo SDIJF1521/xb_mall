@@ -38,6 +38,8 @@ import BuyerCommodityRepertory from '@/views/buyer_commodity_repertory/buyer_com
 import CommoditContent from '@/views/commodit_content/commodit_cotent.vue'
 import StorePage from '@/views/store_page/StorePage.vue'
 import BuyerStoreChat from '@/views/buyer_store_chat/BuyerStoreChat.vue'
+import BuyerCustomerService from '@/views/buyer_customer_service/BuyerCustomerService.vue'
+import BuyerCsSelect from '@/views/buyer_customer_service_select/BuyerCsSelect.vue'
 
 import { setupHeartbeatGuard } from './heartbeatGuard'
 import { setupAuthGuard } from './authGuard';
@@ -262,6 +264,18 @@ const routes: Array<RouteRecordRaw> = [
     path: '/buyer_store_chat/:id',
     name: 'BuyerStoreChat',
     component: BuyerStoreChat
+  },
+  {
+    // 卖家端客服店铺选择页
+    path: '/buyer_cs_select',
+    name: 'BuyerCsSelect',
+    component: BuyerCsSelect
+  },
+  {
+    // 卖家端在线客服管理
+    path: '/buyer_customer_service/:mall_id',
+    name: 'BuyerCustomerService',
+    component: BuyerCustomerService
   },
   {
     // 404 页面 - 匹配所有未定义的路由

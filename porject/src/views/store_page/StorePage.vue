@@ -49,6 +49,13 @@
 
       <el-footer class="footer-content">版权所有 © [小白的商城]，保留所有权利。</el-footer>
     </el-container>
+
+    <!-- 悬浮客服 -->
+    <CustomerService
+      v-if="!storeLoading && !storeError"
+      ref="csRef"
+      :mall-id="mallId"
+    />
   </div>
 </template>
 
@@ -61,6 +68,7 @@ import axios from 'axios'
 import AppNavigation from '@/moon/navigation.vue'
 import StoreInfoCard from './components/StoreInfoCard.vue'
 import StoreCommodityList from './components/StoreCommodityList.vue'
+import CustomerService from '@/moon/CustomerService.vue'
 import type { StoreInfo } from './components/StoreInfoCard.vue'
 import type { CommodityItem } from './components/StoreCommodityList.vue'
 
@@ -69,6 +77,9 @@ const router = useRouter()
 
 const Axios = axios.create({ baseURL: 'http://127.0.0.1:8000/api' })
 const mallId = Number(route.params.mall_id)
+
+/* ── 客服组件引用 ── */
+const csRef = ref<{ openChat: () => void } | null>(null)
 
 /* ── 店铺信息状态 ── */
 const store = ref<StoreInfo | null>(null)
@@ -162,9 +173,9 @@ const handleFavorite = () => {
   ElMessage.info(isFavorited.value ? '收藏功能开发中' : '已取消收藏（开发中）')
 }
 
-// 联系客服（预留，逻辑待实现）
+// 点击"联系客服"按钮，主动打开悬浮客服面板
 const handleService = () => {
-  ElMessage.info('客服功能开发中')
+  csRef.value?.openChat()
 }
 
 onMounted(async () => {

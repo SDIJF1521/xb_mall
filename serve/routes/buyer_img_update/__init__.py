@@ -26,7 +26,9 @@ async def buyer_update_img(token:str = Form(...),id:str = Form(...),img:UploadFi
                 f.write(await img.read())
             
             cache = CacheService(redis)
-            await cache.delete_pattern(f"mall_info:*")
+            await cache.delete(cache._make_key('mall_info', id))
+            await cache.delete_pattern(f'img_base64:./mall_img/{id}.png')
+            await cache.delete(cache._make_key('store_page_info', id))
             
             return {"code":200,"msg":"success","data":None,'current':True}
         else:

@@ -142,6 +142,7 @@ flowchart TB
         S7[缓存与防穿透<br/>Cache + BloomFilter]
         S8[调度任务服务<br/>APScheduler]
         S9[员工聊天服务<br/>WS连接管理 + 店铺鉴权]
+        S10[在线客服服务<br/>用户↔客服双向通信 + 消息持久化]
     end
 
     subgraph Data[数据与基础设施层]
@@ -215,6 +216,7 @@ flowchart TB
 | **智能推荐** | 基于用户行为的商品推荐         | Wide & Deep + 增量训练 |
 | **购物车**   | 添加、列表、修改数量、删除、清空、结算 | MySQL + 分页 + 模糊搜索 |
 | **员工聊天** | 店铺内员工实时群聊、消息持久化、历史记录回溯 | WebSocket + MongoDB |
+| **在线客服** | 用户悬浮聊天窗口、商品卡片发送、卖家多会话管理 | WebSocket + MongoDB |
 
 </div>
 
@@ -230,6 +232,8 @@ flowchart TB
 - 🛒 **购物车** - 添加商品、修改数量、删除、清空、勾选合计、结算
 - 🏪 **店铺管理** - 店铺个性化配置与管理
 - 💬 **员工聊天** - 商家头部导航栏内嵌聊天抽屉，支持店铺内员工实时群聊
+- 🎧 **在线客服（用户端）** - 商品详情页及店铺页，支持文本消息和商品卡片一键发送，未读消息徽标计数
+- 🛎️ **在线客服（卖家端）** - 多会话列表 + 聊天窗口，支持实时回复、历史记录拉取、断线自动重连
 - 🔐 **用户权限管理** - 细粒度权限控制
 - 👑 **角色分配** - 灵活的角色管理系统
 
@@ -248,6 +252,7 @@ flowchart TB
 - 🔁 **增量训练调度** - 每 5 分钟检测新行为并自动训练或重建模型
 - 🛒 **购物车服务** - 添加、列表分页、修改数量、删除、清空，支持按商品名模糊搜索
 - 💬 **员工聊天服务** - WebSocket 全双工实时通信，按店铺隔离连接，消息持久化至 MongoDB，支持历史回溯
+- 🎧 **在线客服服务** - 用户端与卖家端双向 WebSocket 通信，按 `mall_id` 隔离连接池，消息持久化至 MongoDB `customer_service_messages` 集合，支持商品卡片消息类型，会话历史推送最近 80 条
 
 ## 🧠 推荐系统
 
@@ -353,6 +358,71 @@ services/store_chat_auth/__init__.py     # 鉴权服务（复用 VerifyDuterToke
 ws://host/api/ws/store_chat/{mall_id}?token=<buyer_access_token>
 ```
 
+## 🎧 在线客服系统
+
+买家端（用户前台）与商家端（卖家后台）均集成了基于 WebSocket 的**在线客服**功能，支持用户与客服人员实时沟通。
+
+### 用户端入口
+
+商品详情页及店铺主页右下角固定悬浮球（`moon/CustomerService.vue`），点击弹出聊天面板。
+
+- 首次点击时自动建立 WebSocket 连接，连接前检测登录状态。
+- 面板底部展示当前商品的快捷发送栏，可选择规格后一键发送**商品卡片**至会话。
+- 客服回复新消息时，若面板处于收起状态，悬浮球显示未读消息数徽标。
+- 断线后自动 4 秒重连，可手动点击重连按钮。
+
+### 卖家端入口
+
+商家端左侧导航栏新增**客服管理**菜单，路由为 `/buyer_cs_select`。
+
+1. **店铺选择页**（`BuyerCsSelect.vue`）：以卡片网格展示卖家所有店铺，含店铺封面、营业状态，点击「进入客服管理」跳转至对应店铺的客服工作台。
+2. **客服工作台**（`BuyerCustomerService.vue`，路由 `/buyer_customer_service/:mall_id`）：
+   - 左侧会话列表：展示所有历史对话用户，在线用户以绿色徽标标识，显示最后一条消息和时间。
+   - 右侧聊天窗口：点击左侧会话后加载历史记录，支持回复文本消息，消息长度限制 500 字。
+   - 顶部实时展示 WebSocket 连接状态，支持手动重连。
+
+### 服务端架构
+
+```text
+routes/customer_service/__init__.py          # WebSocket 路由（仅编排，不含业务逻辑）
+services/customer_service_manager/__init__.py  # 连接池管理（按 mall_id 隔离 users / sellers）
+services/customer_service_auth/__init__.py     # 鉴权服务（用户端 / 卖家端双路径校验）
+```
+
+### 鉴权流程
+
+| 身份 | Token 类型 | 校验内容 |
+|---|---|---|
+| 用户（`client_type=user`） | 普通用户 JWT（`JWT_USER_SECRET_KEY`） | 解析 payload，获取用户名，无需绑定店铺 |
+| 主商户（`station=1`） | 商户端 JWT（`JWT_SELLER_SECRET_KEY`） | 校验 `state_id_list` 包含目标 `mall_id` |
+| 店铺员工（`station=2`） | 商户端 JWT（`JWT_SELLER_SECRET_KEY`） | 校验 token 绑定的 `mall_id` 一致 |
+
+鉴权失败时以 WebSocket 关闭码 `4001` 断开连接。
+
+### 消息协议
+
+| 方向 | 消息类型 | 结构 |
+|---|---|---|
+| 服务端 → 用户端 | `history` | `{ "type": "history", "data": [...] }` |
+| 服务端 → 用户端 | `chat` | `{ "type": "chat", "sender_type": "seller", "content": "...", ... }` |
+| 服务端 → 用户端 | `system` | `{ "type": "system", "content": "...", "created_at": "..." }` |
+| 服务端 → 卖家端 | `session_list` | `{ "type": "session_list", "data": [{session_id, online, last_message, last_time}] }` |
+| 服务端 → 卖家端 | `history` | `{ "type": "history", "session_id": "...", "data": [...] }` |
+| 服务端 → 卖家端 | `chat` | `{ "type": "chat", "session_id": "...", "sender_type": "user"\|"seller", ... }` |
+| 用户端 → 服务端 | `chat` | `{ "type": "chat", "content": "...", "message_type": "text"\|"product_card", "product_info"?: {...} }` |
+| 卖家端 → 服务端 | `chat` | `{ "type": "chat", "content": "...", "target_session": "username" }` |
+| 卖家端 → 服务端 | `fetch_history` | `{ "type": "fetch_history", "session_id": "username" }` |
+
+### 持久化
+
+消息写入 MongoDB `customer_service_messages` 集合，每次新连接时推送最近 **80 条**历史消息。
+
+### WebSocket 端点
+
+```
+ws://host/api/ws/customer_service/{mall_id}?token=<access_token>&client_type=user|seller
+```
+
 ## 🧪 常用开发命令
 
 ### 前端（`porject/`）
@@ -372,7 +442,7 @@ ws://host/api/ws/store_chat/{mall_id}?token=<buyer_access_token>
 
 - **许可证**: GPLv3
 - **作者**: SDIJF1521
-- **版本**: 0.4.0
+- **版本**: 0.5.0
 
 ## 🤝贡献指南
 

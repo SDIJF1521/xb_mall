@@ -29,10 +29,6 @@ async def buyer_get_mall_info(data:Annotated[GetMallInfo,Form()],db: Connection 
 
         async def execute(mall_id:int=None):
             cache = CacheService(redis)
-            redis_id_select = await cache.get(cache._make_key("mall_info", data.id))
-            if redis_id_select:
-                print(123)
-                return redis_id_select
 
             # 确定查询的店铺ID和缓存键
             query_mall_id = data.id if data.id is not None else mall_id
@@ -47,12 +43,22 @@ async def buyer_get_mall_info(data:Annotated[GetMallInfo,Form()],db: Connection 
                 cache_key = cache._make_key('mall_info:user', token_data.get("user"))
                 bloom_item_id = f"mall:user:{token_data.get('user')}"
             async def fetch_mall_info():
+                select_sql = (
+                    "select mall_id,user,mall_name,mall_phone,mall_site,mall_describe,"
+                    "img_path,creation_time,state,state_platform from store where "
+                )
                 if data.id is None and mall_id is None:
-                    sql_mall_info = await sql.execute_query("select * from store where user = %s",(token_data.get("user")))
+                    sql_mall_info = await sql.execute_query(
+                        select_sql + "user = %s", (token_data.get("user"))
+                    )
                 elif data.id is not None:
-                    sql_mall_info = await sql.execute_query("select * from store where mall_id = %s",(data.id))
+                    sql_mall_info = await sql.execute_query(
+                        select_sql + "mall_id = %s", (data.id)
+                    )
                 else:
-                     sql_mall_info = await sql.execute_query("select * from store where mall_id = %s",(mall_id))
+                    sql_mall_info = await sql.execute_query(
+                        select_sql + "mall_id = %s", (mall_id)
+                    )
                 
                 rtn = []
                 if sql_mall_info:

@@ -39,6 +39,7 @@ async def buyer_update_mall(data:Annotated[UpdateMall,Form()],db:Connection=Depe
             await cache.delete_pattern(f'mall_name:user:{old_user}')
             await cache.delete_pattern(f'mall_name:mall:{data.id}')
             await cache.delete_pattern(f'commodity:list:{data.id}:*')
+            await cache.delete(cache._make_key('store_page_info', data.id))
             return {"code":200,"msg":"操作成功","data":None,'current':True}
         else:
             return {"code":400,"msg":"mall_id不存在","data":None,'current':False}

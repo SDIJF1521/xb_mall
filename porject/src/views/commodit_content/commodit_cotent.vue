@@ -60,6 +60,7 @@
                   @buy="handleBuy"
                   @add-to-cart="handleAddToCart"
                   @wishlist="handleWishlist"
+                  @service="csRef?.openChat()"
                 />
               </el-card>
             </div>
@@ -85,8 +86,10 @@
     <!-- 悬浮客服 -->
     <CustomerService
       v-if="commodity"
+      ref="csRef"
       :mall-id="commodity.mall_id"
       :shopping-id="commodity.shopping_id"
+      :commodity="commodity"
     />
   </div>
 </template>
@@ -102,7 +105,7 @@ import CommodityGallery from './components/CommodityGallery.vue'
 import CommodityPurchase from './components/CommodityPurchase.vue'
 import CommodityDescription from './components/CommodityDescription.vue'
 import CommentSection from './components/CommentSection.vue'
-import CustomerService from './components/CustomerService.vue'
+import CustomerService from '@/moon/CustomerService.vue'
 
 interface Spec {
   specs: string[]
@@ -125,6 +128,9 @@ const route = useRoute()
 const router = useRouter()
 
 const Axios = axios.create({ baseURL: 'http://127.0.0.1:8000/api' })
+
+/* ── 客服组件引用 ── */
+const csRef = ref<{ openChat: () => void } | null>(null)
 
 const loading = ref(false)
 const error = ref('')

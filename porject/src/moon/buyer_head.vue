@@ -294,7 +294,7 @@ import {
     InfoFilled, Loading, ChatRound,
     House, Shop, Plus, UserFilled, Avatar,
     DataLine, Goods, List, Menu, Box, Setting,
-    Document, SwitchButton,
+    Document, SwitchButton, Headset, Service,
 } from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from 'element-plus'
 
@@ -410,6 +410,18 @@ const ALL_NAV_ITEMS: NavItem[] = [
         keywords: ['通知', '消息', '审核', '通告', 'notify', '提醒'],
         icon: Bell, color: 'orange', tag: '通知', tagType: 'warning',
         action: 'openNotify',
+    },
+    {
+        value: '客服管理', label: '客服管理', desc: '选择店铺进入客服管理中心',
+        keywords: ['客服', '在线客服', '客服管理', 'service', '售后', '接待', '咨询'],
+        icon: Headset, color: 'cyan', tag: '客服', tagType: 'info',
+        to: '/buyer_cs_select',
+    },
+    {
+        value: '客服中心', label: '客服中心', desc: '进入指定店铺的客服工作台',
+        keywords: ['客服中心', '工作台', '接单', '客服会话', 'customer service'],
+        icon: Service, color: 'blue', tag: '客服', tagType: 'info',
+        toFn: (id) => `/buyer_customer_service/${id}`,
     },
 ]
 

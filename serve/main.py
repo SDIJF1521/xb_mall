@@ -68,6 +68,7 @@ from routes.shopping_cart_clear import router as shopping_cart_clear_router
 from routes.store_info import router as store_info_router
 from routes.store_commodity_list import router as store_commodity_list_router
 from routes.store_chat import router as store_chat_router
+from routes.customer_service import router as customer_service_router
 
 
 from routes.buyer_repeat_show import router as buyer_repeat_show_router
@@ -865,3 +866,6 @@ app.include_router(store_commodity_list_router, prefix='/api')
 
 # 店铺员工聊天 WebSocket 路由
 app.include_router(store_chat_router, prefix='/api')
+
+# 在线客服 WebSocket 路由
+app.include_router(customer_service_router, prefix='/api')

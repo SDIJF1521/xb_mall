@@ -119,11 +119,17 @@
         <span>7天退换</span>
       </div>
       <div class="g-sep" />
-      <div class="g-item">
+      <div class="g-item g-item--clickable" @click="emit('service')">
         <el-icon><Service /></el-icon>
-        <span>在线客服</span>
+        <span>联系客服</span>
       </div>
     </div>
+
+    <!-- 联系客服按钮 -->
+    <button class="btn-service" @click="emit('service')">
+      <el-icon><Service /></el-icon>
+      联系客服
+    </button>
 
   </div>
 </template>
@@ -163,6 +169,7 @@ const emit = defineEmits<{
   (e: 'buy', payload: { specIndex: number; quantity: number }): void
   (e: 'add-to-cart', payload: { specIndex: number; quantity: number }): void
   (e: 'wishlist'): void
+  (e: 'service'): void
 }>()
 
 const selectedSpecIndex = ref(0)
@@ -558,5 +565,47 @@ const handleAddToCart = () => emit('add-to-cart', { specIndex: selectedSpecIndex
     font-size: 20px;
     color: #667eea;
   }
+
+  &--clickable {
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 8px;
+    transition: all 0.2s;
+
+    &:hover {
+      background: rgba(102, 126, 234, 0.1);
+      color: #667eea;
+    }
+  }
+}
+
+/* ── 联系客服按钮 ── */
+.btn-service {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 44px;
+  border-radius: 12px;
+  border: 1.5px solid #667eea;
+  background: rgba(102, 126, 234, 0.06);
+  color: #667eea;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+
+  .el-icon { font-size: 16px; }
+
+  &:hover {
+    background: rgba(102, 126, 234, 0.12);
+    border-color: #764ba2;
+    color: #764ba2;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+  }
+
+  &:active { transform: translateY(0); }
 }
 </style>
