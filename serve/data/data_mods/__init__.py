@@ -437,3 +437,54 @@ class StoreCommodityListQuery:
         self.page = page
         self.page_size = page_size
         self.search = search
+
+
+# 定义商城商品搜索路由参数模型（模糊匹配：名称、描述、标签、店铺名称，任一符合即可）
+class MallCommoditySearchQuery:
+    def __init__(
+        self,
+        keyword: Optional[str] = Query(None, description="搜索关键词，模糊匹配商品名称、描述、标签、店铺名称"),
+        page: int = Query(1, ge=1, description="页码，从 1 开始"),
+        page_size: int = Query(50, ge=1, le=100, description="每页条数，默认 50"),
+    ):
+        self.keyword = keyword
+        self.page = page
+        self.page_size = page_size
+
+
+# ── 客服消息相关数据模型 ──────────────────────────────────────────────────────
+
+# 用户端获取客服会话列表（按店铺分组）
+class CsUserSessionListBody(BaseModel):
+    token: str = Field(..., description="用户 JWT Token")
+
+
+# 用户端获取某店铺客服消息历史
+class CsUserHistoryQuery:
+    def __init__(
+        self,
+        mall_id: int = Query(..., ge=1, description="店铺ID"),
+        page: int = Query(1, ge=1, description="页码"),
+        page_size: int = Query(50, ge=1, le=100, description="每页条数"),
+    ):
+        self.mall_id = mall_id
+        self.page = page
+        self.page_size = page_size
+
+
+# 获取客服未读消息数
+class CsUnreadCountQuery:
+    def __init__(
+        self,
+        role: str = Query(..., description="角色：user（用户端）或 seller（卖家端）"),
+        mall_id: Optional[int] = Query(None, ge=1, description="卖家端必传：店铺ID；用户端不传则返回所有店铺未读总和"),
+    ):
+        self.role = role
+        self.mall_id = mall_id
+
+
+# 标记客服消息已读（token 从 Header access-token 获取）
+class CsMarkReadBody(BaseModel):
+    mall_id: int = Field(..., ge=1, description="店铺ID")
+    role: str = Field(..., description="角色：user 或 seller")
+    session_id: Optional[str] = Field(None, description="卖家端必传：会话用户名；用户端不传")

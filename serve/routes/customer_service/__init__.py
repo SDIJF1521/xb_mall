@@ -131,21 +131,34 @@ async def customer_service_ws(
     mongodb: MongoDBClient = get_mongodb_client()
 
     if client_type == "user":
-        await _handle_user(websocket, mall_id, username, mongodb)
+        await _handle_user(websocket, mall_id, username, mongodb, redis)
     else:
-        await _handle_seller(websocket, mall_id, username, mongodb)
+        await _handle_seller(websocket, mall_id, username, mongodb, redis)
+
+
+def _user_unread_key(username: str, mall_id: int) -> str:
+    return f"cs_unread_user:{username}:{mall_id}"
+
+
+def _seller_unread_key(mall_id: int, session_id: str) -> str:
+    return f"cs_unread_seller:{mall_id}:{session_id}"
 
 
 # ── 用户端处理 ─────────────────────────────────────────────────────────────────
 
 async def _handle_user(
-    websocket: WebSocket, mall_id: int, username: str, mongodb: MongoDBClient
+    websocket: WebSocket, mall_id: int, username: str, mongodb: MongoDBClient,
+    redis: RedisClient,
 ) -> None:
     await cs_manager.connect_user(websocket, mall_id, username)
 
-    # 推送历史消息
+    # 推送历史消息，并标记用户端该店铺未读已读（打开会话即清零）
     history = await _get_session_history(mongodb, mall_id, username)
     await websocket.send_json({"type": "history", "data": history})
+    try:
+        await redis.delete(_user_unread_key(username, mall_id))
+    except Exception:
+        pass
 
     # 欢迎语
     await websocket.send_json({
@@ -200,6 +213,22 @@ async def _handle_user(
 
             await _save_message(mongodb, doc)
 
+            # 用户发消息 → 卖家端该会话未读 +1
+            try:
+                await redis.incr(_seller_unread_key(mall_id, username))
+            except Exception:
+                pass
+
+            # 推送更新后的会话列表（含未读徽章）给卖家端
+            try:
+                session_list = await _get_session_list(mongodb, mall_id)
+                await cs_manager.broadcast_to_sellers(mall_id, {
+                    "type": "session_list",
+                    "data": session_list,
+                })
+            except Exception:
+                pass
+
             # 回显给用户自身（确认消息已发出）
             await websocket.send_json({
                 "type": "chat",
@@ -238,11 +267,12 @@ async def _handle_user(
 # ── 卖家端处理 ─────────────────────────────────────────────────────────────────
 
 async def _handle_seller(
-    websocket: WebSocket, mall_id: int, username: str, mongodb: MongoDBClient
+    websocket: WebSocket, mall_id: int, username: str, mongodb: MongoDBClient,
+    redis: RedisClient,
 ) -> None:
     await cs_manager.connect_seller(websocket, mall_id, username)
 
-    # 推送当前会话列表
+    # 推送当前会话列表（含每个用户的未读徽章）
     session_list = await _get_session_list(mongodb, mall_id)
     await websocket.send_json({
         "type": "session_list",
@@ -276,6 +306,11 @@ async def _handle_seller(
                     "session_id": session_id,
                     "data": history,
                 })
+                # 卖家打开该会话 → 该会话未读清零
+                try:
+                    await redis.delete(_seller_unread_key(mall_id, session_id))
+                except Exception:
+                    pass
                 continue
 
             # 卖家发送消息给某用户
@@ -296,6 +331,12 @@ async def _handle_seller(
                     "created_at": ts,
                 }
                 await _save_message(mongodb, doc)
+
+                # 卖家发消息 → 用户端未读 +1
+                try:
+                    await redis.incr(_user_unread_key(target_session, mall_id))
+                except Exception:
+                    pass
 
                 # 转发给目标用户
                 await cs_manager.send_to_user(mall_id, target_session, {

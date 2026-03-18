@@ -64,6 +64,20 @@ class RedisClient:
             return 0
         return await self.redis.delete(key)
 
+    async def incr(self, key: str, amount: int = 1) -> int:
+        """将键对应的整数值增加 amount，键不存在时视为 0 再增加。返回增加后的值。"""
+        return await self.redis.incrby(key, amount)
+
+    async def get_int(self, key: str) -> int:
+        """获取键对应的整数值，不存在或非数字时返回 0。"""
+        val = await self.redis.get(key)
+        if val is None:
+            return 0
+        try:
+            return int(val)
+        except (ValueError, TypeError):
+            return 0
+
     async def ttl(self, key: str) -> int:
         """获取键的剩余生存时间"""
         return await self.redis.ttl(key)

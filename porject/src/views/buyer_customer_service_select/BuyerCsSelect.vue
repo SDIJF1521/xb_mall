@@ -1,25 +1,15 @@
 <template>
-  <el-container class="cs-select-root">
+  <el-container>
     <el-container>
-      <!-- 左侧导航 -->
       <BuyerNavigation />
-
-      <el-container class="cs-select-inner">
-        <!-- 顶部头部 -->
-        <el-header class="cs-select-head">
+      <el-container>
+        <el-header>
           <BuyerHead />
         </el-header>
-
-        <!-- 页面标题栏 -->
-        <div class="cs-page-title">
-          <div class="title-left">
-            <el-icon class="title-icon"><Headset /></el-icon>
-            <span>客服管理</span>
-          </div>
-          <p class="title-sub">选择要管理客服的店铺</p>
-        </div>
-
-        <el-main class="cs-select-main">
+        <el-main>
+          <div class="cs-select-container">
+            <h2 class="page-title">客服管理</h2>
+            <p class="page-subtitle">选择要管理客服的店铺</p>
           <!-- 骨架屏 -->
           <div v-if="loading" class="skeleton-wrap">
             <el-skeleton v-for="i in 3" :key="i" animated class="store-skeleton">
@@ -45,69 +35,77 @@
           </el-empty>
 
           <!-- 店铺卡片列表 -->
-          <div v-else class="store-grid">
-            <div
+          <div v-else class="content-info">
+            <el-card
               v-for="item in storeList"
               :key="item.id"
               class="store-card"
-              :class="{ 'store-card--closed': !(item.state === 1 && item.state_platform === 1) }"
+              shadow="hover"
             >
-              <!-- 店铺封面 -->
-              <div class="card-cover">
-                <el-image
-                  :src="item.img ? `data:image/png;base64,${item.img}` : defaultImg"
-                  fit="cover"
-                  class="cover-img"
-                >
-                  <template #error>
-                    <div class="cover-fallback">
-                      <el-icon :size="32"><Shop /></el-icon>
-                    </div>
-                  </template>
-                </el-image>
-                <el-tag
-                  class="state-tag"
-                  :type="item.state === 1 && item.state_platform === 1 ? 'success' : 'danger'"
-                  size="small"
-                  effect="dark"
-                >
-                  {{ item.state === 1 && item.state_platform === 1 ? '营业中' : '已关闭' }}
-                </el-tag>
-              </div>
-
-              <!-- 店铺信息 -->
-              <div class="card-body">
-                <h3 class="store-name">{{ item.mall_name }}</h3>
-                <div v-if="item.info" class="store-desc">{{ item.info }}</div>
-                <div class="store-meta">
-                  <span v-if="item.phone" class="meta-item">
-                    <el-icon><Phone /></el-icon>{{ item.phone }}
-                  </span>
-                  <span v-if="item.site" class="meta-item">
-                    <el-icon><Location /></el-icon>{{ item.site }}
-                  </span>
+              <template #header>
+                <div class="card-header">
+                  <span class="store-name">{{ item.mall_name }}</span>
+                  <el-tag :type="item.state === 1 && item.state_platform === 1 ? 'success' : 'danger'" size="small">
+                    {{ item.state === 1 && item.state_platform === 1 ? '营业中' : '已关闭' }}
+                  </el-tag>
                 </div>
-              </div>
-
-              <!-- 操作区 -->
-              <div class="card-footer">
-                <el-button
-                  type="primary"
-                  round
-                  class="enter-btn"
-                  :icon="Headset"
-                  @click="enterService(item.id || 0)"
-                >
-                  进入客服管理
-                </el-button>
-              </div>
-            </div>
+              </template>
+              <el-row :gutter="10" style="width: 100%;">
+                <el-col :span="12">
+                  <el-image
+                    :src="item.img ? `data:image/png;base64,${item.img}` : defaultImg"
+                    style="width: 100%; height: 200px; object-fit: cover;"
+                    fit="cover"
+                  >
+                    <template #error>
+                      <div class="image-slot">
+                        <el-icon><Shop /></el-icon>
+                        <span>暂无图片</span>
+                      </div>
+                    </template>
+                  </el-image>
+                </el-col>
+                <el-col :span="12">
+                  <div class="store-info">
+                    <div class="info-item">
+                      <el-icon><Document /></el-icon>
+                      <span>{{ item.info || '暂无店铺描述' }}</span>
+                    </div>
+                    <div class="info-item">
+                      <el-icon><Location /></el-icon>
+                      <span>{{ item.site || '暂无地址信息' }}</span>
+                    </div>
+                    <div class="info-item">
+                      <el-icon><Phone /></el-icon>
+                      <span>{{ item.phone || '暂无联系电话' }}</span>
+                    </div>
+                    <el-button
+                      type="primary"
+                      size="default"
+                      round
+                      class="select-btn"
+                      :disabled="!(item.state === 1 && item.state_platform === 1)"
+                      @click="enterService(item.id || 0)"
+                    >
+                      <el-icon><Headset /></el-icon>
+                      进入客服管理
+                    </el-button>
+                  </div>
+                </el-col>
+              </el-row>
+              <template #footer>
+                <div class="card-footer">
+                  <el-icon><Clock /></el-icon>
+                  <span>创建时间：{{ item.time || '未知' }}</span>
+                </div>
+              </template>
+            </el-card>
+          </div>
           </div>
         </el-main>
-
-        <el-footer class="cs-select-footer">版权所有 ©[小白的商城]，保留所有权利。</el-footer>
       </el-container>
     </el-container>
+    <el-footer class="footer-content">版权所有 ©[小白的个人商城]，保留所有权利。</el-footer>
   </el-container>
 </template>
 
@@ -116,7 +114,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
-import { Headset, Shop, Phone, Location } from '@element-plus/icons-vue'
+import { Headset, Shop, Phone, Location, Document, Clock } from '@element-plus/icons-vue'
 import BuyerTheme from '@/moon/buyer_theme'
 import BuyerNavigation from '@/moon/buyer_navigation.vue'
 import BuyerHead from '@/moon/buyer_head.vue'
@@ -171,67 +169,37 @@ onMounted(() => {
 })
 </script>
 
-<style scoped lang="scss">
-.cs-select-root {
-  min-height: 100vh;
-}
-
-.cs-select-inner {
-  flex-direction: column;
-  min-height: 100vh;
-  background: var(--el-bg-color-page);
-}
-
-/* ── 顶部 head ── */
-.cs-select-head {
-  padding: 0;
-  height: auto;
-  border-bottom: 1px solid var(--el-border-color);
-}
-
-/* ── 页面标题栏 ── */
-.cs-page-title {
-  padding: 24px 32px 16px;
-  background: var(--el-bg-color);
-  border-bottom: 1px solid var(--el-border-color);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.title-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--el-text-color-primary);
-}
-
-.title-icon {
-  font-size: 24px;
-  color: #667eea;
-}
-
-.title-sub {
-  margin: 0;
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-  padding-left: 34px;
-}
-
-/* ── Main ── */
-.cs-select-main {
-  padding: 24px 32px;
-  flex: 1;
-}
-
-/* ── Footer ── */
-.cs-select-footer {
+<style scoped>
+.footer-content {
   text-align: center;
-  font-size: 13px;
-  color: var(--el-text-color-placeholder);
-  line-height: 60px;
+  color: darkgray;
+}
+
+.el-header {
+  border-bottom: 1px solid #514d4d;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+}
+
+.cs-select-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-title {
+  text-align: center;
+  font-size: 32px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 8px;
+}
+
+.page-subtitle {
+  text-align: center;
+  font-size: 16px;
+  color: #7f8c8d;
+  margin-bottom: 40px;
 }
 
 /* 骨架 */
@@ -243,7 +211,7 @@ onMounted(() => {
 
 .store-skeleton {
   background: var(--el-bg-color);
-  border-radius: 16px;
+  border-radius: 12px;
   padding: 20px;
 }
 
@@ -261,121 +229,145 @@ onMounted(() => {
 }
 
 /* 店铺网格 */
-.store-grid {
+.content-info {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  grid-gap: 20px;
 }
 
 .store-card {
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 16px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  border: 1px solid #e8e8e8;
   overflow: hidden;
-  transition: box-shadow 0.25s, transform 0.25s;
+}
+
+.store-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.store-card :deep(.el-card__header) {
+  color: white;
+  padding: 16px 20px;
+  border-bottom: none;
+}
+
+.store-card :deep(.el-card__body) {
+  padding: 0;
+}
+
+.store-card :deep(.el-card__footer) {
+  padding: 12px 20px;
+  border-top: 1px solid #e8e8e8;
+}
+
+.card-header {
   display: flex;
-  flex-direction: column;
-
-  &:hover {
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    transform: translateY(-4px);
-  }
-
-  &--closed {
-    opacity: 0.7;
-  }
-}
-
-/* 封面 */
-.card-cover {
-  position: relative;
-  height: 160px;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.cover-img {
-  width: 100%;
-  height: 100%;
-}
-
-.cover-fallback {
-  width: 100%;
-  height: 100%;
-  display: flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  background: var(--el-fill-color-light);
-  color: var(--el-text-color-placeholder);
-}
-
-.state-tag {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-}
-
-/* 卡片信息 */
-.card-body {
-  padding: 16px 18px 12px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
 }
 
 .store-name {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--el-text-color-primary);
-  margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
 }
 
-.store-desc {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.store-meta {
+.store-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-top: 4px;
+  justify-content: center;
+  height: 200px;
+  padding: 0 20px;
+  gap: 12px;
 }
 
-.meta-item {
+.info-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: #606266;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.info-item .el-icon {
+  color: #909399;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.select-btn {
+  margin-top: auto;
+  padding: 8px 16px;
+  font-weight: 500;
+}
+
+.image-slot {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  background-color: #f5f7fa;
+  color: #909399;
+  font-size: 14px;
+}
+
+.image-slot .el-icon {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.card-footer {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 12px;
-  color: var(--el-text-color-placeholder);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-
-  .el-icon { font-size: 13px; flex-shrink: 0; }
+  gap: 6px;
+  color: #909399;
+  font-size: 13px;
 }
 
-/* 底部按钮 */
-.card-footer {
-  padding: 12px 18px 18px;
-  border-top: 1px solid var(--el-border-color-lighter);
-}
+@media (max-width: 768px) {
+  .cs-select-container {
+    padding: 15px;
+  }
 
-.enter-btn {
-  width: 100%;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  border: none;
-  font-weight: 600;
+  .page-title {
+    font-size: 28px;
+  }
 
-  &:hover {
-    opacity: 0.9;
+  .page-subtitle {
+    font-size: 14px;
+    margin-bottom: 30px;
+  }
+
+  .content-info {
+    grid-template-columns: 1fr;
+    padding: 0 10px;
+  }
+
+  .el-row {
+    flex-direction: column;
+  }
+
+  .el-col {
+    width: 100%;
+  }
+
+  .store-info {
+    height: auto;
+    padding: 15px 20px;
+    gap: 15px;
+  }
+
+  .store-card :deep(.el-card__header) {
+    padding: 12px 15px;
+  }
+
+  .store-name {
+    font-size: 16px;
   }
 }
 </style>

@@ -27,7 +27,7 @@
         :key="tag"
         size="small"
         class="hot-tag"
-        @click="inputValue = tag"
+        @click="handleTagClick(tag)"
       >
         {{ tag }}
       </el-tag>
@@ -36,20 +36,41 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { Search } from '@element-plus/icons-vue'
 
 defineOptions({
   name: 'HeadSearch',
 })
 
+const route = useRoute()
+const router = useRouter()
+
 const inputValue = ref('')
 const hotTags = ref(['手机', '电脑', '服装', '家居', '美妆'])
 
+// 同步路由 query 中的 keyword 到输入框
+watch(
+  () => route.query.keyword,
+  (kw) => {
+    inputValue.value = (kw as string) || ''
+  },
+  { immediate: true }
+)
+
 const handleSearch = () => {
-  if (inputValue.value.trim()) {
-    console.log('搜索内容:', inputValue.value)
+  const kw = inputValue.value.trim()
+  if (kw) {
+    router.push({ path: '/mall', query: { keyword: kw } })
+  } else {
+    router.push({ path: '/mall' })
   }
+}
+
+const handleTagClick = (tag: string) => {
+  inputValue.value = tag
+  router.push({ path: '/mall', query: { keyword: tag } })
 }
 </script>
 

@@ -37,9 +37,10 @@
                 <span slot="title">用户管理</span>
             </el-menu-item>
             <el-menu-item index="6">
-                <el-icon><Service/></el-icon>
+                <el-badge :value="csUnreadCount" :hidden="csUnreadCount === 0" :max="99" class="cs-nav-badge">
+                    <el-icon><Service/></el-icon>
+                </el-badge>
                 <span slot="title">客服管理</span>
-
             </el-menu-item>
             <el-menu-item index="7">
                 <el-icon><DocumentCopy/></el-icon>
@@ -59,18 +60,45 @@
 
 
 </template>
+
+<style scoped>
+.cs-nav-badge :deep(.el-badge__content) {
+  background: #f56c6c;
+}
+</style>
+
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import router from '@/router'
-import { useRoute } from 'vue-router';
+import { useRoute } from 'vue-router'
+import axios from 'axios'
 import { Eleme, Odometer, Shop, List, Handbag, User, DocumentCopy, Box, Setting, Service } from '@element-plus/icons-vue'
 import { useBuyerNavigationStore } from '@/moon/buyer_navigatiom_pinia'
 
-const store = useBuyerNavigationStore();
-
+const store = useBuyerNavigationStore()
 const selected = ref('1')
+const csUnreadCount = ref(0)
+
+const Axios = axios.create({ baseURL: 'http://127.0.0.1:8000/api' })
+
+async function fetchCsUnread() {
+  const token = localStorage.getItem('buyer_access_token')
+  if (!token) return
+  try {
+    const res = await Axios.get('/cs_seller_total_unread', { headers: { 'access-token': token } })
+    if (res.data?.current && typeof res.data.unread_count === 'number') {
+      csUnreadCount.value = res.data.unread_count
+    }
+  } catch {
+    // ignore
+  }
+}
+
+let pollTimer: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
+  fetchCsUnread()
+  pollTimer = setInterval(fetchCsUnread, 30000) // 每30秒轮询
     const route = useRoute();
     switch (route.path) {
         case '/buyer_index':
@@ -105,6 +133,9 @@ const handleSelect = (index: string) => {
     }
 }
 
+onUnmounted(() => {
+  if (pollTimer) clearInterval(pollTimer)
+})
 
 defineOptions({
     name:'BuyerNavigation'})

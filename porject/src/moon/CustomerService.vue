@@ -162,8 +162,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, onBeforeUnmount } from 'vue'
+import { ref, nextTick, onBeforeUnmount, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import axios from 'axios'
 import {
   Service, Close, Promotion, Loading, Refresh,
   InfoFilled, Goods, WarningFilled,
@@ -384,7 +385,29 @@ function formatTime(ts: string): string {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
+// ── 初始未读数（页面加载时从 API 获取）───────────────────────────────────────────
+
+async function fetchInitialUnread() {
+  const token = getToken()
+  if (!token || !props.mallId) return
+  try {
+    const res = await axios.get(
+      `http://127.0.0.1:8000/api/cs_unread_count?role=user&mall_id=${props.mallId}`,
+      { headers: { 'access-token': token } }
+    )
+    if (res.data?.current && typeof res.data.unread_count === 'number') {
+      unreadCount.value = res.data.unread_count
+    }
+  } catch {
+    // ignore
+  }
+}
+
 // ── 生命周期 ──────────────────────────────────────────────────────────────────
+
+onMounted(() => {
+  fetchInitialUnread()
+})
 
 onBeforeUnmount(() => {
   disconnect()

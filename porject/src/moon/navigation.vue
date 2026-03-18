@@ -50,11 +50,22 @@
       <router-link to="/personal_center" custom>
         <template #default="{ navigate, isActive }">
           <el-menu-item 
-            :class="{ 'is-active': isActive }"
+            :class="{ 'is-active': isActive && !isCsTab }"
             @click="navigate"
             index="4-1"
           >
             个人主页
+          </el-menu-item>
+        </template>
+      </router-link>
+      <router-link v-if="isLoggedIn" to="/personal_center?tab=cs" custom>
+        <template #default="{ navigate, isActive }">
+          <el-menu-item 
+            :class="{ 'is-active': isActive || isCsTab }"
+            @click="navigate"
+            index="4-2"
+          >
+            客服消息
           </el-menu-item>
         </template>
       </router-link>
@@ -91,13 +102,18 @@ export default {
     };
     const isTransitioning = ref(false);
     
+    // 是否在客服消息标签页（个人中心?tab=cs）
+    const isCsTab = computed(() => {
+      return route.path === '/personal_center' && route.query.tab === 'cs';
+    });
+    
     // 计算当前激活的菜单项
     const activeIndex = computed(() => {
       switch (route.path) {
         case '/': return '1';
         case '/mall': return '2';
         case '/shopping_trolley': return '3';
-        case '/personal_center': return '4-1';
+        case '/personal_center': return isCsTab.value ? '4-2' : '4-1';
         default: return '';
       }
     });
@@ -147,6 +163,7 @@ export default {
       darkMode,
       isTransitioning,
       isLoggedIn,
+      isCsTab,
       activeIndex,
       handleSelect,
       toggleTheme
