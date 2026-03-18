@@ -8,7 +8,7 @@
     <!-- 首页 -->
     <router-link to="/" custom>
       <template #default="{ navigate, isActive }">
-        <el-menu-item 
+        <el-menu-item
           :class="{ 'is-active': isActive }"
           @click="navigate"
           index="1"
@@ -17,11 +17,11 @@
         </el-menu-item>
       </template>
     </router-link>
-    
+
     <!-- 商城 -->
     <router-link to="/mall" custom>
       <template #default="{ navigate, isActive }">
-        <el-menu-item 
+        <el-menu-item
           :class="{ 'is-active': isActive }"
           @click="navigate"
           index="2"
@@ -30,11 +30,11 @@
         </el-menu-item>
       </template>
     </router-link>
-    
+
     <!-- 购物车（仅登录显示） -->
     <router-link v-if="isLoggedIn" to="/shopping_trolley" custom>
       <template #default="{ navigate, isActive }">
-        <el-menu-item 
+        <el-menu-item
           :class="{ 'is-active': isActive }"
           @click="navigate"
           index="3"
@@ -43,29 +43,18 @@
         </el-menu-item>
       </template>
     </router-link>
-    
+
     <!-- 其他 -->
     <el-sub-menu index="4">
       <template #title>其他</template>
       <router-link to="/personal_center" custom>
         <template #default="{ navigate, isActive }">
-          <el-menu-item 
+          <el-menu-item
             :class="{ 'is-active': isActive && !isCsTab }"
             @click="navigate"
             index="4-1"
           >
             个人主页
-          </el-menu-item>
-        </template>
-      </router-link>
-      <router-link v-if="isLoggedIn" to="/personal_center?tab=cs" custom>
-        <template #default="{ navigate, isActive }">
-          <el-menu-item 
-            :class="{ 'is-active': isActive || isCsTab }"
-            @click="navigate"
-            index="4-2"
-          >
-            客服消息
           </el-menu-item>
         </template>
       </router-link>
@@ -92,7 +81,7 @@ export default {
   setup() {
     // 获取当前路由
     const route = useRoute();
-    
+
     // 状态管理
     const darkMode = ref(false);
     const isLoggedIn = ref(false);
@@ -101,12 +90,12 @@ export default {
       isLoggedIn.value = !!(localStorage.getItem('access_token') || localStorage.getItem('buyer_access_token'));
     };
     const isTransitioning = ref(false);
-    
+
     // 是否在客服消息标签页（个人中心?tab=cs）
     const isCsTab = computed(() => {
       return route.path === '/personal_center' && route.query.tab === 'cs';
     });
-    
+
     // 计算当前激活的菜单项
     const activeIndex = computed(() => {
       switch (route.path) {
@@ -117,43 +106,43 @@ export default {
         default: return '';
       }
     });
-    
+
     // 处理菜单项选择事件
     const handleSelect = (key, keyPath) => {
       // 可根据需要添加额外逻辑
       console.log('选中菜单项:', key);
     };
-    
+
     // 切换主题
     const toggleTheme = (value) => {
       isTransitioning.value = true;
       document.documentElement.classList.add('theme-transition');
-      
+
       if (value) {
         document.documentElement.classList.add('dark');
       } else {
         document.documentElement.classList.remove('dark');
       }
-      
+
       setTimeout(() => {
         isTransitioning.value = false;
         document.documentElement.classList.remove('theme-transition');
       }, 300);
-      
+
       // 保存主题设置到本地存储
       localStorage.setItem('theme', value ? 'dark' : 'light');
     };
-    
+
     // 初始化时恢复主题设置
     const initTheme = () => {
       const savedTheme = localStorage.getItem('theme');
-      
+
       if (savedTheme === 'dark') {
         darkMode.value = true;
         document.documentElement.classList.add('dark');
       }
     };
-    
+
     // 初始化
     initTheme();
     checkLogin();
