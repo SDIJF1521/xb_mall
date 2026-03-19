@@ -122,6 +122,7 @@ async function getStatistics() {
             classify_distribution.value = res.data.classify_distribution || []
             trend.value = res.data.trend || []
 
+            loading.value = false
             await nextTick()
             renderCharts()
         } else {
