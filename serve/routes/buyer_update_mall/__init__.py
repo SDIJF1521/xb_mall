@@ -28,7 +28,7 @@ async def buyer_update_mall(data:Annotated[UpdateMall,Form()],db:Connection=Depe
         if sel_mall_id:
             old_user = sel_mall_id[0][1]
             await execute_db_query(db,'update store set mall_name=%s,mall_phone=%s,mall_site=%s,mall_describe=%s,state=%s where mall_id=%s',
-                                (data.mall_name,data.mall_site,data.mall_phone,data.info,data.state,data.id))
+                                (data.mall_name,data.mall_phone,data.mall_site,data.info,data.state,data.id))
             try:
                 os.remove(f'./mall_img/{data.id}.png')
             except:

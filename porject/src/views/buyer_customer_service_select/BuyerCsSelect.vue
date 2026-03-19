@@ -44,7 +44,11 @@
             >
               <template #header>
                 <div class="card-header">
-                  <span class="store-name">{{ item.mall_name }}</span>
+                  <div class="card-header-left">
+                    <el-badge :value="item.unread_count" :hidden="!item.unread_count" :max="99" class="store-unread-badge">
+                      <span class="store-name">{{ item.mall_name }}</span>
+                    </el-badge>
+                  </div>
                   <el-tag :type="item.state === 1 && item.state_platform === 1 ? 'success' : 'danger'" size="small">
                     {{ item.state === 1 && item.state_platform === 1 ? '营业中' : '已关闭' }}
                   </el-tag>
@@ -79,17 +83,19 @@
                       <el-icon><Phone /></el-icon>
                       <span>{{ item.phone || '暂无联系电话' }}</span>
                     </div>
-                    <el-button
-                      type="primary"
-                      size="default"
-                      round
-                      class="select-btn"
-                      :disabled="!(item.state === 1 && item.state_platform === 1)"
-                      @click="enterService(item.id || 0)"
-                    >
-                      <el-icon><Headset /></el-icon>
-                      进入客服管理
-                    </el-button>
+                    <el-badge :value="item.unread_count" :hidden="!item.unread_count" :max="99" class="enter-btn-badge">
+                      <el-button
+                        type="primary"
+                        size="default"
+                        round
+                        class="select-btn"
+                        :disabled="!(item.state === 1 && item.state_platform === 1)"
+                        @click="enterService(item.id || 0)"
+                      >
+                        <el-icon><Headset /></el-icon>
+                        进入客服管理
+                      </el-button>
+                    </el-badge>
                   </div>
                 </el-col>
               </el-row>
@@ -129,6 +135,7 @@ interface StoreItem {
   time?: string
   state?: number
   state_platform?: number
+  unread_count?: number
 }
 
 const router = useRouter()
@@ -139,15 +146,37 @@ const storeList = ref<StoreItem[]>([])
 
 const defaultImg = 'https://img2.baidu.com/it/u=3422222222,2822222222&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=500'
 
+const fetchStoreUnreads = async (): Promise<Record<number, number>> => {
+  const token = localStorage.getItem('buyer_access_token') || ''
+  if (!token) return {}
+  try {
+    const res = await Axios.get('/cs_seller_store_unreads', { headers: { 'access-token': token } })
+    if (res.data?.current && Array.isArray(res.data.data)) {
+      const map: Record<number, number> = {}
+      for (const item of res.data.data) {
+        map[item.mall_id] = item.unread_count || 0
+      }
+      return map
+    }
+  } catch { /* ignore */ }
+  return {}
+}
+
 const fetchStores = async () => {
   loading.value = true
   try {
     const token = localStorage.getItem('buyer_access_token') || ''
     const form = new FormData()
     form.append('token', token)
-    const res = await Axios.post('/buyer_get_mall_info', form)
-    if (res.data.current) {
-      storeList.value = res.data.data || []
+    const [storeRes, unreadMap] = await Promise.all([
+      Axios.post('/buyer_get_mall_info', form),
+      fetchStoreUnreads(),
+    ])
+    if (storeRes.data.current) {
+      storeList.value = (storeRes.data.data || []).map((s: StoreItem) => ({
+        ...s,
+        unread_count: unreadMap[s.id || 0] || 0,
+      }))
     } else {
       ElMessage.error('获取店铺列表失败')
     }
@@ -267,6 +296,21 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.card-header-left {
+  display: flex;
+  align-items: center;
+}
+
+.store-unread-badge :deep(.el-badge__content) {
+  background: #f56c6c;
+}
+
+.enter-btn-badge :deep(.el-badge__content) {
+  background: #f56c6c;
+  top: -4px;
+  right: 4px;
 }
 
 .store-name {

@@ -71,8 +71,8 @@ async def _get_session_history(mongodb: MongoDBClient, mall_id: int, session_id:
         return []
 
 
-async def _get_session_list(mongodb: MongoDBClient, mall_id: int) -> list:
-    """获取该店铺的所有历史会话摘要（按最后消息时间降序）。"""
+async def _get_session_list(mongodb: MongoDBClient, mall_id: int, redis: RedisClient | None = None) -> list:
+    """获取该店铺的所有历史会话摘要（按最后消息时间降序），含每个会话的未读数。"""
     try:
         pipeline = [
             {"$match": {"mall_id": mall_id}},
@@ -96,11 +96,18 @@ async def _get_session_list(mongodb: MongoDBClient, mall_id: int) -> list:
             last_msg = item.get("last_message", "")
             if item.get("last_message_type") == "product_card":
                 last_msg = "[商品] " + last_msg
+            unread = 0
+            if redis:
+                try:
+                    unread = await redis.get_int(_seller_unread_key(mall_id, session_id))
+                except Exception:
+                    pass
             sessions.append({
                 "session_id": session_id,
                 "online": session_id in online_users,
                 "last_message": last_msg,
                 "last_time": item.get("last_time", ""),
+                "unread_count": unread,
             })
         return sessions
     except Exception:
@@ -168,7 +175,7 @@ async def _handle_user(
     })
 
     # 通知卖家端：该用户上线，推送更新后的会话列表
-    session_list = await _get_session_list(mongodb, mall_id)
+    session_list = await _get_session_list(mongodb, mall_id, redis)
     await cs_manager.broadcast_to_sellers(mall_id, {
         "type": "session_list",
         "data": session_list,
@@ -221,7 +228,7 @@ async def _handle_user(
 
             # 推送更新后的会话列表（含未读徽章）给卖家端
             try:
-                session_list = await _get_session_list(mongodb, mall_id)
+                session_list = await _get_session_list(mongodb, mall_id, redis)
                 await cs_manager.broadcast_to_sellers(mall_id, {
                     "type": "session_list",
                     "data": session_list,
@@ -257,7 +264,7 @@ async def _handle_user(
     except WebSocketDisconnect:
         cs_manager.disconnect_user(mall_id, username)
         # 通知卖家端：用户下线，更新会话列表
-        session_list = await _get_session_list(mongodb, mall_id)
+        session_list = await _get_session_list(mongodb, mall_id, redis)
         await cs_manager.broadcast_to_sellers(mall_id, {
             "type": "session_list",
             "data": session_list,
@@ -273,7 +280,7 @@ async def _handle_seller(
     await cs_manager.connect_seller(websocket, mall_id, username)
 
     # 推送当前会话列表（含每个用户的未读徽章）
-    session_list = await _get_session_list(mongodb, mall_id)
+    session_list = await _get_session_list(mongodb, mall_id, redis)
     await websocket.send_json({
         "type": "session_list",
         "data": session_list,

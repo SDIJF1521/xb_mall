@@ -83,6 +83,8 @@ const mallId = Number(route.params.mall_id)
 const sessions = ref<Session[]>([])
 const sessionsLoading = ref(false)
 const activeSessionId = ref('')
+// 通过 query 参数 ?target_session=xxx 精确定位到指定会话
+let pendingTargetSession = (route.query.target_session as string) || ''
 // { session_id -> CsMsg[] }
 const sessionMessages = ref<Record<string, CsMsg[]>>({})
 const historyLoading = ref(false)
@@ -164,7 +166,28 @@ function handleServerMessage(data: any) {
       online: s.online,
       last_message: s.last_message || '',
       last_time: formatTime(s.last_time),
+      // 当前正在查看的会话不显示未读（卖家已在阅读），服务端未读由 fetch_history 清除
+      unread_count: s.session_id === activeSessionId.value ? 0 : (s.unread_count || 0),
     }))
+
+    // 首次加载且有 query 指定的目标会话 → 自动选中
+    if (pendingTargetSession) {
+      const target = pendingTargetSession
+      pendingTargetSession = ''
+      const found = sessions.value.find(s => s.session_id === target)
+      if (found) {
+        onSelectSession(target)
+        return
+      }
+    }
+
+    // 首次加载且尚未选中任何会话 → 自动选中第一个有未读的会话
+    if (!activeSessionId.value && sessions.value.length > 0) {
+      const firstUnread = sessions.value.find(s => s.unread_count > 0)
+      if (firstUnread) {
+        onSelectSession(firstUnread.session_id)
+      }
+    }
     return
   }
 
@@ -186,7 +209,6 @@ function handleServerMessage(data: any) {
     }
     sessionMessages.value[sid].push(normalizeMsg(data))
 
-    // 更新会话列表中的最后一条消息
     const idx = sessions.value.findIndex(s => s.session_id === sid)
     if (idx !== -1) {
       sessions.value[idx] = {
@@ -195,12 +217,12 @@ function handleServerMessage(data: any) {
         last_time: formatTime(data.created_at),
       }
     } else if (data.sender_type === 'user') {
-      // 新会话
       sessions.value.unshift({
         session_id: sid,
         online: true,
         last_message: data.content,
         last_time: formatTime(data.created_at),
+        unread_count: 0,
       })
     }
     return
@@ -233,7 +255,14 @@ function onSendMessage(content: string) {
 
 function onSelectSession(sessionId: string) {
   activeSessionId.value = sessionId
-  // 如果本地没有历史，拉取一次
+
+  // 清除该会话的未读计数
+  const idx = sessions.value.findIndex(s => s.session_id === sessionId)
+  if (idx !== -1 && sessions.value[idx].unread_count > 0) {
+    sessions.value[idx] = { ...sessions.value[idx], unread_count: 0 }
+  }
+
+  // 如果本地没有历史，拉取一次（fetch_history 同时会在后端清除 Redis 未读）
   if (!sessionMessages.value[sessionId]) {
     historyLoading.value = true
     ws?.send(JSON.stringify({ type: 'fetch_history', session_id: sessionId }))

@@ -43,7 +43,15 @@
             <span class="si-name">{{ session.session_id }}</span>
             <span class="si-time">{{ session.last_time }}</span>
           </div>
-          <div class="si-last">{{ session.last_message || '暂无消息' }}</div>
+          <div class="si-bottom">
+            <span class="si-last">{{ session.last_message || '暂无消息' }}</span>
+            <el-badge
+              v-if="session.unread_count > 0"
+              :value="session.unread_count"
+              :max="99"
+              class="si-unread"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -59,6 +67,7 @@ export interface Session {
   online: boolean
   last_message: string
   last_time: string
+  unread_count: number
 }
 
 const props = defineProps<{
@@ -196,11 +205,31 @@ const filteredSessions = computed(() => {
   margin-left: 6px;
 }
 
+.si-bottom {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .si-last {
+  flex: 1;
+  min-width: 0;
   font-size: 12px;
   color: var(--el-text-color-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.si-unread {
+  flex-shrink: 0;
+}
+
+.si-unread :deep(.el-badge__content) {
+  background: #f56c6c;
+  font-size: 10px;
+  height: 16px;
+  line-height: 16px;
+  padding: 0 5px;
 }
 </style>

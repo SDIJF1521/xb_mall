@@ -78,6 +78,8 @@ import { useBuyerNavigationStore } from '@/moon/buyer_navigatiom_pinia'
 const store = useBuyerNavigationStore()
 const selected = ref('1')
 const csUnreadCount = ref(0)
+// 记录未读数最多的店铺 ID，便于快速跳转
+let topUnreadMallId: number | null = null
 
 const Axios = axios.create({ baseURL: 'http://127.0.0.1:8000/api' })
 
@@ -85,9 +87,23 @@ async function fetchCsUnread() {
   const token = localStorage.getItem('buyer_access_token')
   if (!token) return
   try {
-    const res = await Axios.get('/cs_seller_total_unread', { headers: { 'access-token': token } })
-    if (res.data?.current && typeof res.data.unread_count === 'number') {
-      csUnreadCount.value = res.data.unread_count
+    const [totalRes, storeRes] = await Promise.all([
+      Axios.get('/cs_seller_total_unread', { headers: { 'access-token': token } }),
+      Axios.get('/cs_seller_store_unreads', { headers: { 'access-token': token } }),
+    ])
+    if (totalRes.data?.current && typeof totalRes.data.unread_count === 'number') {
+      csUnreadCount.value = totalRes.data.unread_count
+    }
+    // 找到未读最多的店铺
+    topUnreadMallId = null
+    if (storeRes.data?.current && Array.isArray(storeRes.data.data)) {
+      let maxCount = 0
+      for (const item of storeRes.data.data) {
+        if (item.unread_count > maxCount) {
+          maxCount = item.unread_count
+          topUnreadMallId = item.mall_id
+        }
+      }
     }
   } catch {
     // ignore
@@ -129,7 +145,12 @@ const handleSelect = (index: string) => {
     } else if (index === '5') {
         router.push('/buyer_user_manage')
     } else if (index === '6') {
-        router.push('/buyer_cs_select')
+        // 有未读消息时直接跳转到未读最多的店铺客服页，否则进入店铺选择页
+        if (topUnreadMallId) {
+            router.push(`/buyer_customer_service/${topUnreadMallId}`)
+        } else {
+            router.push('/buyer_cs_select')
+        }
     }
 }
 

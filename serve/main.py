@@ -122,6 +122,17 @@ from routes.manage_get_commoidt_apply_list import router as manage_get_commoidt_
 from routes.manage_get_commoidt_apply import router as manage_get_commoidt_apply_router
 from routes.manage_commodity_rejectAudit import router as manage_commodity_rejectAudit_router
 from routes.manage_commodity_passAudit import router as manage_commodity_passAudit_router
+from routes.manage_commodity_list import router as manage_commodity_list_router
+from routes.manage_commodity_classify_list import router as manage_commodity_classify_list_router
+from routes.manage_commodity_classify_add import router as manage_commodity_classify_add_router
+from routes.manage_commodity_classify_edit import router as manage_commodity_classify_edit_router
+from routes.manage_commodity_classify_delete import router as manage_commodity_classify_delete_router
+from routes.manage_commodity_violation_list import router as manage_commodity_violation_list_router
+from routes.manage_commodity_violation_add import router as manage_commodity_violation_add_router
+from routes.manage_commodity_violation_remove import router as manage_commodity_violation_remove_router
+from routes.manage_commodity_statistics import router as manage_commodity_statistics_router
+from routes.buyer_commodity_violation_appeal import router as buyer_commodity_violation_appeal_router
+from routes.manage_commodity_appeal import router as manage_commodity_appeal_router
 
 from routes.user_list import router as user_list_router
 from routes.today_user_list import router as today_user_list_router
@@ -877,3 +888,26 @@ app.include_router(customer_service_router, prefix='/api')
 
 # 客服消息 HTTP 路由（会话列表、历史、未读数、标记已读）
 app.include_router(cs_messages_router, prefix='/api')
+
+# 平台端商品列表路由
+app.include_router(manage_commodity_list_router, prefix='/api')
+
+# 平台端商品分类管理路由
+app.include_router(manage_commodity_classify_list_router, prefix='/api')
+app.include_router(manage_commodity_classify_add_router, prefix='/api')
+app.include_router(manage_commodity_classify_edit_router, prefix='/api')
+app.include_router(manage_commodity_classify_delete_router, prefix='/api')
+
+# 平台端违规商品管理路由
+app.include_router(manage_commodity_violation_list_router, prefix='/api')
+app.include_router(manage_commodity_violation_add_router, prefix='/api')
+app.include_router(manage_commodity_violation_remove_router, prefix='/api')
+
+# 平台端商品统计路由
+app.include_router(manage_commodity_statistics_router, prefix='/api')
+
+# 商家端违规商品申诉路由
+app.include_router(buyer_commodity_violation_appeal_router, prefix='/api')
+
+# 平台端申诉管理路由
+app.include_router(manage_commodity_appeal_router, prefix='/api')

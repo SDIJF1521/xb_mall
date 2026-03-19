@@ -488,3 +488,103 @@ class CsMarkReadBody(BaseModel):
     mall_id: int = Field(..., ge=1, description="店铺ID")
     role: str = Field(..., description="角色：user 或 seller")
     session_id: Optional[str] = Field(None, description="卖家端必传：会话用户名；用户端不传")
+
+
+# ── 平台端商品管理相关数据模型 ──────────────────────────────────────────────────
+
+# 平台端商品列表查询参数模型
+class ManageCommodityListQuery:
+    def __init__(
+        self,
+        page: int = Query(1, ge=1, description="页码"),
+        page_size: int = Query(20, ge=1, le=100, description="每页条数"),
+        select_data: Optional[str] = Query(None, description="搜索关键词"),
+        status: Optional[str] = Query(None, description="商品状态筛选：on_sale/off_shelf/auditing/rejected"),
+        mall_id: Optional[int] = Query(None, description="店铺ID筛选"),
+    ):
+        self.page = page
+        self.page_size = page_size
+        self.select_data = select_data
+        self.status = status
+        self.mall_id = mall_id
+
+# 平台端商品分类列表查询参数模型
+class ManageCommodityClassifyQuery:
+    def __init__(
+        self,
+        page: int = Query(1, ge=1, description="页码"),
+        page_size: int = Query(20, ge=1, le=100, description="每页条数"),
+        select_data: Optional[str] = Query(None, description="搜索关键词"),
+    ):
+        self.page = page
+        self.page_size = page_size
+        self.select_data = select_data
+
+# 平台端新增商品分类数据模型
+class ManageCommodityClassifyAdd(BaseModel):
+    token: str
+    name: str
+
+# 平台端编辑商品分类数据模型
+class ManageCommodityClassifyEdit(BaseModel):
+    token: str
+    classify_id: int
+    name: str
+
+# 平台端删除商品分类数据模型
+class ManageCommodityClassifyDelete(BaseModel):
+    token: str
+    classify_id: int
+
+# 平台端违规商品列表查询参数模型
+class ManageCommodityViolationQuery:
+    def __init__(
+        self,
+        page: int = Query(1, ge=1, description="页码"),
+        page_size: int = Query(20, ge=1, le=100, description="每页条数"),
+        select_data: Optional[str] = Query(None, description="搜索关键词"),
+    ):
+        self.page = page
+        self.page_size = page_size
+        self.select_data = select_data
+
+# 平台端标记商品违规数据模型
+class ManageCommodityViolationAdd(BaseModel):
+    token: str
+    mall_id: int
+    shopping_id: int
+    reason: str
+
+# 平台端取消商品违规数据模型
+class ManageCommodityViolationRemove(BaseModel):
+    token: str
+    mall_id: int
+    shopping_id: int
+
+# 商家端违规商品申诉数据模型
+class BuyerCommodityViolationAppeal(BaseModel):
+    token: str
+    stroe_id: int
+    shopping_id: int
+    reason: str
+
+# 平台端申诉列表查询参数模型
+class ManageCommodityAppealQuery:
+    def __init__(
+        self,
+        page: int = Query(1, ge=1, description="页码"),
+        page_size: int = Query(20, ge=1, le=100, description="每页条数"),
+        select_data: Optional[str] = Query(None, description="搜索关键词"),
+        status: Optional[str] = Query(None, description="申诉状态：pending/approved/rejected"),
+    ):
+        self.page = page
+        self.page_size = page_size
+        self.select_data = select_data
+        self.status = status
+
+# 平台端处理申诉数据模型
+class ManageCommodityAppealHandle(BaseModel):
+    token: str
+    appeal_id: str
+    action: str
+    remark: Optional[str] = None

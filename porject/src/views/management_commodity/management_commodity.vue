@@ -32,6 +32,12 @@
             <template #title>违规商品</template>
           </el-menu-item>
 
+          <!-- 申诉审核 -->
+          <el-menu-item index="6">
+            <el-icon><ChatLineSquare /></el-icon>
+            <template #title>申诉审核</template>
+          </el-menu-item>
+
           <!-- 商品统计 -->
           <el-menu-item index="5">
             <el-icon><TrendCharts /></el-icon>
@@ -39,40 +45,58 @@
           </el-menu-item>
         </el-menu>
       </el-aside>
-      
+
       <el-main>
         <component :is="mods"/>
       </el-main>
     </el-container>
 
-    
+
   <el-footer class="footer-content">版权所有 © [小白的商城]，保留所有权利。</el-footer>
 </el-container>
 </template>
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref } from 'vue'
 import ManagementNavigation from '@/moon/management_navigation.vue'
 import CommodityAudit from './content/commodity_audit.vue'
+import CommodityList from './content/commodity_list.vue'
+import CommodityClassify from './content/commodity_classify.vue'
+import CommodityViolation from './content/commodity_violation.vue'
+import CommodityAppealManage from './content/commodity_appeal.vue'
+import CommodityStatistics from './content/commodity_statistics.vue'
 import {
   DocumentChecked,
   List,
   Grid,
   Warning,
+  ChatLineSquare,
   TrendCharts
 } from '@element-plus/icons-vue'
 
-const mods = ref('CommodityAudit')
-const activeIndex = ref('1') // 默认选中商品列表
+const MENU_STORAGE_KEY = 'management_commodity_menu_index'
 
-// 菜单选择处理函数
-const handleMenuSelect = (index: string) => {
-  activeIndex.value = index
-
-  // 根据菜单项跳转到不同子页面或切换内容区域
+const indexToMods: Record<string, string> = {
+  '1': 'CommodityAudit',
+  '2': 'CommodityList',
+  '3': 'CommodityClassify',
+  '4': 'CommodityViolation',
+  '5': 'CommodityStatistics',
+  '6': 'CommodityAppealManage'
 }
 
+function getSavedIndex(): string {
+  const saved = localStorage.getItem(MENU_STORAGE_KEY)
+  return saved && indexToMods[saved] ? saved : '1'
+}
 
+const activeIndex = ref(getSavedIndex())
+const mods = ref(indexToMods[activeIndex.value])
+
+const handleMenuSelect = (index: string) => {
+  activeIndex.value = index
+  mods.value = indexToMods[index] || 'CommodityAudit'
+  localStorage.setItem(MENU_STORAGE_KEY, index)
+}
 
 defineOptions({
   name:'ManagementCommodity',
@@ -82,8 +106,14 @@ defineOptions({
     List,
     Grid,
     Warning,
+    ChatLineSquare,
     TrendCharts,
-    CommodityAudit
+    CommodityAudit,
+    CommodityList,
+    CommodityClassify,
+    CommodityViolation,
+    CommodityAppealManage,
+    CommodityStatistics
   }
 })
 </script>
@@ -174,4 +204,9 @@ defineOptions({
 }
 
 </style>
-
+<style>
+/* 图片预览层需置于最上层，避免与表格/卡片固定列等冲突 */
+.el-image-viewer__wrapper {
+  z-index: 9999 !important;
+}
+</style>

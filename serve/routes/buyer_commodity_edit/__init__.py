@@ -38,6 +38,11 @@ async def buyer_commodity_edit(data:Annotated[SellerCommodityEdit,Form(),File()]
         if not sql_data:
             return {"code":404,"msg":"商品不存在",'current':False}
         
+        # 违规商品(audit=4)不允许编辑，需先申诉
+        audit_data = await execute_db_query(db,'select audit from shopping where mall_id = %s and shopping_id = %s',(data.stroe_id,data.shopping_id))
+        if audit_data and audit_data[0][0] == 4:
+            return {"code":403,"msg":"该商品处于违规状态，无法编辑，请先进行申诉",'current':False}
+        
         old_mongodb_data = await mongodb.find_one('shopping', {
             'mall_id': data.stroe_id,
             'shopping_id': data.shopping_id

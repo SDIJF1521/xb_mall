@@ -75,14 +75,30 @@
       @success="handlePutawaySuccess"
     />
   </el-dialog>
+
+  <!-- 违规申诉对话框 -->
+  <el-dialog
+    v-model="appealDialogVisible"
+    title="违规商品申诉"
+    width="600px"
+    append-to-body
+    :close-on-click-modal="false"
+  >
+    <CommodityAppeal
+      v-if="currentCommodity"
+      :commodity="currentCommodity"
+      @cancel="handleAppealCancel"
+      @success="handleAppealSuccess"
+    />
+  </el-dialog>
  <el-table :data="commodity_list" ref="table" >
   <el-table-column type="selection"  width="55" />
   <el-table-column prop="id" label="商品id"/>
   <el-table-column prop="name" label="商品名称"/>
   <el-table-column prop="audit" label="商品状态">
     <template #default="scope">
-      <el-tag :type="scope.row.audit === 1 ? 'primary' : scope.row.audit === 0 ? 'warning' : scope.row.audit === 3 ? 'danger' : 'danger'">
-        {{ scope.row.audit === 1 ? '已上架' : scope.row.audit === 0 ? '待审核' : scope.row.audit === 3 ? '已下架' :scope.row.audit === 4 ? '店铺关闭异常状态': '审核未通过' }}
+      <el-tag :type="scope.row.audit === 1 ? 'primary' : scope.row.audit === 0 ? 'warning' : scope.row.audit === 3 ? 'info' : scope.row.audit === 4 ? 'danger' : 'danger'">
+        {{ scope.row.audit === 1 ? '已上架' : scope.row.audit === 0 ? '待审核' : scope.row.audit === 3 ? '已下架' : scope.row.audit === 4 ? '违规' :scope.row.audit === 5 ? '店铺关闭异常状态' : '审核未通过' }}
       </el-tag>
     </template>
   </el-table-column>
@@ -99,11 +115,12 @@
       />
     </template>
     <template #default="scope">
-      <el-button type="primary" size="small" @click="edit_commodity(scope.row)">修改</el-button>
+      <el-button v-if="scope.row.audit !== 4" type="primary" size="small" @click="edit_commodity(scope.row)">修改</el-button>
       <el-button type="info" size="small" @click="view_details(scope.row)">查看详情</el-button>
       <el-button v-if="scope.row.audit === 1" type="warning" size="small" @click="delisting_commodity(scope.row)">下架</el-button>
       <el-button v-if="scope.row.audit === 3" type="success" size="small" @click="putaway_commodity(scope.row)">上架</el-button>
-      <el-button type="danger" size="small" @click="delete_commodity(scope.row)">删除</el-button>
+      <el-button v-if="scope.row.audit === 4" type="warning" size="small" @click="appeal_commodity(scope.row)">申诉</el-button>
+      <el-button v-if="scope.row.audit !== 4" type="danger" size="small" @click="delete_commodity(scope.row)">删除</el-button>
     </template>
   </el-table-column>
  </el-table>
@@ -127,6 +144,7 @@ import CommodityEdit from './commodity_edit.vue'
 import CommodityDelete from './commodity_delete.vue'
 import CommodityDelisting from './commodity_delisting.vue'
 import CommodityPutaway from './commodity_putaway.vue'
+import CommodityAppeal from './commodity_appeal.vue'
 
 const route = useRoute()
 const id = ref(route.params.id)
@@ -141,6 +159,7 @@ const editDialogVisible = ref(false)
 const deleteDialogVisible = ref(false)
 const delistingDialogVisible = ref(false)
 const putawayDialogVisible = ref(false)
+const appealDialogVisible = ref(false)
 const title = ref('')
 const currentCommodity = ref<Commodity | null>(null)
 
@@ -175,7 +194,8 @@ defineOptions({
       CommodityEdit,
       CommodityDelete,
       CommodityDelisting,
-      CommodityPutaway
+      CommodityPutaway,
+      CommodityAppeal
     }
 })
 
@@ -319,7 +339,27 @@ function handlePutawayCancel() {
 function handlePutawaySuccess() {
   putawayDialogVisible.value = false
   currentCommodity.value = null
-  // 刷新商品列表
+  getCommodityList(currentPage.value, search.value)
+}
+
+// 违规申诉
+function appeal_commodity(data: Commodity) {
+  currentCommodity.value = data
+  appealDialogVisible.value = true
+}
+
+// 取消申诉
+function handleAppealCancel() {
+  appealDialogVisible.value = false
+  setTimeout(() => {
+    currentCommodity.value = null
+  }, 300)
+}
+
+// 申诉成功
+function handleAppealSuccess() {
+  appealDialogVisible.value = false
+  currentCommodity.value = null
   getCommodityList(currentPage.value, search.value)
 }
 

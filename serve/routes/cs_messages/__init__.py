@@ -281,6 +281,59 @@ async def cs_seller_total_unread(
         return {"current": False, "msg": "查询失败", "unread_count": 0}
 
 
+# ── 卖家端：获取每个店铺的未读明细（用于店铺选择页徽章）──────────────────────
+
+@router.get("/cs_seller_store_unreads")
+async def cs_seller_store_unreads(
+    access_token: Annotated[str | None, Header(alias="access-token")] = None,
+    redis: RedisClient = Depends(get_redis),
+):
+    """
+    卖家端获取每个有权限店铺的客服未读消息数，
+    返回 { current, data: [{ mall_id, unread_count }] }，用于店铺选择页展示徽章。
+    """
+    if not access_token:
+        return {"current": False, "msg": "请先登录", "data": []}
+
+    try:
+        verifier = VerifyDuterToken(access_token, redis)
+        token_data = await verifier.token_data()
+        if not token_data:
+            return {"current": False, "msg": "Token 无效", "data": []}
+
+        mall_ids = []
+        if token_data.get("station") == "1":
+            mall_ids = list(token_data.get("state_id_list") or [])
+        elif token_data.get("station") == "2":
+            mid = token_data.get("mall_id")
+            if mid is not None:
+                mall_ids = [mid]
+
+        if not mall_ids:
+            return {"current": True, "msg": "成功", "data": []}
+
+        from data.mongodb_client import get_mongodb_client
+        mongodb = get_mongodb_client()
+        result_list = []
+        for mall_id in mall_ids:
+            pipeline = [
+                {"$match": {"mall_id": mall_id}},
+                {"$group": {"_id": "$session_id"}},
+            ]
+            result = await mongodb.aggregate(COLLECTION, pipeline)
+            total = 0
+            for item in result:
+                sid = item.get("_id")
+                if sid:
+                    total += await redis.get_int(_seller_unread_key(mall_id, sid))
+            if total > 0:
+                result_list.append({"mall_id": mall_id, "unread_count": total})
+
+        return {"current": True, "msg": "成功", "data": result_list}
+    except Exception:
+        return {"current": False, "msg": "查询失败", "data": []}
+
+
 # ── 标记已读 ───────────────────────────────────────────────────────────────────
 
 @router.post("/cs_mark_read")
