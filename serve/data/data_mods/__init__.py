@@ -588,3 +588,30 @@ class ManageCommodityAppealHandle(BaseModel):
     appeal_id: str
     action: str
     remark: Optional[str] = None
+
+
+# ── 收藏功能相关数据模型 ──────────────────────────────────────────────────────
+
+# 添加收藏路由数据模型
+class FavoriteAddBody(BaseModel):
+    type: str = Field(..., description="收藏类型：commodity（商品）或 store（店铺）")
+    mall_id: int = Field(..., ge=1, description="店铺ID")
+    shopping_id: Optional[int] = Field(None, ge=1, description="商品ID，收藏商品时必传")
+
+# 移除收藏路由数据模型
+class FavoriteRemoveBody(BaseModel):
+    id: int = Field(..., description="收藏记录ID")
+
+# 查看收藏列表查询参数模型（分页 + 模糊搜索）
+class FavoriteListQuery:
+    def __init__(
+        self,
+        type: Optional[str] = Query(None, description="收藏类型筛选：commodity / store，不传则返回全部"),
+        page: int = Query(1, ge=1, description="页码，从 1 开始"),
+        page_size: int = Query(10, ge=1, le=50, description="每页条数，最大 50"),
+        search: Optional[str] = Query(None, description="模糊搜索关键词（匹配商品名称或店铺名称）"),
+    ):
+        self.type = type
+        self.page = page
+        self.page_size = page_size
+        self.search = search

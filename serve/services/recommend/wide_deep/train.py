@@ -200,6 +200,7 @@ def train_full_from_data(
     batch_size: int = 256,
     lr: float = 0.001,
     negative_ratio: int = 4,
+    favorites: list[dict] | None = None,
 ) -> dict:
     model_dir = Path(model_dir or DEFAULT_MODEL_DIR)
     model_dir.mkdir(parents=True, exist_ok=True)
@@ -216,6 +217,7 @@ def train_full_from_data(
         user2idx,
         item2idx,
         negative_ratio=negative_ratio,
+        favorites=favorites,
     )
     if len(samples) < 100:
         raise ValueError("训练样本过少, 建议积累更多用户行为数据后训练")
@@ -242,6 +244,7 @@ def incremental_train_from_data(
     batch_size: int = 256,
     lr: float = 0.0005,
     negative_ratio: int = 4,
+    favorites: list[dict] | None = None,
 ) -> dict:
     model_dir = Path(model_dir or DEFAULT_MODEL_DIR)
     model, config, user2idx, item2idx, type2idx = load_existing_artifacts(model_dir)
@@ -251,6 +254,7 @@ def incremental_train_from_data(
         item_feats,
         user2idx,
         negative_ratio=negative_ratio,
+        favorites=favorites,
     )
     if len(samples) < 10:
         raise ValueError("增量训练样本过少, 跳过本次微调")

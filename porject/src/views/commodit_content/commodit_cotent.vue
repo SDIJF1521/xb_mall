@@ -226,21 +226,77 @@ const handleAddToCart = async ({ specIndex, quantity }: { specIndex: number; qua
   }
 }
 
+const favId = ref<number | null>(null)
+
+const checkFavorite = async () => {
+  const token = localStorage.getItem('access_token')
+  if (!token || !commodity.value) return
+  try {
+    const res = await Axios.get('/favorite_check', {
+      params: {
+        type: 'commodity',
+        mall_id: commodity.value.mall_id,
+        shopping_id: commodity.value.shopping_id,
+      },
+      headers: getHeaders(),
+    })
+    if (res.data.success) {
+      isWishlisted.value = res.data.is_favorited
+      favId.value = res.data.favorite_id ?? null
+    }
+  } catch { /* ignore */ }
+}
+
 const handleWishlist = async () => {
-  if (!localStorage.getItem('access_token')) {
+  const token = localStorage.getItem('access_token')
+  if (!token) {
     ElMessage.warning('请先登录')
+    router.push('/register')
     return
   }
   wishlistLoading.value = true
   try {
-    isWishlisted.value = !isWishlisted.value
-    ElMessage.success(isWishlisted.value ? '已加入收藏' : '已取消收藏')
+    if (isWishlisted.value && favId.value) {
+      const res = await Axios.delete('/favorite_remove', {
+        params: { id: favId.value },
+        headers: getHeaders(),
+      })
+      if (res.data.success) {
+        isWishlisted.value = false
+        favId.value = null
+        ElMessage.success('已取消收藏')
+      } else {
+        ElMessage.warning(res.data.msg || '操作失败')
+      }
+    } else {
+      const res = await Axios.post(
+        '/favorite_add',
+        {
+          type: 'commodity',
+          mall_id: commodity.value?.mall_id,
+          shopping_id: commodity.value?.shopping_id,
+        },
+        { headers: getHeaders() },
+      )
+      if (res.data.success) {
+        isWishlisted.value = true
+        await checkFavorite()
+        ElMessage.success('已加入收藏')
+      } else {
+        ElMessage.warning(res.data.msg || '操作失败')
+      }
+    }
+  } catch {
+    ElMessage.error('操作失败，请稍后重试')
   } finally {
     wishlistLoading.value = false
   }
 }
 
-onMounted(fetchCommodity)
+onMounted(async () => {
+  await fetchCommodity()
+  await checkFavorite()
+})
 </script>
 
 <style scoped lang="scss">

@@ -77,6 +77,7 @@
               size="default"
               @click.stop="handleAddToWishlist(product)"
               :type="product.isWishlisted ? 'danger' : 'default'"
+              :loading="wishlistLoading[product.id]"
               class="wishlist-btn"
               circle
             >
@@ -123,7 +124,6 @@ import { ShoppingCart, Star, Picture } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 
-// 定义商品接口
 interface Product {
   id: number
   mallId: number
@@ -133,6 +133,7 @@ interface Product {
   image: string
   category: string
   isWishlisted: boolean
+  favId: number | null
 }
 
 // 组件配置
@@ -189,9 +190,12 @@ const fetchProducts = async (page: number = 1) => {
       image: item.img ? `data:image/jpeg;base64,${item.img}` : '',
       category: Array.isArray(item.type) && item.type.length > 0 ? item.type[0] : '其他',
       isWishlisted: false,
+      favId: null,
     }))
 
     total.value = res.data.total ?? 0
+
+    await batchCheckFavorites()
   } catch (error) {
     console.error('获取商品列表失败:', error)
     ElMessage.error('获取商品列表失败')
@@ -263,17 +267,78 @@ const handleAddToCart = async (product: Product) => {
   }
 }
 
-// 处理收藏
-const handleAddToWishlist = async (product: Product) => {
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('access_token')
+  return token ? { 'access-token': token } : {}
+}
+
+const batchCheckFavorites = async () => {
+  const token = localStorage.getItem('access_token')
+  if (!token || products.value.length === 0) return
   try {
+    const checks = products.value.map((p) =>
+      Axios.get('/favorite_check', {
+        params: { type: 'commodity', mall_id: p.mallId, shopping_id: p.id },
+        headers: getAuthHeaders(),
+      }).catch(() => null)
+    )
+    const results = await Promise.all(checks)
+    results.forEach((res, idx) => {
+      if (res?.data?.success) {
+        products.value[idx].isWishlisted = res.data.is_favorited
+        products.value[idx].favId = res.data.favorite_id ?? null
+      }
+    })
+  } catch { /* ignore */ }
+}
 
-    await new Promise(resolve => setTimeout(resolve, 300))
+const wishlistLoading = reactive<Record<number, boolean>>({})
 
-    product.isWishlisted = !product.isWishlisted
-    ElMessage.success(product.isWishlisted ? '已添加到收藏' : '已取消收藏')
-  } catch (error) {
-    console.error('收藏操作失败:', error)
+const handleAddToWishlist = async (product: Product) => {
+  const token = localStorage.getItem('access_token')
+  if (!token) {
+    ElMessage.warning('请先登录')
+    router.push('/register')
+    return
+  }
+  wishlistLoading[product.id] = true
+  try {
+    if (product.isWishlisted && product.favId) {
+      const res = await Axios.delete('/favorite_remove', {
+        params: { id: product.favId },
+        headers: getAuthHeaders(),
+      })
+      if (res.data.success) {
+        product.isWishlisted = false
+        product.favId = null
+        ElMessage.success('已取消收藏')
+      } else {
+        ElMessage.warning(res.data.msg || '操作失败')
+      }
+    } else {
+      const res = await Axios.post(
+        '/favorite_add',
+        { type: 'commodity', mall_id: product.mallId, shopping_id: product.id },
+        { headers: getAuthHeaders() },
+      )
+      if (res.data.success) {
+        product.isWishlisted = true
+        const checkRes = await Axios.get('/favorite_check', {
+          params: { type: 'commodity', mall_id: product.mallId, shopping_id: product.id },
+          headers: getAuthHeaders(),
+        })
+        if (checkRes.data.success) {
+          product.favId = checkRes.data.favorite_id ?? null
+        }
+        ElMessage.success('已添加到收藏')
+      } else {
+        ElMessage.warning(res.data.msg || '操作失败')
+      }
+    }
+  } catch {
     ElMessage.error('收藏操作失败')
+  } finally {
+    wishlistLoading[product.id] = false
   }
 }
 

@@ -62,10 +62,25 @@ class RecommendTrainer:
             tmp_path = Path(tmp.name)
         os.replace(tmp_path, self.state_path)
 
-    async def _load_training_data(self) -> tuple[list[dict], list[dict]]:
+    async def _load_training_data(self) -> tuple[list[dict], list[dict], list[dict]]:
         user_records = await self.mongodb.find_many("user_browse_record", {})
         shopping_items = await self.mongodb.find_many("shopping", {})
-        return user_records, shopping_items
+        favorites = await self._load_favorites()
+        return user_records, shopping_items, favorites
+
+    async def _load_favorites(self) -> list[dict]:
+        """从 MySQL user_favorites 表加载商品收藏记录，转换为训练可用格式"""
+        from data.sql_client_pool import db_pool
+        try:
+            rows = await db_pool.execute_query(
+                "SELECT user, mall_id, shopping_id FROM user_favorites WHERE type = 'commodity' AND shopping_id IS NOT NULL"
+            )
+            if not rows:
+                return []
+            return [{"user": r[0], "mall_id": r[1], "shopping_id": int(r[2])} for r in rows]
+        except Exception as exc:
+            logger.warning(f"加载收藏数据失败: {exc}")
+            return []
 
     # 清理推荐缓存
     async def _invalidate_recommend_cache(self) -> None:
@@ -92,7 +107,7 @@ class RecommendTrainer:
         incremental_lr: float = 0.0005,
         negative_ratio: int = 4,
     ) -> dict[str, Any]:
-        user_records, shopping_items = await self._load_training_data()
+        user_records, shopping_items, favorites = await self._load_training_data()
         latest_record_at = get_latest_record_timestamp(user_records)
         state = self.load_state()
 
@@ -112,6 +127,7 @@ class RecommendTrainer:
                 batch_size=batch_size,
                 lr=full_lr,
                 negative_ratio=negative_ratio,
+                favorites=favorites,
             )
             vocab = build_vocab(user_records, shopping_items)
             new_state = {
@@ -151,6 +167,7 @@ class RecommendTrainer:
                 batch_size=batch_size,
                 lr=full_lr,
                 negative_ratio=negative_ratio,
+                favorites=favorites,
             )
             vocab = build_vocab(user_records, shopping_items)
             training_mode = "full"
@@ -164,6 +181,7 @@ class RecommendTrainer:
                 batch_size=batch_size,
                 lr=incremental_lr,
                 negative_ratio=negative_ratio,
+                favorites=favorites,
             )
             training_mode = "incremental"
             vocab_summary = summarize_vocab(user2idx, item2idx, type2idx)

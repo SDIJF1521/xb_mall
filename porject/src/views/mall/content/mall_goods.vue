@@ -49,6 +49,16 @@
               <el-icon><ShoppingCart /></el-icon>
               加入购物车
             </el-button>
+            <el-button
+              size="small"
+              :type="favState[item.shopping_id]?.wishlisted ? 'danger' : 'default'"
+              :loading="wishlistLoading[item.shopping_id]"
+              class="fav-btn"
+              circle
+              @click.stop="handleFavorite(item)"
+            >
+              <el-icon><Star /></el-icon>
+            </el-button>
           </div>
         </div>
       </div>
@@ -57,8 +67,8 @@
 </template>
 
 <script setup lang="ts">
-import { reactive } from 'vue'
-import { Picture, ShoppingCart } from '@element-plus/icons-vue'
+import { reactive, watch } from 'vue'
+import { Picture, ShoppingCart, Star } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import ElMessage from '@/utils/message'
 import axios from 'axios'
@@ -75,19 +85,95 @@ interface GoodsItem {
   img: string
 }
 
-defineProps<{
+const props = defineProps<{
   goods: GoodsItem[]
 }>()
 
 const router = useRouter()
 
 const cartLoading = reactive<Record<string, boolean>>({})
+const wishlistLoading = reactive<Record<string, boolean>>({})
+const favState = reactive<Record<string, { wishlisted: boolean; favId: number | null }>>({})
 
 const Axios = axios.create({ baseURL: 'http://127.0.0.1:8000/api' })
 
 const getCartHeaders = () => {
   const token = localStorage.getItem('access_token') || localStorage.getItem('buyer_access_token')
   return token ? { 'access-token': token } : {}
+}
+
+const batchCheckFavorites = async (items: GoodsItem[]) => {
+  const token = localStorage.getItem('access_token')
+  if (!token || items.length === 0) return
+  const headers = { 'access-token': token }
+  const checks = items.map((item) =>
+    Axios.get('/favorite_check', {
+      params: { type: 'commodity', mall_id: item.mall_id, shopping_id: item.shopping_id },
+      headers,
+    }).catch(() => null)
+  )
+  const results = await Promise.all(checks)
+  results.forEach((res, idx) => {
+    const key = items[idx].shopping_id
+    if (res?.data?.success) {
+      favState[key] = { wishlisted: res.data.is_favorited, favId: res.data.favorite_id ?? null }
+    } else if (!favState[key]) {
+      favState[key] = { wishlisted: false, favId: null }
+    }
+  })
+}
+
+watch(
+  () => props.goods,
+  (newGoods) => { if (newGoods.length) batchCheckFavorites(newGoods) },
+  { immediate: true }
+)
+
+const handleFavorite = async (item: GoodsItem) => {
+  const token = localStorage.getItem('access_token')
+  if (!token) {
+    ElMessage.warning('请先登录')
+    router.push('/register')
+    return
+  }
+  const key = item.shopping_id
+  const headers = { 'access-token': token }
+  wishlistLoading[key] = true
+  try {
+    const state = favState[key]
+    if (state?.wishlisted && state.favId) {
+      const res = await Axios.delete('/favorite_remove', { params: { id: state.favId }, headers })
+      if (res.data.success) {
+        favState[key] = { wishlisted: false, favId: null }
+        ElMessage.success('已取消收藏')
+      } else {
+        ElMessage.warning(res.data.msg || '操作失败')
+      }
+    } else {
+      const res = await Axios.post(
+        '/favorite_add',
+        { type: 'commodity', mall_id: item.mall_id, shopping_id: item.shopping_id },
+        { headers },
+      )
+      if (res.data.success) {
+        const checkRes = await Axios.get('/favorite_check', {
+          params: { type: 'commodity', mall_id: item.mall_id, shopping_id: item.shopping_id },
+          headers,
+        })
+        favState[key] = {
+          wishlisted: true,
+          favId: checkRes.data?.favorite_id ?? null,
+        }
+        ElMessage.success('已添加到收藏')
+      } else {
+        ElMessage.warning(res.data.msg || '操作失败')
+      }
+    }
+  } catch {
+    ElMessage.error('收藏操作失败')
+  } finally {
+    wishlistLoading[key] = false
+  }
 }
 
 const goToDetail = (item: GoodsItem) => {
@@ -260,10 +346,13 @@ const handleAddToCart = async (item: GoodsItem) => {
 
 .goods-actions {
   margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .cart-btn {
-  width: 100%;
+  flex: 1;
   border-radius: 20px;
   font-weight: 600;
   background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
@@ -274,5 +363,23 @@ const handleAddToCart = async (item: GoodsItem) => {
 .cart-btn:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.fav-btn {
+  flex-shrink: 0;
+  border: 1.5px solid #e74c3c;
+  color: #e74c3c;
+  transition: all 0.3s ease;
+}
+
+.fav-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
+}
+
+.fav-btn.el-button--danger {
+  background: linear-gradient(45deg, #ff6b6b 0%, #ee5a24 100%);
+  border: none;
+  color: #fff;
 }
 </style>

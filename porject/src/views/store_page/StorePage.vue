@@ -167,10 +167,65 @@ const goDetail = (item: CommodityItem) => {
   router.push(`/commodity/${item.mall_id}/${item.shopping_id}`)
 }
 
-// 收藏店铺（预留，逻辑待实现）
-const handleFavorite = () => {
-  isFavorited.value = !isFavorited.value
-  ElMessage.info(isFavorited.value ? '收藏功能开发中' : '已取消收藏（开发中）')
+const favId = ref<number | null>(null)
+
+const getHeaders = () => {
+  const token = localStorage.getItem('access_token')
+  return token ? { 'access-token': token } : {}
+}
+
+const checkFavorite = async () => {
+  const token = localStorage.getItem('access_token')
+  if (!token) return
+  try {
+    const res = await Axios.get('/favorite_check', {
+      params: { type: 'store', mall_id: mallId },
+      headers: getHeaders(),
+    })
+    if (res.data.success) {
+      isFavorited.value = res.data.is_favorited
+      favId.value = res.data.favorite_id ?? null
+    }
+  } catch { /* ignore */ }
+}
+
+const handleFavorite = async () => {
+  const token = localStorage.getItem('access_token')
+  if (!token) {
+    ElMessage.warning('请先登录')
+    router.push('/register')
+    return
+  }
+  try {
+    if (isFavorited.value && favId.value) {
+      const res = await Axios.delete('/favorite_remove', {
+        params: { id: favId.value },
+        headers: getHeaders(),
+      })
+      if (res.data.success) {
+        isFavorited.value = false
+        favId.value = null
+        ElMessage.success('已取消收藏')
+      } else {
+        ElMessage.warning(res.data.msg || '操作失败')
+      }
+    } else {
+      const res = await Axios.post(
+        '/favorite_add',
+        { type: 'store', mall_id: mallId },
+        { headers: getHeaders() },
+      )
+      if (res.data.success) {
+        isFavorited.value = true
+        await checkFavorite()
+        ElMessage.success('已收藏店铺')
+      } else {
+        ElMessage.warning(res.data.msg || '操作失败')
+      }
+    }
+  } catch {
+    ElMessage.error('操作失败，请稍后重试')
+  }
 }
 
 // 点击"联系客服"按钮，主动打开悬浮客服面板
@@ -180,7 +235,10 @@ const handleService = () => {
 
 onMounted(async () => {
   await fetchStore()
-  if (store.value) fetchCommodities()
+  if (store.value) {
+    fetchCommodities()
+    checkFavorite()
+  }
 })
 </script>
 

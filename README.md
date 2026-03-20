@@ -152,6 +152,7 @@ flowchart TB
         S10[在线客服服务<br/>用户↔客服双向通信 + 消息持久化]
         S11[平台商品管理<br/>列表/统计/分类/审核]
         S12[违规与申诉服务<br/>违规标记/申诉工作流]
+        S13[收藏服务<br/>MySQL user_favorites]
     end
 
     subgraph Data[数据与基础设施层]
@@ -224,6 +225,7 @@ flowchart TB
 | **浏览历史** | 商品浏览记录、历史分页、删除清空 | MongoDB + Redis 缓存 |
 | **智能推荐** | 基于用户行为的商品推荐         | Wide & Deep + 增量训练 |
 | **购物车**   | 添加、列表、修改数量、删除、清空、结算 | MySQL + 分页 + 模糊搜索 |
+| **收藏夹**   | 收藏商品/店铺、列表分页与搜索、取消收藏 | MySQL `user_favorites` + Redis 缓存失效 |
 | **员工聊天** | 店铺内员工实时群聊、消息持久化、历史记录回溯 | WebSocket + MongoDB |
 | **在线客服** | 用户悬浮聊天窗口、商品卡片发送、卖家多会话管理 | WebSocket + MongoDB |
 | **平台商品管理** | 商品列表、状态筛选、店铺筛选、搜索 | 多状态流转 + 分页 |
@@ -244,6 +246,7 @@ flowchart TB
 - 👥 **商家管理** - 商家信息管理与审核
 - 📦 **商品管理** - 商品信息全生命周期管理
 - 🛒 **购物车** - 添加商品、修改数量、删除、清空、勾选合计、结算
+- ❤️ **收藏** - 商品详情页与店铺页支持收藏/取消；个人中心「我的收藏」分页展示、按名称模糊搜索、按类型筛选（商品/店铺）
 - 🔍 **商城搜索** - 模糊匹配商品名称、描述、标签、店铺名称，分页默认 50 条，懒加载优化性能
 - 🏪 **店铺管理** - 店铺个性化配置与管理
 - 💬 **员工聊天** - 商家头部导航栏内嵌聊天抽屉，支持店铺内员工实时群聊
@@ -271,6 +274,7 @@ flowchart TB
 - 🤖 **智能推荐服务** - 基于浏览/购买行为生成个性化推荐
 - 🔁 **增量训练调度** - 每 5 分钟检测新行为并自动训练或重建模型
 - 🛒 **购物车服务** - 添加、列表分页、修改数量、删除、清空，支持按商品名模糊搜索
+- ❤️ **收藏服务** - `POST /api/favorite_add`（商品 `commodity` / 店铺 `store`）、`GET /api/favorite_list`（分页、类型筛选、`search` 模糊匹配名称）、`DELETE /api/favorite_remove`（`id` 查询参数）、`GET /api/favorite_check`（是否已收藏）；数据表 `user_favorites`，操作后失效用户收藏列表缓存
 - 🔍 **商城商品搜索** - GET `/api/mall_commodity_search`，模糊匹配名称、描述、标签、店铺名称（任一符合即可），分页默认 50 条，Redis 缓存 60 秒
 - 💬 **员工聊天服务** - WebSocket 全双工实时通信，按店铺隔离连接，消息持久化至 MongoDB，支持历史回溯
 - 🎧 **在线客服服务** - 用户端与卖家端双向 WebSocket 通信，按 `mall_id` 隔离连接池，消息持久化至 MongoDB `customer_service_messages` 集合，支持商品卡片消息类型，会话历史推送最近 80 条
@@ -338,6 +342,17 @@ uv run python -m services.recommend.wide_deep.train
 - 购物车支持分页展示、按商品名模糊搜索、修改数量、单条删除、全部清空。
 - 支持勾选商品并显示勾选合计金额，提供结算入口。
 - 后端 API：`/api/shopping_cart_add`（添加）、`/api/shopping_cart_list`（列表）、`/api/shopping_cart_update`（修改数量）、`/api/shopping_cart_delete`（删除）、`/api/shopping_cart_clear`（清空）。
+
+## ❤️ 收藏
+
+登录用户可收藏**在售商品**（`audit=1`）或**正常营业店铺**（`state=1` 且 `state_platform=1`），数据持久化在 MySQL 表 `user_favorites`，列表项附带商品首图 / 店铺封面的 Base64（与浏览历史类似的图片加载方式）。
+
+### 行为说明
+
+- **添加**：`POST /api/favorite_add`，请求体 JSON：`type`（`commodity` | `store`）、`mall_id`、收藏商品时必填 `shopping_id`；请求头 `access-token`。重复收藏返回 `409`。
+- **列表**：`GET /api/favorite_list`，查询参数：`type`（可选，`commodity` / `store`）、`page`（默认 1）、`page_size`（默认 10，最大 50）、`search`（可选，按保存的名称模糊匹配）。
+- **取消**：`DELETE /api/favorite_remove?id=<收藏记录ID>`。
+- **是否已收藏**：`GET /api/favorite_check?type=...&mall_id=...`，收藏商品时需传 `shopping_id`；返回 `is_favorited`、`favorite_id`（已收藏时）。
 
 ## 👀 浏览历史
 
@@ -542,7 +557,7 @@ ws://host/api/ws/customer_service/{mall_id}?token=<access_token>&client_type=use
 
 - **许可证**: GPLv3
 - **作者**: SDIJF1521
-- **版本**: 0.6.0
+- **版本**: 0.7.0
 
 ## 🤝贡献指南
 

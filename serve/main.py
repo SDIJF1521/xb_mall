@@ -133,6 +133,10 @@ from routes.manage_commodity_violation_remove import router as manage_commodity_
 from routes.manage_commodity_statistics import router as manage_commodity_statistics_router
 from routes.buyer_commodity_violation_appeal import router as buyer_commodity_violation_appeal_router
 from routes.manage_commodity_appeal import router as manage_commodity_appeal_router
+from routes.favorite_add import router as favorite_add_router
+from routes.favorite_remove import router as favorite_remove_router
+from routes.favorite_list import router as favorite_list_router
+from routes.favorite_check import router as favorite_check_router
 
 from routes.user_list import router as user_list_router
 from routes.today_user_list import router as today_user_list_router
@@ -911,3 +915,9 @@ app.include_router(buyer_commodity_violation_appeal_router, prefix='/api')
 
 # 平台端申诉管理路由
 app.include_router(manage_commodity_appeal_router, prefix='/api')
+
+# 收藏功能路由
+app.include_router(favorite_add_router, prefix='/api')
+app.include_router(favorite_remove_router, prefix='/api')
+app.include_router(favorite_list_router, prefix='/api')
+app.include_router(favorite_check_router, prefix='/api')
