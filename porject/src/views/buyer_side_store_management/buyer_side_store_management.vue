@@ -94,6 +94,10 @@ function toStoreManage(){
 }
 </script>
 <style scoped>
+    .buyer-nav-aside {
+        flex-shrink: 0;
+        overflow: hidden;
+    }
     .footer-content {
         text-align: center;
         color: darkgray;

@@ -40,6 +40,7 @@ import StorePage from '@/views/store_page/StorePage.vue'
 import BuyerStoreChat from '@/views/buyer_store_chat/BuyerStoreChat.vue'
 import BuyerCustomerService from '@/views/buyer_customer_service/BuyerCustomerService.vue'
 import BuyerCsSelect from '@/views/buyer_customer_service_select/BuyerCsSelect.vue'
+import BuyerSet from '@/views/buyer_set/BuyerSet.vue'
 
 import { setupHeartbeatGuard } from './heartbeatGuard'
 import { setupAuthGuard } from './authGuard';
@@ -276,6 +277,12 @@ const routes: Array<RouteRecordRaw> = [
     path: '/buyer_customer_service/:mall_id',
     name: 'BuyerCustomerService',
     component: BuyerCustomerService
+  },
+  {
+    // 买家端设置页
+    path: '/buyer_set',
+    name: 'BuyerSet',
+    component: BuyerSet
   },
   {
     // 404 页面 - 匹配所有未定义的路由

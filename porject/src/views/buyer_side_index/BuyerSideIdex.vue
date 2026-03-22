@@ -33,6 +33,7 @@ import BuyerNavigation from '@/moon/buyer_navigation.vue'
 import DataDisplay from './content/data_display.vue'
 import Sale from './content/sale.vue'
 import BuyerHead from '@/moon/buyer_head.vue'
+import BuyerTheme from '@/moon/buyer_theme'
 
 const input = ref('')
 const value = ref('')
@@ -57,7 +58,7 @@ defineOptions({
  })
 
 onMounted(()=>{
-    document.documentElement.classList.add('dark')
+    new BuyerTheme().toggleTheme(true)
  })
  const data = ref({'img':'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png','userName':'小白'})
 

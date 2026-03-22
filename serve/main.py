@@ -110,6 +110,7 @@ from routes.buyer_commodity_repertory_all import router as buyer_commodity_reper
 from routes.buyer_commodity_repertory_statistics import router as buyer_commodity_repertory_statistics_router
 from routes.buyer_commofity_inventory_change import router as buyer_commodity_inventory_change_router
 from routes.buyer_commodity_repertory_list_records import router as buyer_commodity_repertory_list_records_router
+from routes.buter_exit import router as buter_exit_router
 
 
 from routes.manage_sign_in import router as manage_sign_in_router
@@ -845,6 +846,9 @@ app.include_router(buyer_commodity_inventory_change_router,prefix='/api')
 
 # 买家端商品库存记录路由
 app.include_router(buyer_commodity_repertory_list_records_router,prefix='/api')
+
+# 买家端退出登录路由
+app.include_router(buter_exit_router,prefix='/api')
 
 # 推荐商品列表路由
 app.include_router(recommend_commodity_list_router,prefix='/api')

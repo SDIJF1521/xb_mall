@@ -132,6 +132,9 @@ onMounted(() => {
                 selected.value = '6';
             }
             break;
+        case '/buyer_set':
+            selected.value = '9';
+            break;
     }
 })
 
@@ -151,6 +154,8 @@ const handleSelect = (index: string) => {
         } else {
             router.push('/buyer_cs_select')
         }
+    } else if (index === '9') {
+        router.push('/buyer_set')
     }
 }
 

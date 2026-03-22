@@ -36,6 +36,8 @@ const EXCLUDED_ROUTES = [
   "BuyerCommodityClassify", //买家端商品分类页
   "BuyerCommodityRepertory", // 卖家端商品库存页
   "BuyerCsSelect", // 买家端客服选择页
+  "BuyerCustomerService", // 买家端客服服务页
+  "BuyerSet", // 买家端设置页
 ];
 
 export function setupHeartbeatGuard(router: Router) {
