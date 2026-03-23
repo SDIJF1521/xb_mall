@@ -32,7 +32,7 @@ defineOptions({name:'BuyerSet',
               })
 
 onMounted(()=>{
-    new BuyerTheme().toggleTheme(true)
+    new BuyerTheme().initTheme()
 })
 
 

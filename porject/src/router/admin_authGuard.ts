@@ -1,5 +1,7 @@
 import type { Router, RouteLocationNormalized } from 'vue-router';
 import axios from 'axios';
+import { tryRefreshAdminTokens, clearAdminSession, fetchAdminSession } from '@/utils/adminToken';
+import { hasAdminPermission, hasAnyAdminPermission } from '@/utils/adminPermission';
 
 // 需要验证登录状态的路由名称列表
 const AUTH_REQUIRED_ROUTES = [
@@ -41,29 +43,52 @@ export function setupAdminAuthGuard(router: Router) {
 
     // 登录页面的特殊处理
     if (to.name === 'ManagementLogin') {
-      if (token && await verifyToken(token)) {
-        // 已登录用户访问登录页，重定向到个人中心
-        return next('/management');
+      let ok = !!(token && (await verifyToken(token)));
+      if (!ok && token) {
+        ok = await tryRefreshAdminTokens();
+        if (ok) {
+          const t2 = localStorage.getItem('admin_access_token');
+          if (t2) ok = await verifyToken(t2);
+        }
       }
+      if (ok) return next('/management');
       return next();
     }
 
     // 需要认证的路由处理
     if (requiresAuth) {
       if (!token) {
-        // 无令牌，重定向到登录页
+        const refreshed = await tryRefreshAdminTokens();
+        if (refreshed) {
+          const t2 = localStorage.getItem('admin_access_token');
+          if (t2 && (await verifyToken(t2))) return next();
+        }
         return next('/management_login');
       }
 
-      const isTokenValid = await verifyToken(token);
-
+      let isTokenValid = await verifyToken(token);
       if (!isTokenValid) {
-        // 令牌无效，清除并重定向到登录页
-        localStorage.removeItem('admin_access_token');
+        isTokenValid = await tryRefreshAdminTokens();
+        if (isTokenValid) {
+          const t2 = localStorage.getItem('admin_access_token');
+          if (t2) isTokenValid = await verifyToken(t2);
+        }
+      }
+      if (!isTokenValid) {
+        clearAdminSession();
         return next('/management_login');
       }
 
-      // 认证通过，继续路由
+      await fetchAdminSession();
+      const perm = to.meta.adminPermission;
+      const permAny = to.meta.adminPermissionAny;
+      if (typeof perm === 'string' && !hasAdminPermission(perm)) {
+        return next({ path: '/management', query: { denied: '1' } });
+      }
+      if (Array.isArray(permAny) && permAny.length && !hasAnyAdminPermission(permAny)) {
+        return next({ path: '/management', query: { denied: '1' } });
+      }
+
       return next();
     }
 

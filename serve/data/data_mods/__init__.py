@@ -602,6 +602,42 @@ class FavoriteAddBody(BaseModel):
 class FavoriteRemoveBody(BaseModel):
     id: int = Field(..., description="收藏记录ID")
 
+# 平台端刷新管理员 Token
+class ManageAdminRefreshBody(BaseModel):
+    refresh_token: str
+
+# 平台端新增后台账号（与管理员登录 manage_sign_in 规则一致：用户名 3–20，密码 6–20）
+class ManagePlatformUserAdd(BaseModel):
+    new_user: str = Field(..., min_length=3, max_length=20)
+    new_password: str = Field(..., min_length=6, max_length=20)
+    role_id: int = 1
+
+# 平台端删除后台账号
+class ManagePlatformUserDelete(BaseModel):
+    target_user: str
+
+# 平台端修改后台账号密码（密码规则同登录）
+class ManagePlatformUserPassword(BaseModel):
+    target_user: str
+    new_password: str = Field(..., min_length=6, max_length=20)
+
+# 平台端调整账号角色
+class ManagePlatformUserRole(BaseModel):
+    target_user: str
+    role_id: int
+
+# 平台端保存角色（新建 id 为空或 0）
+class ManageRoleSave(BaseModel):
+    id: Optional[int] = None
+    name: str
+    description: str = ""
+    permissions: List[str]
+
+# 平台端删除角色
+class ManageRoleDelete(BaseModel):
+    role_id: int
+
+
 # 查看收藏列表查询参数模型（分页 + 模糊搜索）
 class FavoriteListQuery:
     def __init__(

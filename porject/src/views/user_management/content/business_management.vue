@@ -1,35 +1,37 @@
 <template>
-    <div style="display: flex; justify-content: center; margin-top: 20px; margin-bottom: 40px;">
-        <el-input
-            v-model="searchKeyword"
-            style="width: 240px; border-radius: 20px;"
-            placeholder="搜索店铺ID或卖家名字"
-            :prefix-icon="Search"
-            clearable
-            @input="handleSearch"
-            @clear="handleSearch"
+  <div class="biz-page">
+    <div class="biz-toolbar">
+      <el-input
+        v-model="searchKeyword"
+        class="biz-search"
+        placeholder="搜索店铺ID或卖家名字"
+        :prefix-icon="Search"
+        clearable
+        @input="handleSearch"
+        @clear="handleSearch"
+      />
+    </div>
+    <el-card v-if="management_list.length === 0" class="biz-card" shadow="never">
+      <el-empty description="暂无数据" />
+    </el-card>
+    <template v-else>
+      <el-card class="biz-card biz-list" shadow="never">
+        <div v-for="itrm in management_list" :key="String(itrm)" class="biz-row" @click="skip(itrm)">
+          <span class="card-text">{{ itrm }}</span>
+        </div>
+      </el-card>
+      <div class="biz-pager">
+        <el-pagination
+          v-model:current-page="currentPage"
+          :page-size="5"
+          :pager-count="11"
+          layout="prev, pager, next"
+          :total="total"
+          @current-change="handleCurrentChange"
         />
-    </div>
-    <div v-if="management_list.length == 0">
-        <el-empty description="暂无数据" />
-    </div>
-    <div v-else>
-        <div v-for="itrm in management_list" :key="itrm" style="margin-bottom: 10px;">
-            <el-card shadow="hover" @click="skip(itrm)" style="width: 100%; text-align: center; cursor: pointer;">
-                <span class="card-text">{{ itrm }}</span>
-            </el-card>
-        </div>
-        <div style="display: flex; justify-content: center; margin-top: 20px;">
-            <el-pagination
-              v-model:current-page="currentPage"
-              :page-size="5"
-              :pager-count="11"
-              layout="prev, pager, next"
-              :total="total"
-              @current-change="handleCurrentChange"
-            />
-        </div>
-    </div>
+      </div>
+    </template>
+  </div>
 </template>
 <script setup lang="ts">
 import axios from 'axios';
@@ -119,19 +121,44 @@ onMounted(async ()=>{
 </script>
 
 <style scoped>
-:deep(.el-input__wrapper) {
+.biz-page {
+  width: 100%;
+}
+.biz-toolbar {
+  margin-bottom: 10px;
+}
+.biz-search {
+  width: min(320px, 100%);
+}
+.biz-search :deep(.el-input__wrapper) {
   border-radius: 20px;
 }
-
-.card-text {
-  transition: color 0.3s ease;
+.biz-card {
+  border-radius: 12px;
+  border: 1px solid var(--el-border-color-lighter);
 }
-
-.el-card:hover .card-text {
-  background-image: linear-gradient(to right, #ec8e8c, #8556ab);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
+.biz-list :deep(.el-card__body) {
+  padding: 0;
+}
+.biz-row {
+  padding: 11px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  text-align: center;
+  transition: background 0.15s;
+}
+.biz-row:last-child {
+  border-bottom: none;
+}
+.biz-row:hover {
+  background: var(--el-fill-color-light);
+}
+.biz-pager {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+}
+.card-text {
+  font-weight: 500;
 }
 </style>

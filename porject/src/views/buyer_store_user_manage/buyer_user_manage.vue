@@ -78,7 +78,7 @@ defineOptions({
 })
 
 onMounted(()=>{
-   new BuyerTheme().toggleTheme(true)
+   new BuyerTheme().initTheme()
    // 初始化store
    useBuyerManagementSelectStore().init()
 })

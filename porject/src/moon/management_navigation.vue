@@ -8,13 +8,9 @@
       mode="horizontal"
       @select="handleSelect"
     >
-      <el-menu-item index="1">仪表盘</el-menu-item>
-      <el-menu-item index="2">商品管理</el-menu-item>
-      <el-menu-item index="3">订单管理</el-menu-item>
-      <el-menu-item index="4">用户管理</el-menu-item>
-      <el-menu-item index="5">评论管理</el-menu-item>
-      <el-menu-item index="6">数据统计</el-menu-item>
-      <el-menu-item index="7">设置</el-menu-item>
+      <el-menu-item v-if="pDash" index="1">仪表盘</el-menu-item>
+      <el-menu-item v-if="pCommodity" index="2">商品管理</el-menu-item>
+      <el-menu-item v-if="pUser" index="4">用户管理</el-menu-item>
     </el-menu>
     <el-switch
       v-model="value"
@@ -30,24 +26,36 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref, watch } from 'vue';
+import { onMounted, ref, watch, computed } from 'vue';
 import router from '@/router';
 import { useRoute } from 'vue-router';
 import { Sunny, Moon } from '@element-plus/icons-vue'
+import {
+  hasAdminPermission,
+  hasAnyAdminPermission,
+  canEnterManageHome,
+} from '@/utils/adminPermission';
 
-// 设置导航栏默认选中项
+const pDash = computed(() => canEnterManageHome());
+const pCommodity = computed(() =>
+  hasAnyAdminPermission(['admin.commodity', 'admin.commodity_apply']),
+);
+const pUser = computed(() =>
+  hasAnyAdminPermission([
+    'admin.user.merchant',
+    'admin.user.mall',
+    'admin.user.platform',
+    'admin.user.role',
+  ]),
+);
+
 const activeIndex = ref('')
 
 // 处理菜单选择事件
 const handleSelect = (index: string) => {
-  console.log('选中的菜单 index:', index);
-  if (index =='1'){
-    router.push('/management')
-  }else if (index =='2'){
-    router.push('/management_commodity')
-  }else if (index =='4'){
-    router.push('/user_management')
-  }
+  if (index === '1') router.push('/management');
+  else if (index === '2') router.push('/management_commodity');
+  else if (index === '4') router.push('/user_management');
 }
 
 // 定义组件名称
@@ -59,23 +67,27 @@ defineOptions({
 // 定义一个开关状态
 const value = ref(true)
 
+const route = useRoute();
+
+function syncNav(path: string) {
+  if (path === '/management') activeIndex.value = '1';
+  else if (path.startsWith('/management_commodity') || path.startsWith('/management_commodity_apply'))
+    activeIndex.value = '2';
+  else if (
+    path.startsWith('/user_management') ||
+    path.startsWith('/audit_apply_seller') ||
+    path.startsWith('/business_management')
+  )
+    activeIndex.value = '4';
+}
+
+watch(
+  () => route.path,
+  (p) => syncNav(p),
+  { immediate: true },
+);
+
 onMounted(()=>{
-  const route = useRoute()
-  // 修正导航栏选项
-
-    switch (route.path) {
-
-      case '/management':
-        activeIndex.value = '1'
-        break
-      case '/management_commodity':
-        activeIndex.value = '2'
-        break
-      case '/user_management':
-        activeIndex.value = '4'
-        break
-    }
-
     const savedTheme =  localStorage.getItem('management_theme')
     if (savedTheme === 'dark') {
         value.value = true;

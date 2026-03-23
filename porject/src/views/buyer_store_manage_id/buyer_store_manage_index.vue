@@ -276,7 +276,7 @@ const rules = ref({
 });
 
 onMounted(async()=>{
-  new BuyerTheme().toggleTheme(true)
+  new BuyerTheme().initTheme()
   const formdata = new FormData()
   formdata.append("id",mall_id.toString())
   formdata.append("token",token||'')

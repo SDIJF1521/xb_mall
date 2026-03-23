@@ -49,7 +49,7 @@ const route = useRoute()
 const title = ref('')
 
 onMounted(() => {
-  new BuyerTheme().toggleTheme(true)
+  new BuyerTheme().initTheme()
   console.log('当前路由路径:', route.path);
 
   // 根据当前路由路径设置页面标题

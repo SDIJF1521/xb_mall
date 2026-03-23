@@ -1,41 +1,69 @@
 <template>
-    <div class="list-container">
-        <div style="display: flex; justify-content: center; margin-top: 20px; margin-bottom: 40px;">
-            <el-input
-                v-model="searchKeyword"
-                style="width: 240px; border-radius: 20px;"
-                placeholder="搜索用户名或名称"
-                :prefix-icon="Search"
-                clearable
-                @input="handleSearch"
-                @clear="handleSearch"
-            />
-        </div>
-        <div v-if="loading" class="loading">加载中...</div>
-        <div v-else-if="mall_apply.length > 0">
-          <ul>
-            <li v-for="(item, index) in mall_apply" :key="index" @click="skip(item[0])">{{ item[0] }}</li>
-          </ul>
-          <div style="display: flex; justify-content: center; margin-top: 20px;">
-            <el-pagination
-              v-model:current-page="currentPage"
-              :page-size="5"
-              :pager-count="11"
-              layout="prev, pager, next"
-              :total="total"
-              @current-change="handleCurrentChange"
-            />
-          </div>
-        </div>
-        <el-empty v-else description="暂无数据" />
+  <div class="apply-page">
+    <div class="apply-toolbar">
+      <el-input
+        v-model="searchKeyword"
+        class="apply-search"
+        placeholder="搜索用户名或名称"
+        :prefix-icon="Search"
+        clearable
+        @input="handleSearch"
+        @clear="handleSearch"
+      />
     </div>
+    <el-card class="list-card" shadow="never">
+      <el-table
+        v-loading="loading"
+        :data="mall_apply"
+        stripe
+        class="um-table"
+        :row-key="applyRowKey"
+        :header-cell-style="tableHeaderStyle"
+        :row-style="{ height: '44px' }"
+        @row-click="onApplyRowClick"
+      >
+        <template #empty>
+          <el-empty description="暂无申请" />
+        </template>
+        <el-table-column label="申请名称" min-width="280">
+          <template #default="{ row }">
+            <span class="cell-apply">
+              <el-icon class="cell-apply__icon"><Document /></el-icon>
+              <span class="cell-apply__text">{{ row[0] }}</span>
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="100" align="center" fixed="right">
+          <template #default="{ row }">
+            <el-button type="primary" link @click.stop="skip(String(row[0]))">审核</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+    <div v-if="total > 0" class="apply-pager">
+      <el-pagination
+        v-model:current-page="currentPage"
+        :page-size="5"
+        :pager-count="11"
+        layout="prev, pager, next"
+        :total="total"
+        @current-change="handleCurrentChange"
+      />
+    </div>
+  </div>
 </template>
 <script setup lang="ts">
-import {ref,onMounted,onUnmounted} from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import axios from 'axios';
 import { ElMessage } from 'element-plus';
-import { Search } from '@element-plus/icons-vue';
+import { Search, Document } from '@element-plus/icons-vue'
 import router from '@/router';
+
+const tableHeaderStyle = {
+  background: 'var(--el-fill-color-light)',
+  color: 'var(--el-text-color-regular)',
+  fontWeight: '600',
+};
 
 const total = ref(0) // 总记录数
 const currentPage = ref(1) // 当前页码
@@ -91,6 +119,14 @@ function handleSearch() {
 
 const skip = (id:string) =>{
   router.push({name:'AuditApplySeller',params:{id:id}})
+}
+
+function applyRowKey(row: ApplyItem) {
+  return String(row[0]);
+}
+
+function onApplyRowClick(row: ApplyItem) {
+  skip(String(row[0]));
 }
 
 const fetchData = async (page_number:number=1) => {
@@ -151,38 +187,53 @@ onUnmounted(() => {
 })
 </script>
 <style scoped>
-.loading {
-  text-align: center;
-  padding: 20px;
-  color: #666;
+.apply-page {
+  width: 100%;
+  max-width: 100%;
 }
-.no-data {
-  text-align: center;
-  padding: 20px;
-  color: #999;
+.apply-toolbar {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 10px;
 }
-ul {
-  list-style: none;
+.apply-search {
+  width: min(320px, 100%);
+}
+.apply-search :deep(.el-input__wrapper) {
+  border-radius: 20px;
+}
+.list-card {
+  border-radius: 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  overflow: hidden;
+}
+.list-card :deep(.el-card__body) {
   padding: 0;
 }
-li {
-  padding: 12px 16px;
-  text-align: center;
-  border-radius: 6px;
-  margin-bottom: 8px;
-  transition: all 0.3s ease;
-  border: 2px solid transparent;
-  border-image: linear-gradient(to right, #ec8e8c 0%, #ad8be8 100%) 1;
-  box-shadow: 0 0 5px rgba(230, 43, 43, 0.5);
+.um-table {
+  cursor: pointer;
 }
-
-li:hover {
-  transform: translateY(-2px);
-  border-image: linear-gradient(to right, #f1a09f 0%, #ad8be8 100%) 1;
-  box-shadow: 0 0 15px rgba(254, 79, 112, 0.8);
+.um-table :deep(.el-table__inner-wrapper::before) {
+  display: none;
 }
-
-:deep(.el-input__wrapper) {
-  border-radius: 20px;
+.um-table :deep(.el-table__row:hover) {
+  background-color: var(--el-fill-color-light) !important;
+}
+.cell-apply {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.cell-apply__icon {
+  font-size: 18px;
+  color: var(--el-color-primary);
+}
+.cell-apply__text {
+  font-weight: 500;
+}
+.apply-pager {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
 }
 </style>

@@ -21,7 +21,7 @@ async def management_verify(token:str=Form(min_length=6),db:aiomysql.Connection 
         admin_tokrn_content = await management_token_verify.token_admin()
         if admin_tokrn_content['current']:
             admin = admin_tokrn_content['user']
-            data = await execute_db_query(db,f'select * from manage_user where user = "{admin}"')
+            data = await execute_db_query(db, 'select * from manage_user where user = %s', (admin,))
             return await management_token_verify.run(data)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

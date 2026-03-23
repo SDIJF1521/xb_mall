@@ -19,7 +19,9 @@
     </el-container>
 </template>
 <script lang="ts" setup>
-import {ref} from 'vue';
+import { ref, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
+import { ElMessage } from 'element-plus';
 import ManagementNavigation from '@/moon/management_navigation.vue'
 import ExampleView from './content/online_people_counting.vue'
 import NewlyIncreasedNumberPeople from './content/newly_increased_number_people.vue'
@@ -27,6 +29,12 @@ import NumberMerchants from './content/number_merchants.vue'
 import MerchantClientRatio from './content/merchant_client_ratio.vue'
 
 const user_name = ref()
+const route = useRoute();
+onMounted(() => {
+  if (route.query.denied === '1') {
+    ElMessage.warning('当前账号无权限访问该页面');
+  }
+});
 defineOptions({
   name:'Management',
   components:{

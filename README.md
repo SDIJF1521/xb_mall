@@ -26,13 +26,19 @@ xb_mall/
 ├── serve/                # 🔧  后端项目 (FastAPI)
 │   ├── main.py           # 主应用入口
 │   ├── routes/           # API 路由
-│   ├── services/         # 业务逻辑服务
+│   ├── services/         # 业务逻辑服务（见下方「目录约定」）
 │   ├── data/             # 数据访问层
-│   ├── config/           # 配置文件
+│   ├── config/           # 配置文件（含 `manage_permission_catalog.py` 平台权限码）
 │   ├── logs/             # 📝 日志目录
 │   └── ...
 └── README.md             # 📄 项目文档
 ```
+
+### `serve/services` 目录约定
+
+- **每个业务模块一个子目录**，入口为 `services/<模块名>/__init__.py`（包形式），例如：`manage_login/`、`manage_rbac/`、`management_token_verify/`、`manage_token_issue/`、`manage_admin_guard/`、`manage_rbac_migrate/`。
+- **不要在 `services/` 根目录**直接放置与业务模块同名的单文件 `*.py`（避免与包名冲突、便于维护）。
+- 复杂子域可在模块下再分子目录（如 `recommend/wide_deep/`）。
 
 ## 🚀 快速启动
 
@@ -143,7 +149,7 @@ flowchart TB
         S1[认证授权服务<br/>JWT + Redis 二次校验]
         S2[用户与商家服务<br/>注册/登录/入驻/审核]
         S3[商品与库存服务<br/>增删改查/上架下架/库存变更]
-        S4[角色权限服务<br/>RBAC + 角色码]
+        S4[角色权限服务<br/>RBAC + 平台后台权限码]
         S5[在线状态服务<br/>上线/心跳/下线]
         S6[推荐与行为服务<br/>浏览记录 + 推荐]
         S7[缓存与防穿透<br/>Cache + BloomFilter]
@@ -233,6 +239,7 @@ flowchart TB
 | **商品统计** | 商品总量、各状态分布、店铺分布、分类分布、近 7 天趋势 | ECharts 可视化 |
 | **违规管理** | 商品违规标记、取消违规、违规列表 | 违规通知 + 状态流转 |
 | **申诉系统** | 商家违规申诉提交、平台审核通过/驳回 | 完整申诉工作流 |
+| **平台 RBAC** | 后台账号、角色、权限、商城用户 | manage_user/role + 权限码 |
 
 </div>
 
@@ -252,8 +259,9 @@ flowchart TB
 - 💬 **员工聊天** - 商家头部导航栏内嵌聊天抽屉，支持店铺内员工实时群聊
 - 🎧 **在线客服（用户端）** - 商品详情页及店铺页，支持文本消息和商品卡片一键发送，未读消息徽标计数；个人主页新增「客服消息」页面，可查看与各店铺的交流记录
 - 🛎️ **在线客服（卖家端）** - 多会话列表 + 聊天窗口，支持实时回复、历史记录拉取、断线自动重连；左侧导航「客服管理」菜单显示未读消息徽章
-- 🔐 **用户权限管理** - 细粒度权限控制
+- 🔐 **用户权限管理** - 细粒度权限控制（基于 RBAC 权限码）
 - 👑 **角色分配** - 灵活的角色管理系统
+- 📋 **平台用户中心** - 商家申请、商家账号、商城用户、后台账号、角色与权限（按权限显示菜单）
 - 📋 **平台商品列表** - 支持多状态筛选（在售/下架/审核中/违规/店铺关闭/已驳回）、店铺筛选、搜索、分页
 - 📊 **商品数据统计** - 商品总量、各状态数量、店铺分布、分类分布、近 7 天趋势图表
 - 🏷️ **平台分类管理** - 平台级商品分类增删改查、分页搜索
@@ -283,6 +291,7 @@ flowchart TB
 - 🏷️ **平台分类管理服务** - `POST /api/manage_commodity_classify_add` 新增、`POST /api/manage_commodity_classify_edit` 编辑、`POST /api/manage_commodity_classify_delete` 删除、`GET /api/manage_commodity_classify_list` 列表
 - 🚫 **违规管理服务** - `POST /api/manage_commodity_violation_add` 标记违规、`POST /api/manage_commodity_violation_remove` 取消违规、`GET /api/manage_commodity_violation_list` 违规列表
 - 📮 **申诉管理服务** - `GET /api/manage_commodity_appeal_list` 申诉列表、`POST /api/manage_commodity_appeal_handle` 审核处理（approve/reject）、`POST /api/buyer_commodity_violation_appeal` 商家提交申诉、`GET /api/buyer_commodity_appeal_status` 申诉状态查询
+- 🔑 **平台 RBAC 服务** - 见上文「平台用户管理（RBAC）」：`manage_sign_in` / `manage_admin_refresh` / `manage_session`、`manage_platform_user_*`、`manage_role_*`、`manage_permission_catalog`；实现位于 `services/manage_*` 包
 
 ## 🧠 推荐系统
 
@@ -415,6 +424,72 @@ uv run python -m services.recommend.wide_deep.train
 | 处理申诉 | POST | `/api/manage_commodity_appeal_handle` | 通过或驳回申诉 |
 | 提交申诉 | POST | `/api/buyer_commodity_violation_appeal` | 商家提交违规申诉 |
 | 申诉状态 | GET | `/api/buyer_commodity_appeal_status` | 商家查询申诉状态 |
+
+## 📌 平台用户管理（RBAC）
+
+平台管理端「用户管理」中心（路由 `/user_management`）包含商家申请、商家账号、商城用户、后台账号、角色与权限等子模块；**顶部导航与路由**按权限码控制（前端 `porject/src/utils/adminPermission.ts` 与路由 `meta`）。
+
+### 登录与 Token
+
+- **登录**：`POST /api/manage_sign_in`（OAuth2 表单：`username` / `password`），成功返回 `access_token`、`refresh_token`（及兼容字段 `token`）、`permissions`、`role_id`、`role_name`。
+- **校验**：`POST /api/management_verify`（表单 `token`，可为 `Bearer <jwt>` 或纯 JWT）。
+- **刷新**：`POST /api/manage_admin_refresh`（JSON：`refresh_token`），返回新 `access_token` / `refresh_token` 及最新 `permissions`。
+- **会话**：`GET /api/manage_session`，请求头 `access-token`（与多数平台接口一致）。
+- **Redis**：`admin_{用户名}` 存 access 过期时间戳；`admin_refresh_{用户名}` 存 refresh 会话标识。
+
+### 子模块概览
+
+| 模块 | 权限码 | 功能描述 |
+|------|--------|---------|
+| **商家申请合验** | `admin.user.merchant` | 商家入驻申请列表、跳转审核 |
+| **商家账号管理** | `admin.user.merchant` | 商家列表与详情（冻结/解冻/删除等） |
+| **商城用户管理** | `admin.user.mall` | 商城 C 端注册用户列表 |
+| **后台账号** | `admin.user.platform` | 后台账号列表、新增、删除、改密、分配角色 |
+| **角色与权限** | `admin.user.role` | 角色增删改、预定义权限勾选 + 自定义权限码（每行一个）；超级管理员角色 `*` 表示全部权限 |
+
+### 账号规则（与管理员登录页一致）
+
+- **用户名**：长度 3～20 字符。  
+- **密码**：长度 6～20 字符。  
+- 前后端校验见 `data_mods` 中 `ManagePlatformUserAdd` / `ManagePlatformUserPassword` 与前端 `user_management` 表单。
+
+### 权限目录
+
+- 预定义权限码：`serve/config/manage_permission_catalog.py`。  
+- 角色表 `manage_role.permissions` 为 JSON 数组；可包含 `*` 或上述任意字符串，**自定义权限码**也可写入（角色编辑里文本框逐行添加）。
+
+### 相关服务模块（`serve/services/`）
+
+| 模块 | 说明 |
+|------|------|
+| `manage_login/` | 管理员登录校验 |
+| `manage_token_issue/` | 签发 access / refresh Token |
+| `management_token_verify/` | 平台 JWT 与 Redis 校验 |
+| `manage_rbac/` | 解析角色权限、权限匹配 |
+| `manage_admin_guard/` | 路由层「登录 + 权限码」校验 |
+| `manage_rbac_migrate/` | 启动时建表/迁移（`manage_role`、`manage_user.role_id`） |
+
+### API 端点
+
+| 接口 | 方法 | 路径 | 说明 |
+|------|------|------|------|
+| 管理员登录 | POST | `/api/manage_sign_in` | 返回双 Token 与权限信息 |
+| Token 验证 | POST | `/api/management_verify` | 表单 `token` |
+| Token 刷新 | POST | `/api/manage_admin_refresh` | JSON：`refresh_token` |
+| 会话信息 | GET | `/api/manage_session` | 当前用户与权限 |
+| 平台用户列表 | GET | `/api/manage_platform_user_list` | 后台账号列表（含角色） |
+| 添加平台用户 | POST | `/api/manage_platform_user_add` | 新增后台管理员 |
+| 删除平台用户 | POST | `/api/manage_platform_user_delete` | 删除后台账号 |
+| 重置密码 | POST | `/api/manage_platform_user_password` | 重置指定用户密码 |
+| 分配角色 | POST | `/api/manage_platform_user_role` | 为用户绑定角色 |
+| 权限目录 | GET | `/api/manage_permission_catalog` | 获取可配置的权限码列表 |
+| 角色列表 | GET | `/api/manage_role_list` | 角色列表 |
+| 角色保存 | POST | `/api/manage_role_save` | 新增/编辑角色（含权限 JSON） |
+| 角色删除 | POST | `/api/manage_role_delete` | 删除角色 |
+
+### 数据库与启动
+
+首次启动时 **`services.manage_rbac_migrate.run_manage_rbac_migration`** 会在 `main` 生命周期中执行：创建 `manage_role` 表、为 `manage_user` 增加 `role_id`、写入 id=1 的超级管理员角色（`JSON_ARRAY('*')`），并将已有 `manage_user.role_id` 空值置为 1。
 
 ## 💬 员工聊天室
 
@@ -557,7 +632,7 @@ ws://host/api/ws/customer_service/{mall_id}?token=<access_token>&client_type=use
 
 - **许可证**: GPLv3
 - **作者**: SDIJF1521
-- **版本**: 0.7.0
+- **版本**: 0.8.1
 
 ## 🤝贡献指南
 

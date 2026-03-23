@@ -114,6 +114,17 @@ from routes.buter_exit import router as buter_exit_router
 
 
 from routes.manage_sign_in import router as manage_sign_in_router
+from routes.manage_admin_refresh import router as manage_admin_refresh_router
+from routes.manage_platform_user_list import router as manage_platform_user_list_router
+from routes.manage_platform_user_add import router as manage_platform_user_add_router
+from routes.manage_platform_user_delete import router as manage_platform_user_delete_router
+from routes.manage_platform_user_password import router as manage_platform_user_password_router
+from routes.manage_platform_user_role import router as manage_platform_user_role_router
+from routes.manage_permission_catalog import router as manage_permission_catalog_router
+from routes.manage_role_list import router as manage_role_list_router
+from routes.manage_role_save import router as manage_role_save_router
+from routes.manage_role_delete import router as manage_role_delete_router
+from routes.manage_session import router as manage_session_router
 from routes.management_verify import router as management_verify_router
 from routes.management_mall_info import router as management_mall_info_router
 from routes.manage_merchant_freeze import router as manage_merchant_freeze_router
@@ -352,7 +363,10 @@ async def lifespan(app: FastAPI):
         logger.info("正在创建数据库连接池...")
         await db_pool.create_pool()
         logger.info(f"数据库连接池已创建 | 配置: {sql_settings.DATABASE_URL}")
-        
+        from services.manage_rbac_migrate import run_manage_rbac_migration
+        await run_manage_rbac_migration(db_pool)
+        logger.info("平台端 RBAC 表结构已检查")
+
         # 初始化布隆过滤器管理器
         logger.info("正在初始化布隆过滤器管理器...")
         from services.bloom_filter_manager import init_bloom_filter_manager
@@ -682,16 +696,23 @@ app.include_router(manage_sign_in_router,prefix='/api')
 # 管理员验证路由
 app.include_router(management_verify_router,prefix='/api')
 
-# 管理员获取商品申请路由
+# 管理员 Token 刷新与后台账号管理
+app.include_router(manage_admin_refresh_router, prefix='/api')
+app.include_router(manage_platform_user_list_router, prefix='/api')
+app.include_router(manage_platform_user_add_router, prefix='/api')
+app.include_router(manage_platform_user_delete_router, prefix='/api')
+app.include_router(manage_platform_user_password_router, prefix='/api')
+app.include_router(manage_platform_user_role_router, prefix='/api')
+app.include_router(manage_permission_catalog_router, prefix='/api')
+app.include_router(manage_role_list_router, prefix='/api')
+app.include_router(manage_role_save_router, prefix='/api')
+app.include_router(manage_role_delete_router, prefix='/api')
+app.include_router(manage_session_router, prefix='/api')
+
+# 管理员商品管理中心路由
 app.include_router(manage_get_commoidt_apply_list_router,prefix='/api')
-
-# 管理员驳回商品上架申请路由
 app.include_router(manage_commodity_rejectAudit_router,prefix='/api')
-
-# 管理员获取商品上架申请详情路由
 app.include_router(manage_get_commoidt_apply_router,prefix='/api')
-
-# 管理员通过商品上架申请路由
 app.include_router(manage_commodity_passAudit_router,prefix='/api')
 
 # 冻结商家路由

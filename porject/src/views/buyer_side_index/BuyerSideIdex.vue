@@ -58,7 +58,7 @@ defineOptions({
  })
 
 onMounted(()=>{
-    new BuyerTheme().toggleTheme(true)
+    new BuyerTheme().initTheme()
  })
  const data = ref({'img':'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png','userName':'小白'})
 

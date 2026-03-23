@@ -127,7 +127,12 @@ const handleLogin = () => {
         AxiosInstance.post('/manage_sign_in',formData)
         .then(ref=>{
           if (ref.status === 200 && ref.data.current){
-            localStorage.setItem('admin_access_token', `Bearer ${ref.data.token}`)
+            const at = ref.data.access_token || ref.data.token
+            localStorage.setItem('admin_access_token', `Bearer ${at}`)
+            if (ref.data.refresh_token) localStorage.setItem('admin_refresh_token', ref.data.refresh_token)
+            if (Array.isArray(ref.data.permissions)) {
+              sessionStorage.setItem('admin_permissions', JSON.stringify(ref.data.permissions))
+            }
             ElMessage.success(ref.data.msg);
             router.push('/management')
           }else{

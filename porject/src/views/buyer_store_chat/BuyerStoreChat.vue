@@ -326,7 +326,7 @@ function formatTime(ts: string): string {
 
 // ── 生命周期 ──────────────────────────────────────────────────────────────
 onMounted(() => {
-  new BuyerTheme().toggleTheme(true)
+  new BuyerTheme().initTheme()
   connect()
 })
 

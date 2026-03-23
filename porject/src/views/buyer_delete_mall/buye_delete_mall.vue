@@ -63,7 +63,7 @@ const token = localStorage.getItem("buyer_access_token")
 const mall_id =ref(-1);
 // 初始化主题和数据
 onMounted(async()=>{
-    new BuyerTheme().toggleTheme(true)
+    new BuyerTheme().initTheme()
     const formdata = new FormData()
     // 使用最新的token
     const currentToken = localStorage.getItem("buyer_access_token")

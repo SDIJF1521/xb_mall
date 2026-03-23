@@ -96,7 +96,7 @@
   const token = localStorage.getItem('buyer_access_token')
 
   onMounted(async ()=>{
-    new BuyerTheme().toggleTheme(true)
+    new BuyerTheme().initTheme()
     const form = new FormData()
     form.append('token',token||'')
     const res = await Axios.post("/buyer_get_mall_info",form)

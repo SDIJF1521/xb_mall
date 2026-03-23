@@ -193,7 +193,7 @@ const enterService = (mallId: number) => {
 }
 
 onMounted(() => {
-  new BuyerTheme().toggleTheme(true)
+  new BuyerTheme().initTheme()
   fetchStores()
 })
 </script>

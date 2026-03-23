@@ -1,9 +1,6 @@
-from datetime import datetime, timedelta
-
-import jwt
-
 from data.redis_client import RedisClient
-from config.jwt_config import jwt_settings
+from services.manage_token_issue import issue_admin_tokens
+
 
 class ManageLogin:
     def __init__(self,user:str,password:str,redis_client: RedisClient):
@@ -17,18 +14,9 @@ class ManageLogin:
             return {'msg':'用户不存在','current':False}
         if self.password != sql_data[admin_list.index(self.user)][1]:
             return {'msg':'密码错误','current':False}
-        # 生成token
-        expire_minutes = 7
-        
-        expire = datetime.utcnow() + timedelta(days=expire_minutes)
-        expire_timestamp = int(expire.timestamp())
-        await self.redis_client.set(f'admin_{self.user}',expire_timestamp)
-
-        SECRET_KEY = jwt_settings.JWT_ADMIN_SECRET_KEY
-        payload = {
-                    'user': self.user,
-                    'exp':str(expire_timestamp)
-                }
-        token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
-
-        return {'msg':'登录成功','current':True,'token':token, "token_type": "bearer"}
+        tokens = await issue_admin_tokens(self.user, self.redis_client)
+        return {
+            'msg': '登录成功',
+            'current': True,
+            **tokens,
+        }

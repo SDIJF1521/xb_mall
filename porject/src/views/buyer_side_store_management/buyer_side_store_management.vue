@@ -77,7 +77,7 @@ defineOptions({
     }
 })
 onMounted(()=>{
-  new BuyerTheme().toggleTheme(true)
+  new BuyerTheme().initTheme()
 })
 
 // 跳转到添加店铺页面

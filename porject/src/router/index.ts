@@ -45,6 +45,7 @@ import BuyerSet from '@/views/buyer_set/BuyerSet.vue'
 import { setupHeartbeatGuard } from './heartbeatGuard'
 import { setupAuthGuard } from './authGuard';
 import { setupAdminAuthGuard } from './admin_authGuard'
+import { MANAGE_HOME_ANY } from '@/utils/adminPermission'
 import { setupBuyerAuthGuard } from './buyer_authGuard'
 import { setupShoppingCartGuard } from './shoppingCartGuard'
 
@@ -156,31 +157,43 @@ const routes: Array<RouteRecordRaw> = [
     // 管理员管理页
     path:'/management',
     name:'Management',
-    component:Management
+    component:Management,
+    meta: { adminPermissionAny: [...MANAGE_HOME_ANY] }
   },
   // 管理员管理页——用户管理
   {
     path:'/user_management',
     name:'UserManagement',
-    component:UserManagement
+    component:UserManagement,
+    meta: {
+      adminPermissionAny: [
+        'admin.user.merchant',
+        'admin.user.mall',
+        'admin.user.platform',
+        'admin.user.role'
+      ]
+    }
   },
   // 管理员管理页——商品管理
   {
     path:'/management_commodity',
     name:'ManagementCommodity',
-    component:ManagementCommodity
+    component:ManagementCommodity,
+    meta: { adminPermission: 'admin.commodity' }
   },
   // 管理员管理页——商品审核页
   {
     path:'/management_commodity_apply/:mall_id/:shopping_id',
     name:'ManagementCommodityApply',
-    component:ManagementCommodityApply
+    component:ManagementCommodityApply,
+    meta: { adminPermission: 'admin.commodity_apply' }
   },
   {
     // 用户管理页
     path:'/business_management/:id',
     name:'BusinessManagement',
-    component:BusinessManagement
+    component:BusinessManagement,
+    meta: { adminPermission: 'admin.business' }
   },
   // 买家端用户管理页
   {
@@ -234,7 +247,8 @@ const routes: Array<RouteRecordRaw> = [
   {
     path:'/audit_apply_seller/:id',
     name:'AuditApplySeller',
-    component:AuditApplySeller
+    component:AuditApplySeller,
+    meta: { adminPermission: 'admin.audit_seller' }
   },
   // 买家端商品分类页
   {
