@@ -121,7 +121,7 @@
         </el-drawer>
       </el-main>
       <el-button type="primary" @click="add_addre">添加地址</el-button>
-      <el-footer class="footer-content">版权所有 © [小白的商城]，保留所有权利。</el-footer>
+      <el-footer class="footer-content">版权所有 © [xb商城]，保留所有权利。</el-footer>
     </el-container>
 
 </template>
@@ -143,7 +143,7 @@ const form = reactive({
     'data_id':null
 })
 
-const tableData:any = ref<any[]>([]) 
+const tableData:any = ref<any[]>([])
 
 const rules = reactive({
     name: [
@@ -210,7 +210,7 @@ async function fetchData(){
         if (res.status == 200){
             if (res.data.current){
                 console.log(Object.keys(res.data.save_list).length);
-                
+
                 for (let i =0; i<Object.keys(res.data.save_list).length; i++){
                     tableData.value.push({
 
@@ -225,9 +225,9 @@ async function fetchData(){
                         'apply_option':res.data.save_list[i][8]
                 })
 
-                
+
                 console.log(tableData);
-                
+
             }
         }
     }})
@@ -264,9 +264,9 @@ watch(()=>form.city,(newVal,oldVal)=>{
     if (newVal != oldVal && newVal != ''){
         console.log(newVal);
         console.log(oldVal);
-        
+
         console.log(newVal != oldVal);
-        
+
         Axios.get('/get_address_options?city='+newVal)
         .then(res=>{
             if (res.status == 200){
@@ -300,7 +300,7 @@ watch(()=>drawer.value,(newVal,oldVal)=>{
 const modify = ref(async(order: number,id: number)=>{
     console.log(order,id);
 
-    
+
     const data = tableData.value[order-1];
     form.save = data.save
     form.id = data.id
@@ -399,7 +399,7 @@ const commit = async ()=>{
 const delete_fun = async (id: number)=>{
     const fromdata = new FormData()
     console.log(id.toString());
-    
+
     fromdata.append('id',id.toString())
     fromdata.append('token',localStorage.getItem('access_token')||'')
     await Axios.delete('/delete_address', {
@@ -423,7 +423,7 @@ const delete_fun = async (id: number)=>{
 const apply = async (id: number)=>{
     const fromdata = new FormData()
     console.log(id.toString());
-    
+
     fromdata.append('id',id.toString())
     fromdata.append('token',localStorage.getItem('access_token')||'')
     await Axios.post('/address_apply', fromdata)
@@ -440,7 +440,7 @@ const apply = async (id: number)=>{
     })
 }
 
-// 
+//
 
 </script>
 <style scoped>

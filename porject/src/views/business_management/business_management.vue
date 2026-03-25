@@ -52,7 +52,7 @@
         </div>
       </el-main>
 
-      <el-footer class="footer-content">版权所有 © [小白的商城]，保留所有权利。</el-footer>
+      <el-footer class="footer-content">版权所有 © [xb商城]，保留所有权利。</el-footer>
     </el-container>
 </template>
 <script setup lang="ts">
@@ -170,7 +170,7 @@ const handleMerchantStatus = async () => {
   const isNormal = from_data.value[3] == '1'
   const action = isNormal ? '冻结' : '解冻'
   const merchantName = from_data.value[2] || from_data.value[0]
-  
+
   try {
     await ElMessageBox.confirm(
       `确定要${action}商家"${merchantName}"吗？${isNormal ? '冻结后商家将无法正常使用系统。' : '解冻后商家可以正常使用系统。'}`,
@@ -182,7 +182,7 @@ const handleMerchantStatus = async () => {
         confirmButtonClass: isNormal ? 'el-button--warning' : '',
       }
     )
-    
+
     // 用户确认后执行操作
     if (isNormal) {
       await freeze_merchant()
@@ -197,7 +197,7 @@ const handleMerchantStatus = async () => {
 
 async function delete_merchant () {
   const merchantName = from_data.value[2] || from_data.value[0]
-  
+
   try {
     await ElMessageBox.confirm(
       `确定要删除商家"${merchantName}"吗？此操作不可恢复，将永久删除该商家及其所有相关数据！`,
@@ -210,12 +210,12 @@ async function delete_merchant () {
         distinguishCancelAndClose: true,
       }
     )
-    
+
     // 用户确认后执行删除操作
     const commit = new FormData();
     commit.append('token',localStorage.getItem('admin_access_token')||'');
     commit.append('name',String(route.params.id)||'')
-    
+
     const res = await Axios.delete('/manage_merchant_delete',{
       data:commit
     })

@@ -2,7 +2,7 @@
     <el-container>
         <el-header>
             <div class="management-navigation">
-                <h2 class="title_night">小白的商城-店铺创建页</h2>
+                <h2 class="title_night">xb商城-店铺创建页</h2>
             </div>
         </el-header>
 
@@ -75,7 +75,7 @@
                 <el-col :span="7"><div class="grid-content ep-bg-purple" /></el-col>
             </el-row>
         </el-main>
-        <el-footer class="footer-content">版权所有 ©[小白的个人商城]，保留所有权利。</el-footer>
+        <el-footer class="footer-content">版权所有 © [xb商城]，保留所有权利。</el-footer>
     </el-container>
 </template>
 <script lang="ts" setup>
@@ -221,16 +221,16 @@ async function handleOk() {
             let tokenUpdated = false
             if (res.data.token) {
                 const oldToken = localStorage.getItem('buyer_access_token')
-                
+
                 // 更新为新token，格式：Bearer {token}
                 const tokenType = res.data.token_type || 'bearer'
                 const newToken = `${tokenType.charAt(0).toUpperCase() + tokenType.slice(1)} ${res.data.token}`
                 localStorage.setItem('buyer_access_token', newToken)
-                
+
                 tokenUpdated = true
                 console.log('Token已更新，新token包含新创建的店铺信息')
             }
-            
+
             // 初始化FormData 对象，店铺图片数据
             const mall_img = new FormData();
             // 使用最新的token（可能是新token）

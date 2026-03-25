@@ -2,7 +2,7 @@
     <el-container>
         <el-header>
             <div class="management-navigation">
-                <h2 class="title_night">小白的商城-店铺删除页</h2>
+                <h2 class="title_night">xb商城-店铺删除页</h2>
             </div>
         </el-header>
         <el-main>
@@ -37,7 +37,7 @@
             </el-table-column>
           </el-table>
         </el-main>
-        <el-footer class="footer-content">版权所有 ©[小白的个人商城]，保留所有权利。</el-footer>
+        <el-footer class="footer-content">版权所有 ©[xb商城]，保留所有权利。</el-footer>
     </el-container>
 </template>
 
@@ -103,10 +103,10 @@ async function confirmDelete() {
     const formdata = new FormData()
     formdata.append("token",token || '')
     formdata.append("mall_id",mall_id.value.toString())
-    
+
     try {
         const res = await Axios.delete('/buyer_delete_mall',{data:formdata})
-        
+
         if(res.data.current){
             // 检查并更新新的token（如果后端返回了新token）
             let tokenUpdated = false
@@ -115,11 +115,11 @@ async function confirmDelete() {
                 const tokenType = res.data.token_type || 'bearer'
                 const newToken = `${tokenType.charAt(0).toUpperCase() + tokenType.slice(1)} ${res.data.token}`
                 localStorage.setItem('buyer_access_token', newToken)
-                
+
                 tokenUpdated = true
                 console.log('Token已更新，新token已移除删除的店铺信息')
             }
-            
+
             ElMessage.success(tokenUpdated ? '删除成功，Token已自动更新' : '删除成功')
             dialogVisible.value = false;
             mall_id.value = -1;

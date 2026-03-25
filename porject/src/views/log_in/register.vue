@@ -2,20 +2,20 @@
     <el-container>
         <el-main>
             <div class="box">
-                
+
                 <!-- 注册表单 -->
                 <div class="register-container">
                     <SignIn @toggleForm="toggleForm" />
                 </div>
-                
+
                 <!-- 登录表单 -->
                 <div class="login-container">
                     <LogIn @toggleForm="toggleForm" />
                 </div>
-                
+
                 <!-- 覆盖层，初始显示在注册表单上 -->
-                <div 
-                    class="pre-box" 
+                <div
+                    class="pre-box"
                     :class="{ 'slide-right': showLogin }"
                     @click="toggleForm"
                 >
@@ -29,9 +29,9 @@
                 </div>
             </div>
         </el-main>
-        <el-footer class="footer-content">版权所有 ©[小白的个人商城]，保留所有权利。</el-footer>
+        <el-footer class="footer-content">版权所有 ©[xb商城]，保留所有权利。</el-footer>
     </el-container>
-    
+
 </template>
 <script>
 import LogIn from './content/log_in.vue'
@@ -53,13 +53,13 @@ export default{
         const darkMode = ref(false);
         const initTheme = () => {
         const savedTheme = localStorage.getItem('theme');
-        
+
         if (savedTheme === 'dark') {
             darkMode.value = true;
             document.documentElement.classList.add('dark');
         }
         };
-    
+
     // 初始化
     initTheme();
     },
@@ -68,12 +68,12 @@ export default{
         toggleForm() {
             this.showLogin = !this.showLogin;
         },
-        
+
         // 兼容旧的事件处理
         showLoginForm() {
             this.showLogin = true;
         },
-        
+
         showRegisterForm() {
             this.showLogin = false;
         }
@@ -89,16 +89,16 @@ export default{
     border-radius: 12px;
     overflow: hidden;
     position: relative;
-    
+
     /* 增强盒子轮廓 */
     border: 2px solid rgba(64, 158, 255, 0.2);
-    box-shadow: 0 20px 50px rgba(64, 158, 255, 0.15), 
+    box-shadow: 0 20px 50px rgba(64, 158, 255, 0.15),
                 0 10px 30px rgba(0, 0, 0, 0.05);
     transition: all 0.3s ease;
 }
 
 .box:hover {
-    box-shadow: 0 25px 55px rgba(64, 158, 255, 0.2), 
+    box-shadow: 0 25px 55px rgba(64, 158, 255, 0.2),
                 0 15px 35px rgba(0, 0, 0, 0.08);
     transform: translateY(-5px);
 }
@@ -139,7 +139,7 @@ export default{
     color: white;
     transition: transform 0.6s ease-in-out;
     z-index: 10;
-    
+
     /* 增强覆盖层轮廓 */
     border: 1px solid rgba(255, 255, 255, 0.3);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);

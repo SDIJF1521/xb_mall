@@ -1,7 +1,7 @@
 <template>
   <div class="head-trolley">
     <div class="head-left">
-      <h2 class="head-title">小白的商城</h2>
+      <h2 class="head-title">xb商城</h2>
     </div>
     <div class="head-right">
       <div class="search-container">

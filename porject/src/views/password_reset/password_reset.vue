@@ -15,7 +15,7 @@
                   />
               <div v-if="emailError" class="error-message">{{ emailError }}</div>
           </div>
-          
+
           <div>
               <el-input
                   v-model="password"
@@ -51,9 +51,9 @@
                       @blur="code_regex"
                       show-password
                   />
-                  <el-button 
-                      type="primary" 
-                      @click="sendVerificationCode" 
+                  <el-button
+                      type="primary"
+                      @click="sendVerificationCode"
                       plain
                       :disabled="countdown > 0"
                   >
@@ -64,7 +64,7 @@
           </div>
           <el-button type="info" style="width: 400px;" @click="reset" round>提交</el-button>
       </el-main>
-      <el-footer class="footer-content">版权所有 ©[小白的个人商城]，保留所有权利。</el-footer>
+      <el-footer class="footer-content">版权所有 ©[xb商城]，保留所有权利。</el-footer>
     </el-container>
 </template>
 <script>
@@ -102,17 +102,17 @@ export default{
         Email_verification(){
             const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
             this.Email = this.Email.trim();
-            
+
             if (this.Email === '') {
                 this.emailError = '请输入邮箱地址';
                 return false;
             }
-            
+
             if (!emailRegex.test(this.Email)) {
                 this.emailError = '邮箱格式不正确';
                 return false;
             }
-            
+
             this.emailError = '';
             return true;
         },
@@ -172,13 +172,13 @@ export default{
             if (!this.Email_verification()) {
                 return;
             }
-            
+
             // 已发送则不重复发送
             if (this.countdown > 0) {
                 ElMessage.info('请等待倒计时结束');
                 return;
             }
-            
+
             // 发送验证码请求
             try {
                 const response = await this.Axios.get('/verification_code', {
@@ -186,10 +186,10 @@ export default{
                         email: this.Email
                     }
                 });
-                
+
                 ElMessage.success('验证码发送成功，请查收邮箱');
                 console.log('验证码发送成功:', response.data);
-                
+
                 // 启动倒计时
                 this.countdown = 60;
                 this.timer = setInterval(() => {
@@ -212,24 +212,24 @@ export default{
             console.log('Email:', this.Email);
             console.log('Code:', this.code);
             console.log('Password:', this.password);
-            
+
             // 全面验证所有参数
             if (!this.Email_verification()) {
                 return;
             }
-            
+
             if (!this.password_verification()) {
                 return;
             }
-            
+
             if (!this.repeat_password_verification()) {
                 return;
             }
-            
+
             if (!this.code_regex()) {
                 return;
             }
-            
+
             try {
                 // 验证验证码
                 const verifyResponse = await this.Axios({
@@ -240,19 +240,19 @@ export default{
                         code: this.code
                     }
                 });
-                
+
                 console.log('验证码验证成功:', verifyResponse.data);
-                
+
                 if (verifyResponse.status === 200 && verifyResponse.data.data.access_token) {
                     const formdata = new FormData();
                     formdata.append('email', this.Email);
                     formdata.append('user_password', this.password);
                     formdata.append('captcha', `Bearer ${verifyResponse.data.data.access_token}`);
-                    
+
                     try {
                         // 提交密码重置请求
                         const passwordResponse = await this.Axios.patch('/password_reset', formdata);
-                        
+
                         if (passwordResponse.status === 200 && passwordResponse.data.current) {
                             ElMessage.success('密码修改成功');
                             this.$router.push('/register');
@@ -263,11 +263,11 @@ export default{
                     } catch (patchError) {
                         ElMessage.error('密码重置请求失败');
                         console.error('密码重置请求错误:', patchError);
-                        
+
                         if (patchError.response) {
                             console.error('服务器返回错误:', patchError.response.data);
-                            const errorMsg = patchError.response.data.errors 
-                                ? Object.values(patchError.response.data.errors).join('，') 
+                            const errorMsg = patchError.response.data.errors
+                                ? Object.values(patchError.response.data.errors).join('，')
                                 : '请检查输入信息';
                             ElMessage.error(`密码重置失败：${errorMsg}`);
                         }
@@ -279,13 +279,13 @@ export default{
             } catch (error) {
                 ElMessage.error('验证码验证失败，请检查邮箱和验证码');
                 console.error('验证码验证错误:', error);
-                
+
                 if (error.response) {
                     console.error('错误状态码:', error.response.status);
                     console.error('错误信息:', error.response.data);
-                    
-                    const errorMsg = error.response.data.errors 
-                        ? Object.values(error.response.data.errors).join('，') 
+
+                    const errorMsg = error.response.data.errors
+                        ? Object.values(error.response.data.errors).join('，')
                         : '请检查邮箱和验证码是否正确';
                     ElMessage.error(`验证失败：${errorMsg}`);
                 }

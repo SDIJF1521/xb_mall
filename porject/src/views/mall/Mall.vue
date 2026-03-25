@@ -48,7 +48,7 @@
           </el-main>
         </el-container>
       </el-container>
-      <el-footer class="footer-content">版权所有 ©[小白的个人商城]，保留所有权利。</el-footer>
+      <el-footer class="footer-content">版权所有 ©[xb商城]，保留所有权利。</el-footer>
     </el-container>
   </div>
 </template>

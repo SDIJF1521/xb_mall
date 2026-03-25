@@ -23,7 +23,7 @@
                 <el-icon class="section-icon"><Avatar /></el-icon>
                 <h3 class="section-title">头像设置</h3>
               </div>
-              
+
               <div class="upload-area">
                 <el-upload
                   class="avatar-uploader"
@@ -41,15 +41,15 @@
                   </div>
                   <div class="upload-hint">支持 JPG、PNG、GIF 等格式，大小不超过 5MB</div>
                 </el-upload>
-                
+
                 <!-- 图片预览区域 -->
                 <div class="preview-container" v-if="previewImage">
                   <div class="preview-wrapper">
                     <img :src="previewImage" class="preview-image" alt="预览图片">
                     <div class="preview-overlay">
-                      <el-button 
-                        class="delete-button" 
-                        @click="imageDelete" 
+                      <el-button
+                        class="delete-button"
+                        @click="imageDelete"
                         type="danger"
                         :icon="Delete"
                         circle
@@ -82,9 +82,9 @@
                   </el-form-item>
 
                   <el-form-item label="性别" class="form-item-custom">
-                    <el-select 
-                      v-model="value" 
-                      placeholder="请选择性别" 
+                    <el-select
+                      v-model="value"
+                      placeholder="请选择性别"
                       class="custom-select"
                       :prefix-icon="UserFilled"
                     >
@@ -97,7 +97,7 @@
                       />
                     </el-select>
                   </el-form-item>
-                  
+
                   <el-form-item label="年龄" class="form-item-custom">
                     <el-input-number
                       v-model="num"
@@ -114,9 +114,9 @@
 
             <!-- 提交按钮 -->
             <div class="submit-section">
-              <el-button 
-                type="primary" 
-                @click="SubmitEvent" 
+              <el-button
+                type="primary"
+                @click="SubmitEvent"
                 class="submit-btn"
                 :icon="Check"
                 size="large"
@@ -124,8 +124,8 @@
               >
                 {{ submitting ? '提交中...' : '保存修改' }}
               </el-button>
-              <el-button 
-                @click="goBack" 
+              <el-button
+                @click="goBack"
                 class="cancel-btn"
                 :icon="Close"
                 size="large"
@@ -137,7 +137,7 @@
         </div>
       </el-main>
       <el-footer class="footer-wrapper">
-        <p class="footer-text">版权所有 © [小白的商城]，保留所有权利。</p>
+        <p class="footer-text">版权所有 © [xb商城]，保留所有权利。</p>
       </el-footer>
     </el-container>
   </div>
@@ -148,15 +148,15 @@ import AppNavigation from '@/moon/navigation.vue'
 import axios from 'axios';
 import { ElMessage } from 'element-plus';
 import router from '@/router';
-import { 
-  Edit, 
-  Avatar, 
-  UserFilled, 
-  UploadFilled, 
-  Delete, 
-  User, 
-  Check, 
-  Close 
+import {
+  Edit,
+  Avatar,
+  UserFilled,
+  UploadFilled,
+  Delete,
+  User,
+  Check,
+  Close
 } from '@element-plus/icons-vue';
 
 export default {
@@ -218,7 +218,7 @@ mounted() {
           }else{
             this.on_upload = true;
           }
-          
+
         }else{
           this.on_upload = false;
         }
@@ -243,7 +243,7 @@ mounted() {
       console.log('选择的文件:', file);
       this.updatePreview();
     },
-    
+
     // 更新预览图片
     updatePreview() {
       if (this.fileList.length > 0) {
@@ -261,7 +261,7 @@ mounted() {
     async SubmitEvent(){
       this.submitting = true;
       const token = localStorage.getItem('access_token');
-      
+
       try {
         // 上传头像
         if (this.previewImage != '') {
@@ -271,13 +271,13 @@ mounted() {
             const formdata = new FormData();
             formdata.append('file', blob, this.previewImage);
             formdata.append('token', token);
-            
+
             const uploadResult = await this.Axios({
               method: 'patch',
               url: '/uploading_profile_photo',
               data: formdata
             });
-            
+
             if (uploadResult.status == 200) {
               if (uploadResult.data.current) {
                 ElMessage.success(uploadResult.data.msg);
@@ -293,20 +293,20 @@ mounted() {
             console.error('图片上传错误:', error);
           }
         }
-        
+
         // 更新用户信息
         const formdata = new FormData();
         formdata.append('nickname', this.name);
         formdata.append('age', this.num);
         formdata.append('sex', this.value);
         formdata.append('token', token);
-        
+
         const result = await this.Axios({
           method: 'patch',
           url: '/user_data_amend',
           data: formdata
         });
-        
+
         if (result.status == 200) {
           if (result.data.current) {
             ElMessage.success(result.data.msg);
@@ -762,4 +762,4 @@ mounted() {
     font-size: 1rem;
   }
 }
-</style>  
+</style>

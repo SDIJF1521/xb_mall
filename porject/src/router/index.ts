@@ -41,6 +41,7 @@ import BuyerStoreChat from '@/views/buyer_store_chat/BuyerStoreChat.vue'
 import BuyerCustomerService from '@/views/buyer_customer_service/BuyerCustomerService.vue'
 import BuyerCsSelect from '@/views/buyer_customer_service_select/BuyerCsSelect.vue'
 import BuyerSet from '@/views/buyer_set/BuyerSet.vue'
+import ManagementSystemSettings from '@/views/management_system_settings/ManagementSystemSettings.vue'
 
 import { setupHeartbeatGuard } from './heartbeatGuard'
 import { setupAuthGuard } from './authGuard';
@@ -297,6 +298,13 @@ const routes: Array<RouteRecordRaw> = [
     path: '/buyer_set',
     name: 'BuyerSet',
     component: BuyerSet
+  },
+  // 管理员管理页——系统设置
+  {
+    path:'/management_system_settings',
+    name:'ManagementSystemSettings',
+    component:ManagementSystemSettings,
+    meta: { adminPermission: 'admin.system_settings' }
   },
   {
     // 404 页面 - 匹配所有未定义的路由

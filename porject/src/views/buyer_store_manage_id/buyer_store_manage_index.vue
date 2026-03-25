@@ -161,7 +161,7 @@
         </el-card>
       </div>
     </el-main>
-    <el-footer class="footer-content">版权所有 ©[小白的个人商城]，保留所有权利。</el-footer>
+    <el-footer class="footer-content">版权所有 ©[xb商城]，保留所有权利。</el-footer>
   </el-container>
 
   <!-- 图片预览对话框 -->

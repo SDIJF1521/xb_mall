@@ -14,7 +14,7 @@
                     </div>
 
                     <h2>欢迎登录</h2>
-                    <p class="login-subtitle">小白的商城管理系统</p>
+                    <p class="login-subtitle">xb商城管理系统</p>
                 </div>
 
                 <el-form :model="from_data" class="login-form" @submit.prevent="handleLogin">
@@ -83,7 +83,7 @@
 
             </div>
         </div>
-        <div class="footer-content">版权所有 © [小白的商城]，保留所有权利。</div>
+        <div class="footer-content">版权所有 © [xb商城]，保留所有权利。</div>
     </div>
 </template>
 <script setup lang="ts">

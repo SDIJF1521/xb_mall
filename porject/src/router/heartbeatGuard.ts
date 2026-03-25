@@ -38,6 +38,7 @@ const EXCLUDED_ROUTES = [
   "BuyerCsSelect", // 买家端客服选择页
   "BuyerCustomerService", // 买家端客服服务页
   "BuyerSet", // 买家端设置页
+  "ManagementSystemSettings", // 管理员端系统设置页
 ];
 
 export function setupHeartbeatGuard(router: Router) {

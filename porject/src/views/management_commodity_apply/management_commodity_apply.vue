@@ -122,9 +122,9 @@
                         </div>
                     </template>
                     <div v-if="commodityInfo.img_list && commodityInfo.img_list.length > 0" class="image-gallery">
-                        <div 
-                            v-for="(img, index) in commodityInfo.img_list" 
-                            :key="index" 
+                        <div
+                            v-for="(img, index) in commodityInfo.img_list"
+                            :key="index"
                             class="image-item"
                         >
                             <el-image
@@ -156,9 +156,9 @@
                         </div>
                     </template>
                     <div v-if="commodityInfo.specification_list && commodityInfo.specification_list.length > 0" class="specification-list">
-                        <el-table 
-                            :data="specificationTableData" 
-                            border 
+                        <el-table
+                            :data="specificationTableData"
+                            border
                             style="width: 100%"
                             :header-cell-style="{ background: '#f5f7fa', color: '#606266', fontWeight: '600' }"
                         >
@@ -196,18 +196,18 @@
                         </div>
                     </template>
                     <div class="action-buttons">
-                        <el-button 
-                            type="success" 
-                            size="large" 
+                        <el-button
+                            type="success"
+                            size="large"
                             :icon="Check"
                             class="audit-button approve-button"
                             @click="passAudit"
                         >
                             通过审核
                         </el-button>
-                        <el-button 
-                            type="danger" 
-                            size="large" 
+                        <el-button
+                            type="danger"
+                            size="large"
                             :icon="Close"
                             class="audit-button reject-button"
                             @click="rejectAudit"
@@ -220,7 +220,7 @@
             <el-empty v-else description="暂无商品信息" :image-size="200" />
         </el-main>
         <el-footer class="footer-content">
-            <p>版权所有 © [小白的商城]，保留所有权利。</p>
+            <p>版权所有 © [xb商城]，保留所有权利。</p>
         </el-footer>
     </el-container>
 </template>
@@ -293,7 +293,7 @@ const previewImageList = computed(() => {
 const specificationTableData = computed(() => {
     if (!commodityInfo.value?.specification_list) return []
     console.log();
-    
+
     return commodityInfo.value.specification_list.map((spec, index) => ({
         specification: spec.specs[0] || `规格${index + 1}`,
         price: spec.price || 0,
@@ -313,7 +313,7 @@ async function getCommodityInfo() {
                 'access-token': token.value
             }
         })
-        
+
         if (res.data.current && res.data.data) {
             commodityInfo.value = {
                 name: res.data.data.name || '',
@@ -440,7 +440,7 @@ async function handlePass(remark?: string) {
 
 onMounted(async () => {
     console.log(mall_id.value,shopping_id.value);
-    
+
     await getCommodityInfo()
 })
 </script>
@@ -829,20 +829,20 @@ onMounted(async () => {
         grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
         gap: 12px;
     }
-    
+
     .gallery-image {
         height: 120px;
     }
-    
+
     .action-buttons {
         flex-direction: column;
         gap: 12px;
     }
-    
+
     .audit-button {
         width: 100%;
     }
-    
+
     .action-bar {
         flex-direction: column;
         gap: 12px;

@@ -4,7 +4,7 @@
     <el-header class="header-wrapper">
       <AppNavigation />
     </el-header>
-    
+
     <!-- 内容区 -->
     <el-main class="main-content">
       <div class="form-card">
@@ -15,10 +15,10 @@
               <el-icon class="title-icon"><Shop /></el-icon>
             </div>
             <h2 class="page-title">申请成为卖家</h2>
-            <el-button 
-              v-if="reject_select" 
-              @click="reject_content_examin" 
-              type="danger" 
+            <el-button
+              v-if="reject_select"
+              @click="reject_content_examin"
+              type="danger"
               circle
               class="reject-btn"
               :icon="WarningFilled"
@@ -26,61 +26,61 @@
           </div>
           <p class="page-subtitle">请填写以下信息以申请成为卖家，我们将在3个工作日内审核您的申请</p>
         </div>
-        
+
         <!-- 申请表单 -->
-        <el-form 
-          ref="applyForm" 
-          :model="formData" 
-          :rules="rules" 
-          label-width="120px" 
+        <el-form
+          ref="applyForm"
+          :model="formData"
+          :rules="rules"
+          label-width="120px"
           class="apply-form"
         >
           <el-form-item label="姓名" prop="name" class="form-item-custom">
-            <el-input 
-              v-model="formData.name" 
-              placeholder="请输入您的姓名" 
+            <el-input
+              v-model="formData.name"
+              placeholder="请输入您的姓名"
               class="custom-input"
               :prefix-icon="User"
               clearable
             />
           </el-form-item>
-          
+
           <el-form-item label="联系方式" prop="contact" class="form-item-custom">
-            <el-input 
-              v-model="formData.contact" 
-              placeholder="请输入您的手机号码" 
+            <el-input
+              v-model="formData.contact"
+              placeholder="请输入您的手机号码"
               class="custom-input"
               :prefix-icon="Phone"
               clearable
             />
           </el-form-item>
-          
+
           <el-form-item label="店铺名称" prop="storeName" class="form-item-custom">
-            <el-input 
-              v-model="formData.storeName" 
-              placeholder="请输入店铺名称" 
+            <el-input
+              v-model="formData.storeName"
+              placeholder="请输入店铺名称"
               class="custom-input"
               :prefix-icon="Shop"
               clearable
             />
           </el-form-item>
-          
+
           <el-form-item label="店铺描述" prop="storeDescription" class="form-item-custom">
-            <el-input 
-              type="textarea" 
-              v-model="formData.storeDescription" 
-              placeholder="请简要描述您的店铺和主营商品（至少10个字符）" 
+            <el-input
+              type="textarea"
+              v-model="formData.storeDescription"
+              placeholder="请简要描述您的店铺和主营商品（至少10个字符）"
               class="custom-textarea"
               :rows="5"
               maxlength="500"
               show-word-limit
             />
           </el-form-item>
-          
+
           <el-form-item class="submit-item">
-            <el-button 
-              type="primary" 
-              :loading="submitting" 
+            <el-button
+              type="primary"
+              :loading="submitting"
               @click="submitApplication"
               class="submit-btn"
               size="large"
@@ -91,13 +91,13 @@
           </el-form-item>
         </el-form>
       </div>
-      
+
       <!-- 驳回理由抽屉 -->
-      <el-drawer 
-        v-model="drawer" 
-        title="驳回理由" 
-        :with-header="true" 
-        width="35%" 
+      <el-drawer
+        v-model="drawer"
+        title="驳回理由"
+        :with-header="true"
+        width="35%"
         direction="rtl"
         class="reject-drawer"
       >
@@ -109,9 +109,9 @@
             <p class="reject-text">{{ reject_reason || '暂无驳回理由' }}</p>
           </div>
           <div class="reject-footer">
-            <el-button 
-              type="primary" 
-              @click="drawer = false" 
+            <el-button
+              type="primary"
+              @click="drawer = false"
               class="confirm-btn"
               size="large"
             >
@@ -122,10 +122,10 @@
         </div>
       </el-drawer>
     </el-main>
-    
+
     <!-- 页尾 -->
     <el-footer class="footer-wrapper">
-      <p class="footer-text">版权所有 © [小白的商城]，保留所有权利。</p>
+      <p class="footer-text">版权所有 © [xb商城]，保留所有权利。</p>
     </el-footer>
   </el-container>
 </template>
@@ -140,7 +140,7 @@ import axios from 'axios';
 export default {
   name: "ApplySeller",
   data() {
-    
+
     return {
       Axios: axios.create({
         baseURL:'http://127.0.0.1:8000/api'
@@ -188,7 +188,7 @@ export default {
     this.Axios.post('/get_apply_seller_content',formdata)
     .then(ref =>{
       console.log(ref.data);
-      
+
       if (ref.status == 200 && ref.data.current) {
         this.formData.name = ref.data.name || '';
         this.formData.contact = ref.data.phone || '';
@@ -224,7 +224,7 @@ export default {
             formdata.append('mall_describe', this.formData.storeDescription);
 
             const response = await this.Axios.post('/apply_seller', formdata);
-            
+
             if (response.status === 200) {
                 if (response.data.current) {
                     ElMessage.success(response.data.msg);

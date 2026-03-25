@@ -1,6 +1,6 @@
 <template>
   <div class="management-navigation">
-    <h2 :class="titleColor">小白的个人商城后台</h2>
+    <h2 :class="titleColor">xb商城后台</h2>
 
     <el-menu
       :default-active="activeIndex"
@@ -10,7 +10,8 @@
     >
       <el-menu-item v-if="pDash" index="1">仪表盘</el-menu-item>
       <el-menu-item v-if="pCommodity" index="2">商品管理</el-menu-item>
-      <el-menu-item v-if="pUser" index="4">用户管理</el-menu-item>
+      <el-menu-item v-if="pUser" index="3">用户管理</el-menu-item>
+      <el-menu-item v-if="pCommodity" index="4">设置</el-menu-item>
     </el-menu>
     <el-switch
       v-model="value"
@@ -35,6 +36,7 @@ import {
   hasAnyAdminPermission,
   canEnterManageHome,
 } from '@/utils/adminPermission';
+import { ElMenuItem } from 'element-plus';
 
 const pDash = computed(() => canEnterManageHome());
 const pCommodity = computed(() =>
@@ -55,7 +57,8 @@ const activeIndex = ref('')
 const handleSelect = (index: string) => {
   if (index === '1') router.push('/management');
   else if (index === '2') router.push('/management_commodity');
-  else if (index === '4') router.push('/user_management');
+  else if (index === '3') router.push('/user_management');
+  else if (index === '4') router.push('/management_system_settings');
 }
 
 // 定义组件名称
@@ -78,6 +81,8 @@ function syncNav(path: string) {
     path.startsWith('/audit_apply_seller') ||
     path.startsWith('/business_management')
   )
+    activeIndex.value = '3';
+  else if (path.startsWith('/management_system_settings'))
     activeIndex.value = '4';
 }
 

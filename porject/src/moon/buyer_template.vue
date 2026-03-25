@@ -8,7 +8,7 @@
         <component :is='component'></component>
       </div>
     </el-main>
-    <el-footer class="footer-content">版权所有 ©[小白的个人商城]，保留所有权利。</el-footer>
+    <el-footer class="footer-content">版权所有 ©[xb商城]，保留所有权利。</el-footer>
   </el-container>
 </template>
 
@@ -59,29 +59,29 @@ onMounted(() => {
   console.log('设置标题前的值:', title.value);
 
   if (route.path.startsWith('/buyer_user_list_id')) {
-    title.value = '小白的商城-用户管理页';
+    title.value = 'xb商城-用户管理页';
     console.log('设置用户管理页标题，新值:', title.value);
   } else if (route.path.startsWith('/buyer_role_list')) {
-    title.value = '小白的商城-角色管理页';
+    title.value = 'xb商城-角色管理页';
     console.log('设置角色管理页标题，新值:', title.value);
   } else if (route.path.startsWith('/buyer_user_statistics')) {
-    title.value = '小白的商城-用户统计页';
+    title.value = 'xb商城-用户统计页';
     console.log('设置用户统计页标题，新值:', title.value);
   }else if (route.path.startsWith('/buyer_commodity_add')) {
-    title.value = '小白的商城-商品添加页';
+    title.value = 'xb商城-商品添加页';
     console.log('设置商品添加页标题，新值:', title.value);
   }else if (route.path.startsWith('/buyer_commodity_list')) {
-    title.value = '小白的商城-商品列表页';
+    title.value = 'xb商城-商品列表页';
     console.log('设置商品列表页标题，新值:', title.value);
   } else if (
     route.path.startsWith('/buyer_commodity_classify')) {
-    title.value = '小白的商城-商品分类页';
+    title.value = 'xb商城-商品分类页';
     console.log('设置商品分类页标题，新值:', title.value);
   } else if (route.path.startsWith('/buyer_commodity_repertory')){
-    title.value = '小白的商城-商品库存页';
+    title.value = 'xb商城-商品库存页';
     console.log('设置商品分类页标题，新值:', title.value);
   }else{
-    title.value = '小白的商城';
+    title.value = 'xb商城';
     console.log('设置默认标题，新值:', title.value);
   }
 

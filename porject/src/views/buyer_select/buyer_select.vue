@@ -2,7 +2,7 @@
   <el-container>
     <el-header>
       <div class="management-navigation">
-        <h2 class="title">小白的商城-店铺选择</h2>
+        <h2 class="title">xb商城-店铺选择</h2>
       </div>
     </el-header>
     <el-main>
@@ -68,7 +68,7 @@
       </div>
       <el-empty v-else description="暂无店铺信息" />
     </el-main>
-    <el-footer class="footer-content">版权所有 ©[小白的个人商城]，保留所有权利。</el-footer>
+    <el-footer class="footer-content">版权所有 ©[xb商城]，保留所有权利。</el-footer>
   </el-container>
 </template>
 
