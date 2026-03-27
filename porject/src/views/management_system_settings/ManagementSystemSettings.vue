@@ -75,9 +75,9 @@ import {
 } from '@element-plus/icons-vue'
 
 import AdSetting from './content/AdSetting.vue'
+import PaymentConfig from './content/PaymentConfig.vue'
 
 const MallBasicConfig = { template: '<div><h3>商城基础配置</h3><p>这里是商城的基础配置内容</p></div>' }
-const MallPaymentConfig = { template: '<div><h3>支付配置</h3><p>这里是支付配置内容</p></div>' }
 const MallLogisticsConfig = { template: '<div><h3>物流配置</h3><p>这里是物流配置内容</p></div>' }
 const MallMemberLevel = { template: '<div><h3>会员等级</h3><p>这里是会员等级配置内容</p></div>' }
 const CouponManagement = { template: '<div><h3>优惠券管理</h3><p>这里是优惠券管理内容</p></div>' }
@@ -107,7 +107,7 @@ function handleMenuSelect(index: string) {
       currentView.value = MallBasicConfig
       break
     case '1-2':
-      currentView.value = MallPaymentConfig
+      currentView.value = PaymentConfig
       break
     case '1-3':
       currentView.value = MallLogisticsConfig

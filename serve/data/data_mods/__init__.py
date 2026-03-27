@@ -710,6 +710,19 @@ class ManageAdBannerDelete(BaseModel):
     banner_id: int
 
 
+# ── 平台端支付配置相关数据模型 ──────────────────────────────────────────────────
+
+# 平台端保存支付配置数据模型（含证书文件上传）
+class PayConfigSave(BaseModel):
+    app_id: str = Field(..., description="支付宝 APPID")
+    server_url: str = Field(default="https://openapi.alipay.com/gateway.do", description="网关地址")
+    sign_type: str = Field(default="RSA2", description="签名类型 RSA/RSA2")
+    notify_url: str = Field(default="", description="异步通知回调地址")
+    return_url: str = Field(default="", description="同步跳转回调地址")
+    app_private_key: str = Field(..., description="应用私钥（纯 Base64 或完整 PEM）")
+    alipay_public_key: str = Field(..., description="支付宝公钥（纯 Base64 或完整 PEM）")
+
+
 # 查看收藏列表查询参数模型（分页 + 模糊搜索）
 class FavoriteListQuery:
     def __init__(

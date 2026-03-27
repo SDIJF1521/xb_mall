@@ -160,6 +160,7 @@ from routes.buyer_ad_apply import router as buyer_ad_apply_router
 from routes.buyer_ad_apply_list import router as buyer_ad_apply_list_router
 from routes.buyer_ad_apply_img import router as buyer_ad_apply_img_router
 from routes.ad_banner_active import router as ad_banner_active_router
+from routes.manage_pay_confing import router as manage_pay_confing_router
 
 from routes.user_list import router as user_list_router
 from routes.today_user_list import router as today_user_list_router
@@ -977,3 +978,6 @@ app.include_router(buyer_ad_apply_img_router, prefix='/api')
 
 # 轮播图公共接口
 app.include_router(ad_banner_active_router, prefix='/api')
+
+# 平台端支付配置路由
+app.include_router(manage_pay_confing_router, prefix='/api')

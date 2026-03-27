@@ -1,10 +1,12 @@
 import logging
+import warnings
 
 logger = logging.getLogger(__name__)
 
 
 async def run_ad_migration(db_pool) -> None:
     """创建广告投放申请表 ad_apply 和轮播图广告表 ad_banner。"""
+    warnings.filterwarnings("ignore", category=Warning, module="aiomysql")
 
     try:
         await db_pool.execute_query(

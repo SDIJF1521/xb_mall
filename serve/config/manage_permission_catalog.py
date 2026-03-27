@@ -11,4 +11,5 @@ PERMISSION_CATALOG = [
     {"code": "admin.audit_seller", "name": "商家申请审核页", "category": "审核"},
     {"code": "admin.business", "name": "商家详情", "category": "商家"},
     {"code": "admin.system_settings", "name": "系统设置", "category": "设置"},
+    {"code": "admin.pay_config", "name": "支付配置", "category": "设置"},
 ]

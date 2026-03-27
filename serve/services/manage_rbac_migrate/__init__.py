@@ -1,10 +1,12 @@
 import logging
+import warnings
 
 logger = logging.getLogger(__name__)
 
 
 async def run_manage_rbac_migration(db_pool) -> None:
     """创建 manage_role、为 manage_user 增加 role_id、种子超级管理员角色。"""
+    warnings.filterwarnings("ignore", category=Warning, module="aiomysql")
     try:
         await db_pool.execute_query(
             """
