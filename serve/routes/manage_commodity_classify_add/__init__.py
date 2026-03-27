@@ -3,7 +3,7 @@ from typing import Annotated
 from aiomysql import Connection
 from fastapi import APIRouter, Depends, Form, HTTPException
 
-from services.management_token_verify import ManagementTokenVerify
+from services.manage_admin_guard import verify_admin_with_permission
 from services.cache_service import CacheService
 
 from data.sql_client import get_db, execute_db_query
@@ -18,9 +18,6 @@ async def manage_commodity_classify_add(data: Annotated[ManageCommodityClassifyA
                                         db: Connection = Depends(get_db),
                                         redis: RedisClient = Depends(get_redis)):
     """平台端新增商品分类（平台级分类，store_id 为 NULL）"""
-    verify = ManagementTokenVerify(token=data.token, redis_client=redis)
-    admin_token_content = await verify.token_admin()
-
     async def execute():
         # 检查是否已存在同名平台分类（store_id IS NULL 表示平台级）
         exist = await execute_db_query(db,
@@ -43,15 +40,9 @@ async def manage_commodity_classify_add(data: Annotated[ManageCommodityClassifyA
         return {'current': True, 'msg': '分类添加成功'}
 
     try:
-        if admin_token_content['current']:
-            sql_data = await execute_db_query(db, 'select user from manage_user where user = %s',
-                                              admin_token_content['user'])
-            Verify_data = await verify.run(sql_data)
-            if Verify_data['current']:
-                return await execute()
-            else:
-                return {'current': False, 'msg': '验证失败'}
-        else:
-            return {'current': False, 'msg': '验证失败'}
+        ok, msg, _ = await verify_admin_with_permission(db, redis, data.token, required="admin.commodity")
+        if not ok:
+            return {'current': False, 'msg': msg}
+        return await execute()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

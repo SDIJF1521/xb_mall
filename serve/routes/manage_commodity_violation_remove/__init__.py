@@ -3,7 +3,7 @@ from typing import Annotated
 from aiomysql import Connection
 from fastapi import APIRouter, Depends, Form, HTTPException
 
-from services.management_token_verify import ManagementTokenVerify
+from services.manage_admin_guard import verify_admin_with_permission
 from services.cache_service import CacheService
 
 from data.sql_client import get_db, execute_db_query
@@ -20,9 +20,6 @@ async def manage_commodity_violation_remove(data: Annotated[ManageCommodityViola
                                             redis: RedisClient = Depends(get_redis),
                                             mongodb: MongoDBClient = Depends(get_mongodb_client)):
     """平台端取消商品违规标记（恢复为已下架状态）"""
-    verify = ManagementTokenVerify(token=data.token, redis_client=redis)
-    admin_token_content = await verify.token_admin()
-
     async def execute():
         sql_data = await execute_db_query(db,
                                           'SELECT * FROM shopping WHERE mall_id = %s AND shopping_id = %s',
@@ -47,7 +44,7 @@ async def manage_commodity_violation_remove(data: Annotated[ManageCommodityViola
             'shopping_id': data.shopping_id,
             'pass': 4,
             'msg': '您的商品违规标记已被取消，当前状态为已下架，您可以重新上架',
-            'auditor': admin_token_content['user'],
+            'auditor': username,
             'read': 0
         })
 
@@ -59,15 +56,9 @@ async def manage_commodity_violation_remove(data: Annotated[ManageCommodityViola
         return {'current': True, 'msg': '已取消违规标记'}
 
     try:
-        if admin_token_content['current']:
-            verify_data = await execute_db_query(db, 'select user from manage_user where user = %s',
-                                                 admin_token_content['user'])
-            Verify_data = await verify.run(verify_data)
-            if Verify_data['current']:
-                return await execute()
-            else:
-                return {'current': False, 'msg': '验证失败'}
-        else:
-            return {'current': False, 'msg': '验证失败'}
+        ok, msg, username = await verify_admin_with_permission(db, redis, data.token, required="admin.commodity")
+        if not ok:
+            return {'current': False, 'msg': msg}
+        return await execute()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

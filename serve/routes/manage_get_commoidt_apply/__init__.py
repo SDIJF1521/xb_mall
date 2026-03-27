@@ -4,7 +4,7 @@ from typing import Annotated
 from aiomysql import Connection
 from fastapi import APIRouter,Depends,Query,Header,HTTPException
 
-from services.management_token_verify import ManagementTokenVerify
+from services.manage_admin_guard import verify_admin_with_permission
 from services.cache_service import CacheService
 
 from data.data_mods import ManageGetCommodityApplyDetail
@@ -23,11 +23,7 @@ async def manage_get_commoidt_apply_detail(data:Annotated[ManageGetCommodityAppl
     """
     管理员获取商品上架申请详情
     """
-    try:
-        verify = ManagementTokenVerify(token=access_token,redis_client=redis)
-        admin_tokrn_content = await verify.token_admin()
-        
-        async def execute():
+    async def execute():
             cache = CacheService(redis)
             cache_key = cache._make_key('admin:commodity:detail', data.mall_id, data.shopping_id)
             cached_data = await cache.get(cache_key)
@@ -63,11 +59,12 @@ async def manage_get_commoidt_apply_detail(data:Annotated[ManageGetCommodityAppl
                 return result
             else:
                 return {'current':False,'msg':'未查询到该商品上架申请'}
-        sel_data = await execute_db_query(db,'select user from manage_user where user = %s',admin_tokrn_content['user'])
-        Verify_data = await verify.run(sel_data)
-        if Verify_data['current']:
-            return await execute()
-        else:
-            return {'current':False,'msg':'验证失败','code':401}
+    try:
+        ok, msg, _ = await verify_admin_with_permission(
+            db, redis, access_token, required="admin.commodity_apply"
+        )
+        if not ok:
+            return {"current": False, "msg": msg}
+        return await execute()
     except Exception as e:
-        raise HTTPException(status_code=500,detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))

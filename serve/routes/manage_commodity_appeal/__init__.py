@@ -4,7 +4,7 @@ from datetime import datetime
 from aiomysql import Connection
 from fastapi import APIRouter, Depends, Header, Form, HTTPException
 
-from services.management_token_verify import ManagementTokenVerify
+from services.manage_admin_guard import verify_admin_with_permission
 from services.cache_service import CacheService
 
 from data.sql_client import get_db, execute_db_query
@@ -23,9 +23,6 @@ async def manage_commodity_appeal_list(data: ManageCommodityAppealQuery = Depend
                                        redis: RedisClient = Depends(get_redis),
                                        mongodb: MongoDBClient = Depends(get_mongodb_client)):
     """平台端获取商品违规申诉列表"""
-    verify = ManagementTokenVerify(token=access_token, redis_client=redis)
-    admin_token_content = await verify.token_admin()
-
     async def execute():
         cache = CacheService(redis)
         page_size = data.page_size
@@ -104,13 +101,12 @@ async def manage_commodity_appeal_list(data: ManageCommodityAppealQuery = Depend
         return result
 
     try:
-        sql_data = await execute_db_query(db, 'select user from manage_user where user = %s',
-                                          admin_token_content['user'])
-        Verify_data = await verify.run(sql_data)
-        if Verify_data['current']:
-            return await execute()
-        else:
-            return {'current': False, 'msg': '验证失败', 'code': 401}
+        ok, msg, _ = await verify_admin_with_permission(
+            db, redis, access_token, required="admin.commodity"
+        )
+        if not ok:
+            return {"current": False, "msg": msg}
+        return await execute()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -121,9 +117,6 @@ async def manage_commodity_appeal_handle(data: Annotated[ManageCommodityAppealHa
                                          redis: RedisClient = Depends(get_redis),
                                          mongodb: MongoDBClient = Depends(get_mongodb_client)):
     """平台端处理商品违规申诉（通过/驳回）"""
-    verify = ManagementTokenVerify(token=data.token, redis_client=redis)
-    admin_token_content = await verify.token_admin()
-
     async def execute():
         # 查找申诉记录
         from bson import ObjectId
@@ -147,7 +140,7 @@ async def manage_commodity_appeal_handle(data: Annotated[ManageCommodityAppealHa
                                      {'$set': {
                                          'status': 'approved',
                                          'handle_time': now,
-                                         'handler': admin_token_content['user'],
+                                         'handler': username,
                                          'remark': data.remark or '申诉通过'
                                      }})
 
@@ -173,7 +166,7 @@ async def manage_commodity_appeal_handle(data: Annotated[ManageCommodityAppealHa
                 'shopping_id': shopping_id,
                 'pass': 5,
                 'msg': f'您的商品违规申诉已通过，商品已恢复为下架状态，您可以重新上架。备注：{data.remark or "无"}',
-                'auditor': admin_token_content['user'],
+                'auditor': username,
                 'read': 0
             })
 
@@ -191,7 +184,7 @@ async def manage_commodity_appeal_handle(data: Annotated[ManageCommodityAppealHa
                                      {'$set': {
                                          'status': 'rejected',
                                          'handle_time': now,
-                                         'handler': admin_token_content['user'],
+                                         'handler': username,
                                          'remark': data.remark or '申诉驳回'
                                      }})
 
@@ -204,7 +197,7 @@ async def manage_commodity_appeal_handle(data: Annotated[ManageCommodityAppealHa
                 'shopping_id': shopping_id,
                 'pass': 6,
                 'msg': f'您的商品违规申诉已被驳回。原因：{data.remark or "未说明"}',
-                'auditor': admin_token_content['user'],
+                'auditor': username,
                 'read': 0
             })
 
@@ -217,15 +210,11 @@ async def manage_commodity_appeal_handle(data: Annotated[ManageCommodityAppealHa
             return {'current': False, 'msg': '无效的操作类型'}
 
     try:
-        if admin_token_content['current']:
-            sql_data = await execute_db_query(db, 'select user from manage_user where user = %s',
-                                              admin_token_content['user'])
-            Verify_data = await verify.run(sql_data)
-            if Verify_data['current']:
-                return await execute()
-            else:
-                return {'current': False, 'msg': '验证失败'}
-        else:
-            return {'current': False, 'msg': '验证失败'}
+        ok, msg, username = await verify_admin_with_permission(
+            db, redis, data.token, required="admin.commodity"
+        )
+        if not ok:
+            return {"current": False, "msg": msg}
+        return await execute()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

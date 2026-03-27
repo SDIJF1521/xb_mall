@@ -11,6 +11,7 @@ export const MANAGE_HOME_ANY = [
   'admin.user.role',
   'admin.audit_seller',
   'admin.business',
+  'admin.system_settings',
 ] as const;
 
 export function setAdminPermissions(perms: string[]) {

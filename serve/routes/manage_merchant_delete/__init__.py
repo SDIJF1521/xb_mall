@@ -4,7 +4,7 @@ from typing import Annotated
 from aiomysql import Connection
 from fastapi import APIRouter,Depends,Form,HTTPException
 
-from services.management_token_verify import ManagementTokenVerify
+from services.manage_admin_guard import verify_admin_with_permission
 from services.cache_service import CacheService
 
 from data.data_mods import DeleteMerchant
@@ -20,9 +20,6 @@ async def manage_merchant_delete(data:Annotated[DeleteMerchant,Form()],
                                  redis:RedisClient=Depends(get_redis),
                                  mongodb:MongoDBClient=Depends(get_mongodb_client)):
     """管理员删除商户"""
-    verify = ManagementTokenVerify(token=data.token,redis_client=redis)
-    admin_tokrn_content = await verify.token_admin()
-
     async def execute():
         sql_data= await execute_db_query(db,'select * from mall_info where user = %s',(data.name))
         if sql_data:
@@ -64,12 +61,12 @@ async def manage_merchant_delete(data:Annotated[DeleteMerchant,Form()],
             return {"code":200,"msg":"删除成功","success":True}
         else:
             return {"code":404,"msg":"用户不存在","success":False}
-    try:    
-        sql_data = await execute_db_query(db,'select user from manage_user where user = %s',admin_tokrn_content['user'])
-        Verify_data = await verify.run(sql_data)
-        if Verify_data['current']:
-            return await execute()
-        else:
-            return {'current':False,'msg':'验证失败','code':401}
+    try:
+        ok, msg, _ = await verify_admin_with_permission(
+            db, redis, data.token, required="admin.user.merchant"
+        )
+        if not ok:
+            return {"current": False, "msg": msg}
+        return await execute()
     except Exception as e:
-        raise HTTPException(status_code=500,detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))

@@ -67,6 +67,20 @@
                                         <el-button type="info" @click="toInventoryManage" plain>库存监控</el-button>
                                     </div>
                                 </el-card>
+
+                                <el-card class="action-card ad-apply" shadow="hover">
+                                    <template #header>
+                                        <div class="card-header">
+                                            <el-icon class="card-icon" size="24"><Promotion /></el-icon>
+                                            <span class="card-title">广告投放</span>
+                                        </div>
+                                    </template>
+                                    <div class="card-content">
+                                        <el-icon class="feature-icon" size="64"><PictureFilled /></el-icon>
+                                        <p class="card-description">申请首页轮播图广告，提升商品曝光</p>
+                                        <el-button type="danger" @click="toAdApply" plain>立即申请</el-button>
+                                    </div>
+                                </el-card>
                             </div>
                         </div>
                     </el-main>
@@ -82,7 +96,7 @@ import BuyerTheme from '@/moon/buyer_theme'
 import BuyerHead from '@/moon/buyer_head.vue'
 import BuyerNavigation from '@/moon/buyer_navigation.vue'
 import { useBuyerManagementSelectStore } from '@/moon/buyer_management_select';
-import { Plus, Setting, Grid, Histogram, Goods, Management, Collection, TrendCharts } from '@element-plus/icons-vue'
+import { Plus, Setting, Grid, Histogram, Goods, Management, Collection, TrendCharts, Promotion, PictureFilled } from '@element-plus/icons-vue'
 
 defineOptions({
     name:'BuyerCommodityManagement',
@@ -128,6 +142,12 @@ function toCategoryManage(){
 function toInventoryManage(){
     const store = useBuyerManagementSelectStore()
     store.setToUel('/buyer_commodity_repertory')
+    router.push({name:'BuyerSelect'})
+}
+// 跳转到广告投放申请页面
+function toAdApply(){
+    const store = useBuyerManagementSelectStore()
+    store.setToUel('/buyer_ad_apply')
     router.push({name:'BuyerSelect'})
 }
 </script>

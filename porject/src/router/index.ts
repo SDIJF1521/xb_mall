@@ -42,6 +42,7 @@ import BuyerCustomerService from '@/views/buyer_customer_service/BuyerCustomerSe
 import BuyerCsSelect from '@/views/buyer_customer_service_select/BuyerCsSelect.vue'
 import BuyerSet from '@/views/buyer_set/BuyerSet.vue'
 import ManagementSystemSettings from '@/views/management_system_settings/ManagementSystemSettings.vue'
+import BuyerAdApply from '@/views/buyer_ad_apply/BuyerAdApply.vue'
 
 import { setupHeartbeatGuard } from './heartbeatGuard'
 import { setupAuthGuard } from './authGuard';
@@ -305,6 +306,12 @@ const routes: Array<RouteRecordRaw> = [
     name:'ManagementSystemSettings',
     component:ManagementSystemSettings,
     meta: { adminPermission: 'admin.system_settings' }
+  },
+  // 商家端广告投放申请页
+  {
+    path:'/buyer_ad_apply/:id',
+    name:'BuyerAdApply',
+    component:BuyerAdApply
   },
   {
     // 404 页面 - 匹配所有未定义的路由

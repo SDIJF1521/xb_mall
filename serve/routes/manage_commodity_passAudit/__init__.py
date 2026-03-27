@@ -3,7 +3,7 @@ from typing import Annotated
 from aiomysql import Connection
 from fastapi import APIRouter,Depends,Form,HTTPException
 
-from services.management_token_verify import ManagementTokenVerify
+from services.manage_admin_guard import verify_admin_with_permission
 from services.cache_service import CacheService
 
 from data.data_mods import ManageCommodityPassAudit
@@ -21,9 +21,6 @@ async def manage_commodity_passAudit(data:Annotated[ManageCommodityPassAudit,For
     """
     管理员审核商品通过
     """
-    verify = ManagementTokenVerify(token=data.token,redis_client=redis)
-    admin_tokrn_content = await verify.token_admin()
-    
     async def execute():
         """执行审核通过的核心逻辑"""
         sql_commodity_data = await execute_db_query(db,
@@ -47,7 +44,7 @@ async def manage_commodity_passAudit(data:Annotated[ManageCommodityPassAudit,For
             
 
             await mongodb.insert_one('commodity_msg',{'mall_id':data.mall_id,'shopping_id':data.shopping_id,'msg':msg_content,
-                                        'pass':1,'auditor':admin_tokrn_content['user'],'read':0})
+                                        'pass':1,'auditor':username,'read':0})
             
             cache = CacheService(redis)
             await cache.delete_pattern('admin:commodity:apply:*')
@@ -59,10 +56,13 @@ async def manage_commodity_passAudit(data:Annotated[ManageCommodityPassAudit,For
             return {'msg':'审核通过','current':True}
         else:
             return {'msg':'审核失败','current':False}
-    
-    sql_data = await execute_db_query(db,'select user from manage_user where user = %s',admin_tokrn_content['user'])
-    verify_data = await verify.run(sql_data)
-    if verify_data['current']:
+
+    try:
+        ok, msg, username = await verify_admin_with_permission(
+            db, redis, data.token, required="admin.commodity_apply"
+        )
+        if not ok:
+            return {"current": False, "msg": msg}
         return await execute()
-    else:
-        return {'msg':'验证失败','current':False}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

@@ -294,7 +294,7 @@ import {
     InfoFilled, Loading, ChatRound,
     House, Shop, Plus, UserFilled, Avatar,
     DataLine, Goods, List, Menu, Box, Setting,
-    Document, SwitchButton, Headset, Service,
+    Document, SwitchButton, Headset, Service, Promotion,
 } from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from 'element-plus'
 
@@ -422,6 +422,12 @@ const ALL_NAV_ITEMS: NavItem[] = [
         keywords: ['客服中心', '工作台', '接单', '客服会话', 'customer service'],
         icon: Service, color: 'blue', tag: '客服', tagType: 'info',
         toFn: (id) => `/buyer_customer_service/${id}`,
+    },
+    {
+        value: '广告投放', label: '广告投放', desc: '申请轮播图广告位推广商品',
+        keywords: ['广告', '投放', '推广', '轮播', '横幅', 'ad', 'banner', '曝光'],
+        icon: Promotion, color: 'orange', tag: '营销', tagType: 'warning',
+        toFn: (id) => `/buyer_ad_apply/${id}`,
     },
 ]
 

@@ -50,10 +50,13 @@
                 <el-icon><Box/></el-icon>
                 <span slot="title">物流管理</span>
             </el-menu-item>
-            <el-menu-item index = "9">
+            <el-menu-item index="10">
+                <el-icon><Promotion/></el-icon>
+                <span slot="title">广告投放</span>
+            </el-menu-item>
+            <el-menu-item index="9">
                 <el-icon><Setting/></el-icon>
                 <span slot="title">系统管理</span>
-
             </el-menu-item>
 
         </el-menu>
@@ -72,7 +75,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import router from '@/router'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
-import { Eleme, Odometer, Shop, List, Handbag, User, DocumentCopy, Box, Setting, Service } from '@element-plus/icons-vue'
+import { Eleme, Odometer, Shop, List, Handbag, User, DocumentCopy, Box, Setting, Service, Promotion } from '@element-plus/icons-vue'
 import { useBuyerNavigationStore } from '@/moon/buyer_navigatiom_pinia'
 
 const store = useBuyerNavigationStore()
@@ -130,6 +133,8 @@ onMounted(() => {
         default:
             if (route.path.startsWith('/buyer_customer_service')) {
                 selected.value = '6';
+            } else if (route.path.startsWith('/buyer_ad_apply')) {
+                selected.value = '10';
             }
             break;
         case '/buyer_set':
@@ -156,6 +161,20 @@ const handleSelect = (index: string) => {
         }
     } else if (index === '9') {
         router.push('/buyer_set')
+    } else if (index === '10') {
+        const token = localStorage.getItem('buyer_access_token')
+        if (token) {
+            try {
+                const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+                const payload = JSON.parse(atob(b64))
+                const mallId = payload.station === '2' ? payload.mall_id : (payload.state_id_list?.[0] ?? null)
+                if (mallId) {
+                    router.push(`/buyer_ad_apply/${mallId}`)
+                    return
+                }
+            } catch { /* ignore */ }
+        }
+        router.push('/buyer_store_manage')
     }
 }
 

@@ -638,6 +638,78 @@ class ManageRoleDelete(BaseModel):
     role_id: int
 
 
+# ── 广告投放相关数据模型 ──────────────────────────────────────────────────────
+
+# 商家端提交广告投放申请
+class BuyerAdApplyBody(BaseModel):
+    token: str
+    stroe_id: int
+    shopping_id: int
+    title: str = Field(..., max_length=100)
+    description: Optional[str] = None
+    duration_days: int = Field(7, ge=1, le=90)
+
+# 商家端查询自己的广告申请列表
+class BuyerAdApplyListQuery:
+    def __init__(
+        self,
+        stroe_id: int = Query(..., ge=1, description="店铺ID"),
+        page: int = Query(1, ge=1),
+        page_size: int = Query(10, ge=1, le=50),
+        status: Optional[str] = Query(None, description="筛选状态：pending/approved/rejected"),
+    ):
+        self.stroe_id = stroe_id
+        self.page = page
+        self.page_size = page_size
+        self.status = status
+
+# 平台端查询广告申请列表
+class ManageAdApplyListQuery:
+    def __init__(
+        self,
+        page: int = Query(1, ge=1),
+        page_size: int = Query(20, ge=1, le=100),
+        status: Optional[str] = Query(None, description="筛选状态：pending/approved/rejected"),
+        select_data: Optional[str] = Query(None, description="搜索关键词"),
+    ):
+        self.page = page
+        self.page_size = page_size
+        self.status = status
+        self.select_data = select_data
+
+# 平台端审批广告申请
+class ManageAdApplyApprove(BaseModel):
+    apply_id: int
+    remark: Optional[str] = None
+
+# 平台端驳回广告申请
+class ManageAdApplyReject(BaseModel):
+    apply_id: int
+    reason: str = Field(..., max_length=255)
+
+# 平台端查询轮播图列表
+class ManageAdBannerListQuery:
+    def __init__(
+        self,
+        page: int = Query(1, ge=1),
+        page_size: int = Query(20, ge=1, le=100),
+        is_active: Optional[int] = Query(None, description="启用状态：1=启用 0=禁用"),
+    ):
+        self.page = page
+        self.page_size = page_size
+        self.is_active = is_active
+
+# 平台端更新轮播图排序/状态
+class ManageAdBannerUpdate(BaseModel):
+    banner_id: int
+    sort_order: Optional[int] = None
+    is_active: Optional[int] = None
+
+# 平台端删除轮播图
+class ManageAdBannerDelete(BaseModel):
+    banner_id: int
+
+
 # 查看收藏列表查询参数模型（分页 + 模糊搜索）
 class FavoriteListQuery:
     def __init__(

@@ -1,7 +1,7 @@
 from aiomysql import Connection
 from fastapi import APIRouter, Depends, Header, HTTPException
 
-from services.management_token_verify import ManagementTokenVerify
+from services.manage_admin_guard import verify_admin_with_permission
 from services.cache_service import CacheService
 
 from data.sql_client import get_db, execute_db_query
@@ -20,9 +20,6 @@ async def manage_commodity_violation_list(data: ManageCommodityViolationQuery = 
                                           redis: RedisClient = Depends(get_redis),
                                           mongodb: MongoDBClient = Depends(get_mongodb_client)):
     """平台端获取违规商品列表"""
-    verify = ManagementTokenVerify(token=access_token, redis_client=redis)
-    admin_token_content = await verify.token_admin()
-
     async def execute():
         cache = CacheService(redis)
         page_size = data.page_size
@@ -85,12 +82,9 @@ async def manage_commodity_violation_list(data: ManageCommodityViolationQuery = 
         return result
 
     try:
-        sql_data = await execute_db_query(db, 'select user from manage_user where user = %s',
-                                          admin_token_content['user'])
-        Verify_data = await verify.run(sql_data)
-        if Verify_data['current']:
-            return await execute()
-        else:
-            return {'current': False, 'msg': '验证失败', 'code': 401}
+        ok, msg, _ = await verify_admin_with_permission(db, redis, access_token, required="admin.commodity")
+        if not ok:
+            return {'current': False, 'msg': msg}
+        return await execute()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

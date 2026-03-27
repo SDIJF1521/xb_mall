@@ -150,6 +150,17 @@ from routes.favorite_remove import router as favorite_remove_router
 from routes.favorite_list import router as favorite_list_router
 from routes.favorite_check import router as favorite_check_router
 
+from routes.manage_ad_apply_list import router as manage_ad_apply_list_router
+from routes.manage_ad_apply_approve import router as manage_ad_apply_approve_router
+from routes.manage_ad_apply_reject import router as manage_ad_apply_reject_router
+from routes.manage_ad_banner_list import router as manage_ad_banner_list_router
+from routes.manage_ad_banner_update import router as manage_ad_banner_update_router
+from routes.manage_ad_banner_delete import router as manage_ad_banner_delete_router
+from routes.buyer_ad_apply import router as buyer_ad_apply_router
+from routes.buyer_ad_apply_list import router as buyer_ad_apply_list_router
+from routes.buyer_ad_apply_img import router as buyer_ad_apply_img_router
+from routes.ad_banner_active import router as ad_banner_active_router
+
 from routes.user_list import router as user_list_router
 from routes.today_user_list import router as today_user_list_router
 from routes.number_merchants import router as number_merchants_router
@@ -366,6 +377,10 @@ async def lifespan(app: FastAPI):
         from services.manage_rbac_migrate import run_manage_rbac_migration
         await run_manage_rbac_migration(db_pool)
         logger.info("平台端 RBAC 表结构已检查")
+
+        from services.ad_migrate import run_ad_migration
+        await run_ad_migration(db_pool)
+        logger.info("广告投放表结构已检查")
 
         # 初始化布隆过滤器管理器
         logger.info("正在初始化布隆过滤器管理器...")
@@ -946,3 +961,19 @@ app.include_router(favorite_add_router, prefix='/api')
 app.include_router(favorite_remove_router, prefix='/api')
 app.include_router(favorite_list_router, prefix='/api')
 app.include_router(favorite_check_router, prefix='/api')
+
+# 广告投放管理路由（平台端）
+app.include_router(manage_ad_apply_list_router, prefix='/api')
+app.include_router(manage_ad_apply_approve_router, prefix='/api')
+app.include_router(manage_ad_apply_reject_router, prefix='/api')
+app.include_router(manage_ad_banner_list_router, prefix='/api')
+app.include_router(manage_ad_banner_update_router, prefix='/api')
+app.include_router(manage_ad_banner_delete_router, prefix='/api')
+
+# 广告投放路由（商家端）
+app.include_router(buyer_ad_apply_router, prefix='/api')
+app.include_router(buyer_ad_apply_list_router, prefix='/api')
+app.include_router(buyer_ad_apply_img_router, prefix='/api')
+
+# 轮播图公共接口
+app.include_router(ad_banner_active_router, prefix='/api')
