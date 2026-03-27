@@ -131,49 +131,373 @@ npm run dev
 
 ## 🏗️ 系统架构
 
+### 整体分层架构
+
 ```mermaid
 flowchart TB
-    subgraph Client[前端客户端层]
-        C1[用户端 Web<br/>Vue3 + TS + Element Plus]
-        C2[商家/店员端 Web<br/>Vue3 + Pinia + Router]
-        C3[平台管理端 Web<br/>Vue3 + ECharts]
+    subgraph Client["前端客户端层 — Vue3 + TypeScript + Vite"]
+        C1["用户端 Web\nVue3 + Element Plus + Axios"]
+        C2["卖家/店员端 Web\nVue3 + Pinia + Router"]
+        C3["平台管理端 Web\nVue3 + ECharts"]
     end
 
-    subgraph Gateway[接口接入层]
-        G1[FastAPI 应用入口<br/>main.py]
-        G2[统一中间件<br/>CORS / 异常处理 / 日志]
-        G3[路由聚合<br/>routes/*]
+    subgraph Gateway["接口接入层 — FastAPI"]
+        G1["FastAPI 应用入口\nmain.py + lifespan"]
+        G2["中间件链\nCORS → X-Powered-By → HTTP日志 → 全局异常"]
+        G3["路由聚合\napp.include_router — prefix='/api'\n120+ 路由模块"]
+        G4["WebSocket 端点\n/ws/store_chat/mall_id\n/ws/customer_service/mall_id"]
     end
 
-    subgraph Service[业务服务层]
-        S1[认证授权服务<br/>JWT + Redis 二次校验]
-        S2[用户与商家服务<br/>注册/登录/入驻/审核]
-        S3[商品与库存服务<br/>增删改查/上架下架/库存变更]
-        S4[角色权限服务<br/>RBAC + 平台后台权限码]
-        S5[在线状态服务<br/>上线/心跳/下线]
-        S6[推荐与行为服务<br/>浏览记录 + 推荐]
-        S7[缓存与防穿透<br/>Cache + BloomFilter]
-        S8[调度任务服务<br/>APScheduler]
-        S9[员工聊天服务<br/>WS连接管理 + 店铺鉴权]
-        S10[在线客服服务<br/>用户↔客服双向通信 + 消息持久化]
-        S11[平台商品管理<br/>列表/统计/分类/审核]
-        S12[违规与申诉服务<br/>违规标记/申诉工作流]
-        S13[收藏服务<br/>MySQL user_favorites]
-        S14[广告投放服务<br/>申请/审核/轮播图管理]
+    subgraph Service["业务服务层 — serve/services/"]
+        S1["认证授权\nJWT签发 + Redis二次校验\n三端独立密钥"]
+        S2["用户与商家\n注册/登录/入驻/审核\n冻结/解冻"]
+        S3["商品与库存\nCRUD/上架下架/审核\n库存变更/统计"]
+        S4["RBAC权限\n平台角色/权限码\n商家端角色"]
+        S5["在线状态\n心跳/上线/下线\nRedis存储"]
+        S6["推荐与行为\nWide&Deep模型\n增量训练/APScheduler"]
+        S7["缓存与防穿透\nRedis缓存/布隆过滤器"]
+        S8["员工聊天\nWS连接池/店铺隔离\n消息持久化"]
+        S9["在线客服\n用户-卖家双向WS\n多会话管理"]
+        S10["违规与申诉\n违规标记/申诉工作流"]
+        S11["广告投放\n申请/审核/轮播图管理"]
+        S12["收藏/购物车/地址\nMySQL CRUD"]
     end
 
-    subgraph Data[数据与基础设施层]
-        D1[(MySQL<br/>用户/商家/商品主数据)]
-        D2[(MongoDB<br/>商品详情/评论/行为数据/聊天消息/违规/申诉)]
-        D3[(Redis<br/>Token状态/在线状态/缓存/Bloom位图)]
-        D4[文件存储<br/>头像/商品图片]
-        D5[日志系统<br/>log_config + logs]
-        D6[配置中心<br/>config/*.py + .env]
+    subgraph Data["数据与基础设施层"]
+        D1[("MySQL\n用户/商家/商品\n购物车/收藏/地址\n管理员/角色/广告")]
+        D2[("MongoDB\n商品详情/评论\n浏览记录/聊天消息\n违规/申诉")]
+        D3[("Redis\nToken状态/在线状态\n缓存/布隆过滤器\n验证码")]
+        D4["文件存储\n头像/商品图片/广告图"]
+        D5["日志 & 配置\nlog_config + .env"]
     end
 
     Client --> Gateway
-    Gateway --> Service
+    G1 --> G2 --> G3
+    G1 --> G4
+    G3 --> Service
+    G4 --> S8 & S9
     Service --> Data
+```
+
+### 三端认证流程
+
+```mermaid
+flowchart LR
+    subgraph UserAuth["C端用户认证"]
+        UA1["POST /api/token\nOAuth2表单"] --> UA2["验证用户名密码\nMySQL user表"]
+        UA2 --> UA3["签发JWT\nJWT_USER_SECRET_KEY"]
+        UA3 --> UA4["Redis存储过期时间戳\nkey: user_username"]
+        UA4 --> UA5["返回 access_token\n存入 localStorage"]
+        UA6["路由守卫\nauthGuard.ts"] --> UA7["POST /api/user_sign_in\n携带token校验"]
+        UA7 --> UA8{"JWT有效\n且Redis未过期?"}
+        UA8 -->|是| UA9["放行"]
+        UA8 -->|否| UA10["跳转登录页"]
+    end
+
+    subgraph SellerAuth["卖家端认证"]
+        SA1["POST /api/buyer_side_token\n主商户/店员"] --> SA2["验证seller_sing表\n或store_user表"]
+        SA2 --> SA3["签发JWT\nJWT_SELLER_SECRET_KEY"]
+        SA3 --> SA4["Redis: buyer_username"]
+        SA4 --> SA5["返回 buyer_access_token"]
+        SA6["buyer_authGuard.ts"] --> SA7["POST /api/buyer_side_verify"]
+        SA7 --> SA8{"校验通过?"}
+        SA8 -->|是| SA9["放行"]
+        SA8 -->|否| SA10["跳转卖家登录"]
+    end
+
+    subgraph AdminAuth["管理端认证"]
+        AA1["POST /api/manage_sign_in\nOAuth2表单"] --> AA2["验证manage_user表"]
+        AA2 --> AA3["签发双Token\nJWT_ADMIN_SECRET_KEY\naccess + refresh"]
+        AA3 --> AA4["Redis:\nadmin_name\nadmin_refresh_name"]
+        AA4 --> AA5["返回 tokens +\npermissions + role"]
+        AA6["admin_authGuard.ts"] --> AA7["POST /api/management_verify"]
+        AA7 --> AA8{"access有效?"}
+        AA8 -->|过期| AA9["POST /api/manage_admin_refresh\n用refresh换新token"]
+        AA8 -->|是| AA10["检查 meta.adminPermission\n权限码匹配"]
+        AA10 -->|有权| AA11["放行"]
+        AA10 -->|无权| AA12["拦截/隐藏菜单"]
+    end
+```
+
+### 用户端（C端）业务流程
+
+```mermaid
+flowchart TB
+    subgraph Register["注册与登录"]
+        R1["访问 /register"] --> R2["填写用户名/密码/邮箱"]
+        R2 --> R3["POST /api/verification_code\n发送邮箱验证码"]
+        R3 --> R4["POST /api/verify_code\n校验验证码"]
+        R4 --> R5["POST /api/register\n创建用户"]
+        R5 --> R6["跳转登录页"]
+        R6 --> R7["POST /api/token\n获取JWT"]
+    end
+
+    subgraph Home["首页与商城"]
+        H1["访问首页 /"] --> H2["GET /api/ad_banner_active\n加载轮播图广告"]
+        H2 --> H3["GET /api/recommend_commodity_list\n加载推荐商品"]
+        H4["访问商城 /mall"] --> H5["GET /api/mall_commodity_search\n模糊搜索 — 名称/描述/标签/店铺\n分页50条 + Redis缓存60s"]
+        H5 --> H6["懒加载下一页"]
+    end
+
+    subgraph Product["商品与店铺"]
+        P1["点击商品"] --> P2["GET /api/commodity_content\n商品详情 — MongoDB"]
+        P2 --> P3["已登录? 异步记录浏览行为\n写入MongoDB user_browse_record"]
+        P2 --> P4["GET /api/commodity_comments\n评论列表"]
+        P2 --> P5["GET /api/favorite_check\n是否已收藏"]
+        P2 --> P6["POST /api/shopping_cart_add\n添加购物车"]
+        P2 --> P7["POST /api/favorite_add\n收藏商品/店铺"]
+        P2 --> P8["打开客服悬浮球\nWebSocket连接"]
+        P9["访问店铺页"] --> P10["GET /api/store_info"]
+        P10 --> P11["GET /api/store_commodity_list"]
+    end
+
+    subgraph Cart["购物车"]
+        CT1["GET /api/shopping_cart_list\n分页 + 模糊搜索"] --> CT2["POST /api/shopping_cart_update\n修改数量"]
+        CT1 --> CT3["DELETE /api/shopping_cart_delete\n删除"]
+        CT1 --> CT4["DELETE /api/shopping_cart_clear\n清空"]
+        CT1 --> CT5["勾选合计 → 结算"]
+    end
+
+    subgraph Personal["个人中心"]
+        PC1["个人资料\nGET/POST user_data"]
+        PC2["我的收藏\nGET /api/favorite_list\n分页/类型筛选/模糊搜索"]
+        PC3["浏览历史\nbrowsing_history\ndelete/clear"]
+        PC4["密码重置\npassword_reset"]
+        PC5["地址管理\nadd/get/modify/delete"]
+        PC6["客服消息\ncs_user_sessions/history"]
+        PC7["商家入驻\napply_seller"]
+    end
+
+    subgraph Online["在线状态"]
+        O1["heartbeatGuard.ts\n登录用户启动心跳"] --> O2["POST /api/online_heartbeat\n定时上报"]
+        O2 --> O3["Redis记录在线状态"]
+    end
+```
+
+### 卖家端业务流程
+
+```mermaid
+flowchart TB
+    subgraph SellerLogin["卖家登录"]
+        SL1["访问 /buyer_side_sing"] --> SL2["POST /api/buyer_side_token\n主商户 station=1: seller_sing表\n店员 station=2: store_user表"]
+        SL2 --> SL3["JWT + Redis → buyer_access_token"]
+    end
+
+    subgraph StoreManage["店铺管理"]
+        SM1["创建店铺\nadd_mall + mall_img_upload"]
+        SM2["店铺详情\nbuyer_get_mall_info/name"]
+        SM3["更新店铺\nbuyer_update_mall"]
+        SM4["删除店铺\nbuyer_delete_show"]
+    end
+
+    subgraph StaffManage["员工与角色管理"]
+        SF1["员工列表 buyer_mall_user_list"]
+        SF2["添加/修改/删除 员工"]
+        SF3["角色CRUD\nbuyer_role_add/info/update/delete"]
+        SF4["角色统计 buyer_role_ratio"]
+    end
+
+    subgraph CommodityManage["商品管理"]
+        CM1["新增商品\nbuyer_commoidt_add + 图片上传"]
+        CM2["编辑商品\nbuyer_commodity_edit"]
+        CM3["上架申请\nbuyer_commoidt_putaway → 平台审核"]
+        CM4["下架 buyer_commodity_delisting"]
+        CM5["删除 buyer_commodity_delete"]
+        CM6["分类管理\nbuyer_classify_add/edit/delete"]
+    end
+
+    subgraph InventoryManage["库存管理"]
+        IM1["库存列表 repertory_list"]
+        IM2["库存变更 inventory_change"]
+        IM3["变更记录 list_records"]
+        IM4["库存统计 statistics"]
+        IM5["全量导出 repertory_all"]
+    end
+
+    subgraph ViolationAppeal["违规申诉"]
+        VA1["查看违规商品"] --> VA2["POST buyer_commodity_violation_appeal\n提交申诉理由"]
+        VA2 --> VA3["MongoDB commodity_appeal\nstatus=pending"]
+        VA3 --> VA4["GET buyer_commodity_appeal_status\n查询申诉状态"]
+    end
+
+    subgraph AdApply["广告投放"]
+        AD1["POST buyer_ad_apply\n选择商品+标题+描述+天数+广告图"]
+        AD2["GET buyer_ad_apply_list\n我的申请记录"]
+    end
+
+    subgraph StoreChat["员工聊天"]
+        SC1["WebSocket\n/ws/store_chat/mall_id"] --> SC2["StoreChatAuth 鉴权"]
+        SC2 --> SC3["连接池按mall_id隔离"]
+        SC3 --> SC4["MongoDB store_employee_chat\n入群推送80条历史"]
+    end
+
+    subgraph CustomerServiceSeller["客服管理"]
+        CS1["WebSocket\n/ws/customer_service/mall_id\nclient_type=seller"]
+        CS2["左侧会话列表 session_list"]
+        CS3["右侧聊天窗口 回复消息"]
+        CS4["GET cs_seller_total_unread\n导航未读徽章"]
+    end
+```
+
+### 平台管理端业务流程
+
+```mermaid
+flowchart TB
+    subgraph AdminLogin["管理员登录"]
+        AL1["POST /api/manage_sign_in"] --> AL2["双Token签发\naccess + refresh"]
+        AL2 --> AL3["返回 permissions/role"]
+        AL3 --> AL4["前端按权限码控制菜单"]
+    end
+
+    subgraph UserCenter["用户管理中心"]
+        UC1["商家申请审核\nadmin.user.merchant\nget_apply_seller_list\napply_seller_consent/reject"]
+        UC2["商家账号管理\nadmin.user.merchant\nmanage_merchant_freeze/unfreeze/delete"]
+        UC3["商城用户管理\nadmin.user.mall\nuser_list"]
+        UC4["后台账号管理\nadmin.user.platform\nmanage_platform_user_*"]
+        UC5["角色与权限\nadmin.user.role\nmanage_role_save/list/delete\nmanage_permission_catalog"]
+    end
+
+    subgraph CommodityCenter["商品管理中心"]
+        CC1["商品审核\nmanage_get_commoidt_apply_list\nmanage_commodity_passAudit\nmanage_commodity_rejectAudit"]
+        CC2["商品列表\nmanage_commodity_list\n状态: on_sale/off_shelf/auditing\nviolation/store_closed/rejected"]
+        CC3["分类管理\nmanage_commodity_classify_*"]
+        CC4["违规管理\nmanage_commodity_violation_add\n→ audit=4 自动下架\n→ MongoDB + 商家通知"]
+        CC5["申诉审核\nmanage_commodity_appeal_list\nmanage_commodity_appeal_handle\napprove=解除违规 / reject=维持"]
+        CC6["商品统计\nmanage_commodity_statistics\n总量/状态分布/店铺分布/分类分布/7天趋势"]
+    end
+
+    subgraph SystemSettings["系统设置"]
+        SS1["广告申请审核\nmanage_ad_apply_list\nadmin.system_settings"]
+        SS1 --> SS2["审核通过\nmanage_ad_apply_approve\n→ 写入ad_banner\n→ 清除轮播缓存"]
+        SS1 --> SS3["驳回\nmanage_ad_apply_reject\n→ 填写驳回原因"]
+        SS4["轮播图管理\nmanage_ad_banner_list\nmanage_ad_banner_update\nmanage_ad_banner_delete"]
+    end
+
+    subgraph Dashboard["管理首页仪表盘"]
+        DB1["number_merchants 商家统计"]
+        DB2["today_user_list 当日新增"]
+        DB3["get_online_user_list 在线用户"]
+        DB4["ECharts 可视化图表"]
+    end
+```
+
+### 实时通信架构（WebSocket）
+
+```mermaid
+flowchart LR
+    subgraph StoreChat["员工聊天"]
+        SC_Client["卖家端客户端\nbuyer_head.vue 聊天抽屉"] -->|"ws://.../ws/store_chat/mall_id\n?token=buyer_access_token"| SC_R["routes/store_chat\nWebSocket路由"]
+        SC_R --> SC_A["services/store_chat_auth\nJWT + Redis鉴权"]
+        SC_A --> SC_M["services/store_chat_manager\n连接池 按mall_id隔离"]
+        SC_M -->|"history 80条\nchat 广播\nsystem 上下线"| SC_Client
+        SC_M --> SC_DB[("MongoDB\nstore_employee_chat")]
+    end
+
+    subgraph CustomerService["在线客服"]
+        CS_User["用户端\nCustomerService.vue\n悬浮球"] -->|"client_type=user"| CS_R["routes/customer_service\nWebSocket路由"]
+        CS_Seller["卖家端\n客服工作台"] -->|"client_type=seller"| CS_R
+        CS_R --> CS_A["services/customer_service_auth\n双路径鉴权:\nuser → JWT_USER_SECRET_KEY\nseller → JWT_SELLER_SECRET_KEY"]
+        CS_A --> CS_M["services/customer_service_manager\n连接池 按mall_id隔离\nusers池 + sellers池"]
+        CS_M -->|"用户: history/chat/system"| CS_User
+        CS_M -->|"卖家: session_list/history/chat"| CS_Seller
+        CS_M --> CS_DB[("MongoDB\ncustomer_service_messages")]
+    end
+```
+
+### 推荐系统流程
+
+```mermaid
+flowchart TB
+    U["用户登录后浏览商品详情"] --> B["异步写入浏览行为\nMongoDB: user_browse_record"]
+    B --> T["APScheduler 每5分钟检查"]
+    T --> C1{"模型文件存在?"}
+    C1 -->|否| C2{"训练样本 >= 100条?"}
+    C2 -->|否| SKIP["跳过训练"]
+    C2 -->|是| FULL["全量训练 Wide & Deep"]
+    C1 -->|是| C3{"词表变化?\n新用户/新商品/新类目"}
+    C3 -->|是| FULL
+    C3 -->|否| INCR["增量微调\n仅新增行为数据"]
+    FULL --> SAVE["保存模型产物\nmodel.pt / config.json\nvocab.json / training_state.json"]
+    INCR --> SAVE
+    SAVE --> CLEAR["清理推荐缓存 Redis"]
+    CLEAR --> API["GET /api/recommend_commodity_list\n热加载最新模型 返回个性化推荐"]
+```
+
+### 商品生命周期状态流转
+
+```mermaid
+stateDiagram-v2
+    [*] --> 草稿: 卖家新增商品\nbuyer_commoidt_add
+    草稿 --> 审核中: 卖家申请上架\nbuyer_commoidt_putaway\naudit=2
+    审核中 --> 在售: 平台审核通过\nmanage_commodity_passAudit\naudit=1
+    审核中 --> 已驳回: 平台驳回\nmanage_commodity_rejectAudit\naudit=5
+    已驳回 --> 审核中: 重新申请上架
+    在售 --> 已下架: 卖家主动下架\nbuyer_commodity_delisting\naudit=3
+    已下架 --> 审核中: 重新上架申请
+    在售 --> 违规: 平台标记违规\nmanage_commodity_violation_add\naudit=4
+    违规 --> 已下架: 平台取消违规\nmanage_commodity_violation_remove\naudit=3
+    违规 --> 申诉中: 商家提交申诉\nbuyer_commodity_violation_appeal
+    申诉中 --> 已下架: 申诉通过 approve\n解除违规
+    申诉中 --> 违规: 申诉驳回 reject\n维持违规
+    在售 --> 店铺关闭: 店铺被冻结或删除
+```
+
+### 广告投放完整流程
+
+```mermaid
+flowchart TB
+    S1["商家选择商品"] --> S2["填写标题/描述/投放天数 1-90"]
+    S2 --> S3["上传广告图片"]
+    S3 --> S4["POST /api/buyer_ad_apply\n检查商品归属 + 重复申请"]
+    S4 --> S5["MySQL ad_apply\nstatus=pending"]
+    S5 --> S6["平台管理员查看\nGET /api/manage_ad_apply_list\n权限: admin.system_settings"]
+    S6 --> S7{"审核决定"}
+    S7 -->|通过| S8["POST /api/manage_ad_apply_approve\n设置投放起止时间\n写入 ad_banner 表\n清除Redis轮播缓存"]
+    S7 -->|驳回| S9["POST /api/manage_ad_apply_reject\n填写驳回原因"]
+    S8 --> S10["平台管理轮播图\nPATCH 修改排序/启停\nDELETE 删除"]
+    S8 --> S11["首页展示\nGET /api/ad_banner_active\nis_active=1 且在有效期内\n最多10条 按sort_order排序\nRedis缓存120s"]
+```
+
+### 数据层架构
+
+```mermaid
+flowchart TB
+    subgraph MySQL["MySQL — 主数据"]
+        T1["user — C端用户"]
+        T2["seller_sing — 商家主账户"]
+        T3["store_user — 店铺员工"]
+        T4["mall_info — 店铺信息"]
+        T5["shopping — 商品表"]
+        T6["shopping_cart — 购物车"]
+        T7["user_favorites — 收藏"]
+        T8["address — 地址"]
+        T9["manage_user — 管理员账号"]
+        T10["manage_role — 管理角色"]
+        T11["ad_apply — 广告申请"]
+        T12["ad_banner — 轮播图"]
+        T13["commodity_classify — 商品分类"]
+    end
+
+    subgraph MongoDB["MongoDB — 文档数据"]
+        M1["user_browse_record — 浏览行为"]
+        M2["commodity_violation — 违规记录"]
+        M3["commodity_appeal — 申诉记录"]
+        M4["store_employee_chat — 员工聊天"]
+        M5["customer_service_messages — 客服消息"]
+        M6["商品详情/评论 文档"]
+    end
+
+    subgraph Redis["Redis — 缓存与状态"]
+        R1["user/buyer/admin Token过期时间戳"]
+        R2["admin_refresh 刷新Token"]
+        R3["验证码缓存"]
+        R4["推荐结果缓存"]
+        R5["搜索结果缓存 60s"]
+        R6["轮播图缓存 120s"]
+        R7["收藏列表缓存"]
+        R8["布隆过滤器"]
+        R9["在线状态"]
+    end
 ```
 
 ## ⚙️ 技术栈
