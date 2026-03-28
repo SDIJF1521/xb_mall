@@ -648,6 +648,31 @@ class OrderService:
         await self._rollback_stock(order_no)
         return {"success": True, "msg": "退款成功，资金将原路退回"}
 
+    async def _latest_refunds_for_orders(self, order_nos: list[str]) -> dict[str, dict]:
+        """每个订单最新一条退款申请（用于买家端展示：卖家拒绝后应引导平台介入）。"""
+        if not order_nos:
+            return {}
+        placeholders = ",".join(["%s"] * len(order_nos))
+        sql = f"""
+            SELECT r.order_no, r.refund_no, r.status, r.seller_remark
+            FROM refund_requests r
+            INNER JOIN (
+                SELECT order_no, MAX(id) AS mid
+                FROM refund_requests
+                WHERE order_no IN ({placeholders})
+                GROUP BY order_no
+            ) x ON r.order_no = x.order_no AND r.id = x.mid
+        """
+        rows = await self.db.execute_query(sql, tuple(order_nos))
+        out: dict[str, dict] = {}
+        for row in rows or []:
+            out[row[0]] = {
+                "refund_no": row[1],
+                "status": row[2],
+                "seller_remark": row[3],
+            }
+        return out
+
     # ════════════════════ 查询订单列表 ════════════════════
 
     async def get_order_list(self, user: str, status: str | None,
@@ -685,22 +710,27 @@ class OrderService:
             tuple(params + [page_size, offset]),
         )
 
+        order_nos = [r[1] for r in (rows or [])]
+        refund_map = await self._latest_refunds_for_orders(order_nos)
+
         orders = []
         for r in (rows or []):
+            order_no = r[1]
             order_data = {
-                "id": r[0], "order_no": r[1], "mall_id": r[2],
+                "id": r[0], "order_no": order_no, "mall_id": r[2],
                 "total_amount": float(r[3]), "status": r[4],
                 "receiver_name": r[5], "receiver_addr": r[6],
                 "remark": r[7],
                 "expire_at": str(r[8]) if r[8] else None,
                 "paid_at": str(r[9]) if r[9] else None,
                 "created_at": str(r[10]) if r[10] else None,
+                "latest_refund": refund_map.get(order_no),
             }
             items = await self.db.execute_query(
                 """SELECT product_name, spec_name, price, quantity, subtotal,
                           shopping_id, mall_id
                    FROM order_items WHERE order_no = %s""",
-                (r[1],),
+                (order_no,),
             )
             order_data["items"] = [
                 {

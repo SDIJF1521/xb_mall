@@ -129,7 +129,11 @@
               <button class="btn btn--success" @click="handleConfirm(order)" :disabled="confirmLoading === order.order_no">
                 确认收货
               </button>
-              <button class="btn btn--warning" @click="openRefundDialog(order)">
+              <template v-if="order.latest_refund && order.latest_refund.status === 'rejected'">
+                <span class="order-card__refund-rejected-tag">卖家已拒退款</span>
+                <button class="btn btn--ghost btn--sm" @click="checkRefundProgress(order)">查看进度</button>
+              </template>
+              <button v-else class="btn btn--warning" @click="openRefundDialog(order)">
                 申请退款
               </button>
             </template>
@@ -249,7 +253,11 @@ export default {
       if (refundOrderNo) {
         const order = this.orders.find(o => o.order_no === refundOrderNo)
         if (order && (order.status === 'paid' || order.status === 'shipped')) {
-          this.openRefundDialog(order)
+          if (order.latest_refund && order.latest_refund.status === 'rejected') {
+            this.promptPlatformDispute(order)
+          } else {
+            this.openRefundDialog(order)
+          }
         }
       }
     })
@@ -405,6 +413,24 @@ export default {
       this.refundOrder = order
       this.refundReason = ''
       this.refundDialogVisible = true
+    },
+
+    async promptPlatformDispute(order) {
+      const lr = order.latest_refund
+      const refundNo = lr && lr.refund_no
+      if (!refundNo) {
+        await this.checkRefundProgress(order)
+        return
+      }
+      const remark = lr.seller_remark ? `（${lr.seller_remark}）` : ''
+      try {
+        await ElMessageBox.confirm(
+          `卖家已拒绝本次退款申请${remark}，可申请平台客服介入处理。是否现在申请？`,
+          '申请平台介入',
+          { confirmButtonText: '申请平台介入', cancelButtonText: '取消', type: 'warning' }
+        )
+        await this.handleDispute(refundNo)
+      } catch { /* 用户取消 */ }
     },
 
     async submitRefundApply() {
@@ -930,6 +956,15 @@ export default {
   color: #e6a23c;
   background: rgba(230, 162, 60, 0.1);
   padding: 4px 12px;
+  border-radius: 20px;
+  font-weight: 500;
+}
+
+.order-card__refund-rejected-tag {
+  font-size: 11px;
+  color: #f56c6c;
+  background: rgba(245, 108, 108, 0.1);
+  padding: 3px 10px;
   border-radius: 20px;
   font-weight: 500;
 }
