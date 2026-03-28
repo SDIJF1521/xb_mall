@@ -95,7 +95,15 @@
           <!-- 客服消息（右侧） -->
           <template v-else-if="msg.sender_type === 'seller'">
             <div class="cw-bubble-col cw-bubble-col--self">
-              <div class="cw-bubble seller-bubble">{{ msg.content }}</div>
+              <!-- 退款链接卡片 -->
+              <div v-if="msg.message_type === 'refund_link' && msg.refund_info" class="cw-refund-card cw-refund-card--self">
+                <div class="cw-refund-card__icon">💰</div>
+                <div class="cw-refund-card__body">
+                  <div class="cw-refund-card__title">退款快捷链接</div>
+                  <div class="cw-refund-card__order">订单号：{{ msg.refund_info.order_no }}</div>
+                </div>
+              </div>
+              <div v-else class="cw-bubble seller-bubble">{{ msg.content }}</div>
               <div class="cw-time cw-time--self">{{ msg.created_at }}</div>
             </div>
             <div class="cw-avatar-wrap">
@@ -120,6 +128,13 @@
       <div class="cw-input-footer">
         <span class="cw-char-count">{{ inputText.length }}/500</span>
         <el-button
+          :disabled="!props.sessionId || props.wsState !== 'open'"
+          @click="openRefundLinkDialog"
+          size="small"
+        >
+          退款链接
+        </el-button>
+        <el-button
           type="primary"
           :icon="Promotion"
           :disabled="!props.sessionId || !inputText.trim() || props.wsState !== 'open'"
@@ -129,6 +144,18 @@
         </el-button>
       </div>
     </div>
+
+    <!-- 退款链接弹窗 -->
+    <el-dialog v-model="refundLinkDialogVisible" title="发送退款快捷链接" width="400px" append-to-body>
+      <el-input v-model="refundOrderNo" placeholder="请输入订单号" clearable />
+      <p style="margin-top:8px;font-size:12px;color:var(--el-text-color-secondary);">
+        用户收到链接后可直接点击申请退款。
+      </p>
+      <template #footer>
+        <el-button @click="refundLinkDialogVisible = false">取消</el-button>
+        <el-button type="primary" :disabled="!refundOrderNo.trim()" @click="sendRefundLink">发送</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -143,13 +170,16 @@ export interface CsMsg {
   sender_type: 'user' | 'seller' | 'system'
   sender_name?: string
   content: string
-  message_type?: 'text' | 'product_card'
+  message_type?: 'text' | 'product_card' | 'refund_link'
   product_info?: {
     name: string
     spec: string
     url: string
     price: string
     img?: string
+  }
+  refund_info?: {
+    order_no: string
   }
   created_at: string
 }
@@ -164,10 +194,13 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'send', content: string): void
+  (e: 'sendRefundLink', orderNo: string): void
 }>()
 
 const inputText = ref('')
 const msgListRef = ref<HTMLDivElement | null>(null)
+const refundLinkDialogVisible = ref(false)
+const refundOrderNo = ref('')
 
 const scrollToBottom = () => {
   nextTick(() => {
@@ -182,6 +215,19 @@ const handleSend = () => {
   if (!content) return
   emit('send', content)
   inputText.value = ''
+}
+
+const openRefundLinkDialog = () => {
+  refundOrderNo.value = ''
+  refundLinkDialogVisible.value = true
+}
+
+const sendRefundLink = () => {
+  const no = refundOrderNo.value.trim()
+  if (!no) return
+  emit('sendRefundLink', no)
+  refundLinkDialogVisible.value = false
+  refundOrderNo.value = ''
 }
 
 watch(() => props.messages.length, () => {
@@ -502,5 +548,46 @@ watch(() => props.sessionId, () => {
 .cw-char-count {
   font-size: 12px;
   color: var(--el-text-color-placeholder);
+}
+
+.cw-refund-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%);
+  border: 1px solid #fbbf24;
+  max-width: 280px;
+  cursor: pointer;
+
+  &--self {
+    margin-left: auto;
+  }
+
+  &__icon {
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+
+  &__body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #92400e;
+  }
+
+  &__order {
+    font-size: 11px;
+    color: #b45309;
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 </style>

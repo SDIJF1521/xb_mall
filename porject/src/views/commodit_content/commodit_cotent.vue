@@ -111,6 +111,7 @@ interface Spec {
   specs: string[]
   price: number
   stock: number
+  specification_id?: number
 }
 
 interface Commodity {
@@ -180,10 +181,72 @@ const handleBuy = async ({ specIndex, quantity }: { specIndex: number; quantity:
     router.push('/register')
     return
   }
+  if (!commodity.value) return
+
   buyLoading.value = true
   try {
-    // 对接立即购买接口
-    ElMessage.success('跳转结算中...')
+    // 1. 获取用户默认地址
+    const addrRes = await Axios.post('/get_address_apply', new URLSearchParams({ token }))
+    if (!addrRes.data?.current || !addrRes.data?.data) {
+      ElMessage.warning('请先设置收货地址')
+      router.push('/addre_set')
+      return
+    }
+
+    // 2. 获取地址列表找到默认地址 ID
+    const listRes = await Axios.post('/get_address', new URLSearchParams({ token }))
+    if (!listRes.data?.current) {
+      ElMessage.warning('获取地址失败，请重试')
+      return
+    }
+    const addrList = listRes.data.save_list
+    let defaultAddrId: number | null = null
+    for (const key of Object.keys(addrList)) {
+      const row = addrList[key]
+      // row: [temp_id, address_id, name, phone, save, city, county, address, apply_option]
+      if (row[8] === 1) {
+        defaultAddrId = row[1]
+        break
+      }
+    }
+    if (!defaultAddrId) {
+      ElMessage.warning('请先设置默认收货地址')
+      router.push('/addre_set')
+      return
+    }
+
+    // 3. 确定 specification_id
+    const specList = commodity.value.specification_list || []
+    const spec = specList[specIndex]
+    const specificationId = spec?.specification_id ?? specIndex
+
+    // 4. 创建订单
+    const idempotencyKey = `buy_${commodity.value.mall_id}_${commodity.value.shopping_id}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
+    const orderRes = await Axios.post('/order/create', {
+      items: [{
+        mall_id: commodity.value.mall_id,
+        shopping_id: commodity.value.shopping_id,
+        specification_id: specificationId,
+        quantity,
+      }],
+      address_id: defaultAddrId,
+      idempotency_key: idempotencyKey,
+    }, { headers: getHeaders() })
+
+    if (orderRes.data?.success) {
+      ElMessage.success('下单成功，请在15分钟内完成支付')
+      router.push('/personal_center?tab=orders')
+    } else {
+      ElMessage.error(orderRes.data?.msg || '下单失败')
+    }
+  } catch (err: unknown) {
+    const status = (err as { response?: { status?: number } })?.response?.status
+    if (status === 401 || status === 403) {
+      ElMessage.warning('请先登录')
+      router.push('/register')
+    } else {
+      ElMessage.error('下单失败，请稍后重试')
+    }
   } finally {
     buyLoading.value = false
   }

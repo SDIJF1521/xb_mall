@@ -723,6 +723,115 @@ class PayConfigSave(BaseModel):
     alipay_public_key: str = Field(..., description="支付宝公钥（纯 Base64 或完整 PEM）")
 
 
+# ── 卖家端支付配置相关数据模型 ──────────────────────────────────────────────────
+
+class SellerPayConfigSave(BaseModel):
+    stroe_id: int = Field(..., description="店铺ID")
+    app_id: str = Field(..., description="支付宝 APPID")
+    server_url: str = Field(default="https://openapi.alipay.com/gateway.do", description="网关地址")
+    sign_type: str = Field(default="RSA2", description="签名类型 RSA/RSA2")
+    notify_url: str = Field(default="", description="异步通知回调地址")
+    return_url: str = Field(default="", description="同步跳转回调地址")
+    app_private_key: str = Field(..., description="应用私钥（纯 Base64 或完整 PEM）")
+    alipay_public_key: str = Field(..., description="支付宝公钥（纯 Base64 或完整 PEM）")
+
+
+# ── 订单模块相关数据模型 ──────────────────────────────────────────────────────
+
+class OrderItemBody(BaseModel):
+    mall_id: int = Field(..., ge=1, description="店铺ID")
+    shopping_id: int = Field(..., ge=1, description="商品ID")
+    specification_id: int = Field(..., ge=0, description="规格ID")
+    quantity: int = Field(..., ge=1, description="购买数量")
+
+class OrderCreateBody(BaseModel):
+    items: List[OrderItemBody] = Field(..., min_length=1, description="订单商品列表")
+    address_id: int = Field(..., ge=1, description="收货地址ID")
+    remark: Optional[str] = Field(None, max_length=500, description="买家备注")
+    idempotency_key: str = Field(..., min_length=8, max_length=64, description="幂等键，防止重复下单")
+
+class OrderPayBody(BaseModel):
+    order_no: str = Field(..., description="订单号")
+    pay_method: str = Field(default="alipay", description="支付方式")
+    idempotency_key: str = Field(..., min_length=8, max_length=64, description="幂等键，防止重复支付")
+
+class OrderCancelBody(BaseModel):
+    order_no: str = Field(..., description="订单号")
+
+class OrderConfirmReceiveBody(BaseModel):
+    order_no: str = Field(..., description="订单号")
+
+class OrderRefundBody(BaseModel):
+    order_no: str = Field(..., description="订单号")
+    reason: Optional[str] = Field(None, max_length=500, description="退款原因")
+
+class OrderListQuery:
+    def __init__(
+        self,
+        status: Optional[str] = Query(None, description="订单状态筛选：pending/paid/shipped/received/closed/refunded"),
+        keyword: Optional[str] = Query(None, description="搜索关键词（订单号/商品名/收货人）"),
+        page: int = Query(1, ge=1, description="页码"),
+        page_size: int = Query(10, ge=1, le=50, description="每页条数"),
+    ):
+        self.status = status
+        self.keyword = keyword
+        self.page = page
+        self.page_size = page_size
+
+class OrderDetailQuery:
+    def __init__(
+        self,
+        order_no: str = Query(..., description="订单号"),
+    ):
+        self.order_no = order_no
+
+
+# ── 退款模块相关数据模型 ──────────────────────────────────────────────────────
+
+class RefundApplyBody(BaseModel):
+    order_no: str = Field(..., description="订单号")
+    reason: Optional[str] = Field(None, max_length=500, description="退款原因")
+
+class RefundDisputeBody(BaseModel):
+    refund_no: str = Field(..., description="退款单号")
+
+class SellerRefundReviewBody(BaseModel):
+    refund_no: str = Field(..., description="退款单号")
+    action: str = Field(..., pattern=r"^(approve|reject)$", description="审核动作：approve/reject")
+    remark: Optional[str] = Field(None, max_length=500, description="审核备注")
+
+class PlatformRefundResolveBody(BaseModel):
+    refund_no: str = Field(..., description="退款单号")
+    action: str = Field(..., pattern=r"^(approve|reject)$", description="仲裁动作：approve/reject")
+    remark: Optional[str] = Field(None, max_length=500, description="仲裁备注")
+
+class RefundListQuery:
+    def __init__(
+        self,
+        status: Optional[str] = Query(None, description="退款状态筛选"),
+        keyword: Optional[str] = Query(None, description="搜索关键词（退款单号/订单号）"),
+        page: int = Query(1, ge=1, description="页码"),
+        page_size: int = Query(10, ge=1, le=50, description="每页条数"),
+    ):
+        self.status = status
+        self.keyword = keyword
+        self.page = page
+        self.page_size = page_size
+
+class SellerOrderListQuery:
+    def __init__(
+        self,
+        status: Optional[str] = Query(None, description="订单状态筛选"),
+        keyword: Optional[str] = Query(None, description="搜索关键词（订单号/收货人）"),
+        page: int = Query(1, ge=1, description="页码"),
+        page_size: int = Query(10, ge=1, le=50, description="每页条数"),
+    ):
+        self.status = status
+        self.keyword = keyword
+        self.page = page
+        self.page_size = page_size
+
+
 # 查看收藏列表查询参数模型（分页 + 模糊搜索）
 class FavoriteListQuery:
     def __init__(

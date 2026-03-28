@@ -54,6 +54,7 @@
           :history-loading="historyLoading"
           :ws-state="wsState"
           @send="onSendMessage"
+          @send-refund-link="onSendRefundLink"
         />
       </el-main>
     </el-container>
@@ -236,6 +237,7 @@ function normalizeMsg(m: any): CsMsg {
     content: m.content || '',
     message_type: m.message_type || 'text',
     product_info: m.product_info,
+    refund_info: m.refund_info,
     created_at: formatTime(m.created_at),
   }
 }
@@ -249,6 +251,17 @@ function onSendMessage(content: string) {
   ws?.send(JSON.stringify({
     type: 'chat',
     content,
+    target_session: activeSessionId.value,
+  }))
+}
+
+function onSendRefundLink(orderNo: string) {
+  if (!activeSessionId.value || wsState.value !== 'open') return
+  ws?.send(JSON.stringify({
+    type: 'chat',
+    content: `退款快捷链接：订单 ${orderNo}`,
+    message_type: 'refund_link',
+    refund_info: { order_no: orderNo },
     target_session: activeSessionId.value,
   }))
 }

@@ -81,6 +81,8 @@ async def cs_user_sessions(
         last_msg = item.get("last_message", "")
         if item.get("last_message_type") == "product_card":
             last_msg = "[商品] " + last_msg
+        elif item.get("last_message_type") == "refund_link":
+            last_msg = "[退款链接] " + last_msg
         unread = await redis.get_int(_user_unread_key(username, mall_id))
 
         # 获取店铺名称
@@ -148,14 +150,16 @@ async def cs_user_history(
 
     data = []
     for d in docs:
-        data.append({
+        item = {
             "sender_type": d.get("sender_type", ""),
             "sender_name": d.get("sender_name", ""),
             "content": d.get("content", ""),
             "message_type": d.get("message_type", "text"),
             "product_info": d.get("product_info"),
+            "refund_info": d.get("refund_info"),
             "created_at": d.get("created_at", ""),
-        })
+        }
+        data.append(item)
 
     return {"current": True, "msg": "成功", "data": data, "total": total}
 

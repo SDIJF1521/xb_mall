@@ -94,7 +94,21 @@
               <div class="msg-avatar cs-avatar"><el-icon><Service /></el-icon></div>
               <div class="msg-col">
                 <div class="msg-sender">客服</div>
-                <div class="msg-bubble cs-bubble">{{ msg.content }}</div>
+                <!-- 退款链接卡片 -->
+                <div
+                  v-if="msg.message_type === 'refund_link' && msg.refund_info"
+                  class="refund-link-card"
+                  @click="goRefund(msg.refund_info.order_no)"
+                >
+                  <div class="rl-icon">💰</div>
+                  <div class="rl-body">
+                    <div class="rl-title">退款快捷链接</div>
+                    <div class="rl-order">订单号：{{ msg.refund_info.order_no }}</div>
+                    <div class="rl-action">点击申请退款 →</div>
+                  </div>
+                </div>
+                <!-- 普通文本 -->
+                <div v-else class="msg-bubble cs-bubble">{{ msg.content }}</div>
                 <div class="msg-time">{{ msg.created_at }}</div>
               </div>
             </div>
@@ -163,6 +177,7 @@
 
 <script setup lang="ts">
 import { ref, nextTick, onBeforeUnmount, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
 import {
@@ -189,13 +204,16 @@ interface CsMessage {
   sender_type: 'user' | 'seller' | 'system'
   sender_name?: string
   content: string
-  message_type?: 'text' | 'product_card'
+  message_type?: 'text' | 'product_card' | 'refund_link'
   product_info?: {
     name: string
     spec: string
     url: string
     price: string
     img?: string
+  }
+  refund_info?: {
+    order_no: string
   }
   created_at: string
 }
@@ -207,6 +225,13 @@ const props = defineProps<{
   /** 是否显示悬浮球按钮，默认 true；设为 false 时只渲染面板，由外部调用 openChat() 打开 */
   showFab?: boolean
 }>()
+
+const csRouter = useRouter()
+
+function goRefund(orderNo: string) {
+  open.value = false
+  csRouter.push(`/personal_center?tab=orders&refund=${orderNo}`)
+}
 
 const open = ref(false)
 const inputText = ref('')
@@ -295,6 +320,7 @@ function normalizeMsg(m: any): CsMessage {
     content: m.content || '',
     message_type: m.message_type || 'text',
     product_info: m.product_info,
+    refund_info: m.refund_info,
     created_at: formatTime(m.created_at),
   }
 }
@@ -774,6 +800,30 @@ defineExpose({ openChat })
     text-align: right;
   }
 }
+
+/* 退款链接卡片 */
+.refund-link-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%);
+  border: 1px solid #fbbf24;
+  cursor: pointer;
+  max-width: 240px;
+  transition: box-shadow 0.2s;
+
+  &:hover {
+    box-shadow: 0 2px 8px rgba(251, 191, 36, 0.3);
+  }
+}
+
+.rl-icon { font-size: 22px; flex-shrink: 0; }
+.rl-body { flex: 1; min-width: 0; }
+.rl-title { font-size: 12px; font-weight: 600; color: #92400e; }
+.rl-order { font-size: 11px; color: #b45309; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rl-action { font-size: 11px; color: #d97706; margin-top: 3px; font-weight: 500; }
 
 /* 商品快捷发送栏 */
 .product-quick-bar {

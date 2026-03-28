@@ -96,6 +96,8 @@ async def _get_session_list(mongodb: MongoDBClient, mall_id: int, redis: RedisCl
             last_msg = item.get("last_message", "")
             if item.get("last_message_type") == "product_card":
                 last_msg = "[商品] " + last_msg
+            elif item.get("last_message_type") == "refund_link":
+                last_msg = "[退款链接] " + last_msg
             unread = 0
             if redis:
                 try:
@@ -327,6 +329,14 @@ async def _handle_seller(
                 if not content or not target_session or len(content) > 500:
                     continue
 
+                message_type: str = msg.get("message_type", "text")
+                if message_type not in ("text", "refund_link"):
+                    message_type = "text"
+
+                refund_info: dict | None = None
+                if message_type == "refund_link":
+                    refund_info = msg.get("refund_info")
+
                 ts = _now()
                 doc = {
                     "mall_id": mall_id,
@@ -334,9 +344,11 @@ async def _handle_seller(
                     "sender_type": "seller",
                     "sender_name": username,
                     "content": content,
-                    "message_type": "text",
+                    "message_type": message_type,
                     "created_at": ts,
                 }
+                if refund_info:
+                    doc["refund_info"] = refund_info
                 await _save_message(mongodb, doc)
 
                 # 卖家发消息 → 用户端未读 +1
@@ -346,25 +358,31 @@ async def _handle_seller(
                     pass
 
                 # 转发给目标用户
-                await cs_manager.send_to_user(mall_id, target_session, {
+                user_msg = {
                     "type": "chat",
                     "sender_type": "seller",
                     "sender_name": "客服",
                     "content": content,
-                    "message_type": "text",
+                    "message_type": message_type,
                     "created_at": ts,
-                })
+                }
+                if refund_info:
+                    user_msg["refund_info"] = refund_info
+                await cs_manager.send_to_user(mall_id, target_session, user_msg)
 
                 # 回显给卖家自身（确认）
-                await websocket.send_json({
+                seller_echo = {
                     "type": "chat",
                     "session_id": target_session,
                     "sender_type": "seller",
                     "sender_name": username,
                     "content": content,
-                    "message_type": "text",
+                    "message_type": message_type,
                     "created_at": ts,
-                })
+                }
+                if refund_info:
+                    seller_echo["refund_info"] = refund_info
+                await websocket.send_json(seller_echo)
 
     except WebSocketDisconnect:
         cs_manager.disconnect_seller(mall_id, username)

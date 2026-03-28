@@ -150,7 +150,7 @@
           <span class="total-price">勾选合计：¥ {{ selectedTotalPrice.toFixed(2) }}</span>
         </div>
         <div class="cart-footer-btns">
-          <el-button type="primary" size="large" class="btn-settle">
+          <el-button type="primary" size="large" class="btn-settle" :loading="settling" @click="handleSettle">
             结算
           </el-button>
           <el-button type="primary" size="large" class="btn-continue" @click="goMall">
@@ -196,6 +196,7 @@ interface CartItem {
   id: number
   mall_id: number
   shopping_id: number
+  specification_id: number
   name: string
   img: string
   price: number
@@ -209,6 +210,7 @@ interface SelectedItemSnapshot {
   id: number
   mall_id: number
   shopping_id: number
+  specification_id: number
   name: string
   price: number
   quantity: number
@@ -222,6 +224,7 @@ const loading = ref(false)
 const deletingId = ref<number | null>(null)
 const updatingId = ref<number | null>(null)
 const clearing = ref(false)
+const settling = ref(false)
 const selectedMap = ref<Record<number, SelectedItemSnapshot>>({})
 
 const searchKeyword = computed(() => (props.searchKeyword || '').trim())
@@ -251,6 +254,7 @@ const toSnapshot = (item: CartItem): SelectedItemSnapshot => ({
   id: item.id,
   mall_id: item.mall_id,
   shopping_id: item.shopping_id,
+  specification_id: item.specification_id,
   name: item.name,
   price: item.price,
   quantity: item.quantity,
@@ -419,6 +423,93 @@ const clearAll = async () => {
     ElMessage.error('清空失败')
   } finally {
     clearing.value = false
+  }
+}
+
+const handleSettle = async () => {
+  const items = selectedList.value
+  if (items.length === 0) {
+    ElMessage.warning('请先勾选要结算的商品')
+    return
+  }
+
+  // 一个订单只能包含同一店铺的商品
+  const mallIds = new Set(items.map(i => i.mall_id))
+  if (mallIds.size > 1) {
+    ElMessage.warning('一个订单只能包含同一店铺的商品，请分开结算')
+    return
+  }
+
+  const token = localStorage.getItem('access_token')
+  if (!token) {
+    ElMessage.warning('请先登录')
+    router.push('/register')
+    return
+  }
+
+  settling.value = true
+  try {
+    // 1. 获取默认地址
+    const addrRes = await Axios.post('/get_address_apply', new URLSearchParams({ token }))
+    if (!addrRes.data?.current || !addrRes.data?.data) {
+      ElMessage.warning('请先设置收货地址')
+      router.push('/addre_set')
+      return
+    }
+
+    const listRes = await Axios.post('/get_address', new URLSearchParams({ token }))
+    if (!listRes.data?.current) {
+      ElMessage.warning('获取地址失败，请重试')
+      return
+    }
+    const addrList = listRes.data.save_list
+    let defaultAddrId: number | null = null
+    for (const key of Object.keys(addrList)) {
+      const row = addrList[key]
+      if (row[8] === 1) {
+        defaultAddrId = row[1]
+        break
+      }
+    }
+    if (!defaultAddrId) {
+      ElMessage.warning('请先设置默认收货地址')
+      router.push('/addre_set')
+      return
+    }
+
+    // 2. 创建订单
+    const idempotencyKey = `cart_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
+    const orderRes = await Axios.post('/order/create', {
+      items: items.map(i => ({
+        mall_id: i.mall_id,
+        shopping_id: i.shopping_id,
+        specification_id: i.specification_id,
+        quantity: i.quantity,
+      })),
+      address_id: defaultAddrId,
+      idempotency_key: idempotencyKey,
+    }, { headers: getHeaders() })
+
+    if (orderRes.data?.success) {
+      ElMessage.success('下单成功，请在15分钟内完成支付')
+      // 清除已结算的购物车项
+      for (const item of items) {
+        try {
+          await Axios.delete('/shopping_cart_delete', {
+            params: { id: item.id },
+            headers: getHeaders(),
+          })
+        } catch { /* ignore */ }
+      }
+      selectedMap.value = {}
+      router.push('/personal_center?tab=orders')
+    } else {
+      ElMessage.error(orderRes.data?.msg || '下单失败')
+    }
+  } catch {
+    ElMessage.error('结算失败，请稍后重试')
+  } finally {
+    settling.value = false
   }
 }
 

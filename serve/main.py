@@ -161,6 +161,12 @@ from routes.buyer_ad_apply_list import router as buyer_ad_apply_list_router
 from routes.buyer_ad_apply_img import router as buyer_ad_apply_img_router
 from routes.ad_banner_active import router as ad_banner_active_router
 from routes.manage_pay_confing import router as manage_pay_confing_router
+from routes.buyer_pay_config import router as buyer_pay_config_router
+from routes.order import router as order_router
+from routes.refund import router as refund_router
+from routes.seller_order import router as seller_order_router
+from routes.seller_dashboard import router as seller_dashboard_router
+from routes.manage_refund import router as manage_refund_router
 
 from routes.user_list import router as user_list_router
 from routes.today_user_list import router as today_user_list_router
@@ -298,6 +304,26 @@ async def user_sql_redis_state():
         logger.error("=" * 60)
 
 
+async def close_expired_orders_task():
+    """定时任务：扫描并关闭超过15分钟未支付的订单，回滚库存"""
+    start_time = time.time()
+    try:
+        from services.order import OrderService
+        svc = OrderService(db_pool, mongodb_client, redis_client)
+        closed = await svc.close_expired_orders()
+        elapsed = time.time() - start_time
+        if closed > 0:
+            logger.info("超时订单关闭任务完成 | 关闭数: %d | 耗时: %.2fs", closed, elapsed)
+        else:
+            logger.debug("超时订单关闭任务完成 | 无超时订单 | 耗时: %.3fs", elapsed)
+    except asyncio.CancelledError:
+        logger.info("超时订单关闭任务被取消")
+        raise
+    except Exception as e:
+        import traceback
+        logger.error("超时订单关闭任务失败: %s\n%s", e, traceback.format_exc())
+
+
 async def run_incremental_recommend_training():
     """定时执行 Wide & Deep 增量训练。"""
     start_time = time.time()
@@ -383,6 +409,10 @@ async def lifespan(app: FastAPI):
         await run_ad_migration(db_pool)
         logger.info("广告投放表结构已检查")
 
+        from services.order_migrate import run_order_migration
+        await run_order_migration(db_pool)
+        logger.info("订单模块表结构已检查")
+
         # 初始化布隆过滤器管理器
         logger.info("正在初始化布隆过滤器管理器...")
         from services.bloom_filter_manager import init_bloom_filter_manager
@@ -426,6 +456,16 @@ async def lifespan(app: FastAPI):
             misfire_grace_time=300
         )
         logger.info("每5分钟推荐增量训练任务已配置")
+
+        scheduler.add_job(
+            close_expired_orders_task,
+            IntervalTrigger(minutes=1),
+            id='close_expired_orders',
+            max_instances=1,
+            coalesce=True,
+            misfire_grace_time=60
+        )
+        logger.info("每1分钟超时订单检测任务已配置")
         
         scheduler.start()
         logger.info("定时任务已启动 | 任务ID: user_sql_redis_state | 执行间隔: 10秒")
@@ -981,3 +1021,19 @@ app.include_router(ad_banner_active_router, prefix='/api')
 
 # 平台端支付配置路由
 app.include_router(manage_pay_confing_router, prefix='/api')
+
+# 卖家端支付配置路由
+app.include_router(buyer_pay_config_router, prefix='/api')
+
+# 订单模块路由
+app.include_router(order_router, prefix='/api')
+
+# 退款模块路由（买家端）
+app.include_router(refund_router, prefix='/api')
+
+# 卖家端订单/退款管理路由
+app.include_router(seller_order_router, prefix='/api')
+app.include_router(seller_dashboard_router, prefix='/api')
+
+# 平台端纠纷管理路由
+app.include_router(manage_refund_router, prefix='/api')

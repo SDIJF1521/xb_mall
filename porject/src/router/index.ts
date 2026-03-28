@@ -41,7 +41,9 @@ import BuyerStoreChat from '@/views/buyer_store_chat/BuyerStoreChat.vue'
 import BuyerCustomerService from '@/views/buyer_customer_service/BuyerCustomerService.vue'
 import BuyerCsSelect from '@/views/buyer_customer_service_select/BuyerCsSelect.vue'
 import BuyerSet from '@/views/buyer_set/BuyerSet.vue'
+import BuyerOrderManage from '@/views/buyer_order_manage/BuyerOrderManage.vue'
 import ManagementSystemSettings from '@/views/management_system_settings/ManagementSystemSettings.vue'
+import ManagementRefund from '@/views/management_refund/ManagementRefund.vue'
 import BuyerAdApply from '@/views/buyer_ad_apply/BuyerAdApply.vue'
 
 import { setupHeartbeatGuard } from './heartbeatGuard'
@@ -295,6 +297,12 @@ const routes: Array<RouteRecordRaw> = [
     component: BuyerCustomerService
   },
   {
+    // 卖家端订单管理页
+    path: '/buyer_order_manage',
+    name: 'BuyerOrderManage',
+    component: BuyerOrderManage
+  },
+  {
     // 买家端设置页
     path: '/buyer_set',
     name: 'BuyerSet',
@@ -306,6 +314,13 @@ const routes: Array<RouteRecordRaw> = [
     name:'ManagementSystemSettings',
     component:ManagementSystemSettings,
     meta: { adminPermission: 'admin.system_settings' }
+  },
+  // 平台端纠纷管理
+  {
+    path: '/management_refund',
+    name: 'ManagementRefund',
+    component: ManagementRefund,
+    meta: { adminPermission: 'admin.refund' }
   },
   // 商家端广告投放申请页
   {

@@ -11,6 +11,7 @@
       <el-menu-item v-if="pDash" index="1">仪表盘</el-menu-item>
       <el-menu-item v-if="pCommodity" index="2">商品管理</el-menu-item>
       <el-menu-item v-if="pUser" index="3">用户管理</el-menu-item>
+      <el-menu-item v-if="pRefund" index="5">纠纷管理</el-menu-item>
       <el-menu-item v-if="pCommodity" index="4">设置</el-menu-item>
     </el-menu>
     <el-switch
@@ -50,6 +51,7 @@ const pUser = computed(() =>
     'admin.user.role',
   ]),
 );
+const pRefund = computed(() => hasAdminPermission('admin.refund'));
 
 const activeIndex = ref('')
 
@@ -59,6 +61,7 @@ const handleSelect = (index: string) => {
   else if (index === '2') router.push('/management_commodity');
   else if (index === '3') router.push('/user_management');
   else if (index === '4') router.push('/management_system_settings');
+  else if (index === '5') router.push('/management_refund');
 }
 
 // 定义组件名称
@@ -84,6 +87,8 @@ function syncNav(path: string) {
     activeIndex.value = '3';
   else if (path.startsWith('/management_system_settings'))
     activeIndex.value = '4';
+  else if (path.startsWith('/management_refund'))
+    activeIndex.value = '5';
 }
 
 watch(

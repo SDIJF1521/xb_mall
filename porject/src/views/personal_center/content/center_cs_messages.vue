@@ -103,6 +103,19 @@
                       </a>
                     </div>
                   </div>
+                  <!-- 退款链接卡片 -->
+                  <div
+                    v-else-if="msg.message_type === 'refund_link' && msg.refund_info"
+                    class="refund-link-card"
+                    @click="goRefund(msg.refund_info.order_no)"
+                  >
+                    <div class="rl-icon">💰</div>
+                    <div class="rl-body">
+                      <div class="rl-title">退款快捷链接</div>
+                      <div class="rl-order">订单号：{{ msg.refund_info.order_no }}</div>
+                      <div class="rl-action">点击申请退款 →</div>
+                    </div>
+                  </div>
                   <!-- 普通文本消息 -->
                   <div v-else class="message-text">{{ msg.content }}</div>
                   <div class="message-time">{{ formatMsgTime(msg.created_at) }}</div>
@@ -160,6 +173,7 @@ interface CsMessage {
   content: string
   message_type?: string
   product_info?: { name: string; spec?: string; url?: string; img?: string; price?: string }
+  refund_info?: { order_no: string }
   created_at: string
 }
 
@@ -223,6 +237,10 @@ function toggleSession(mallId: number) {
 
 function goToStore(mallId: number) {
   router.push(`/store/${mallId}`)
+}
+
+function goRefund(orderNo: string) {
+  router.push(`/personal_center?tab=orders&refund=${orderNo}`)
 }
 
 function formatTime(ts: string): string {
@@ -485,4 +503,25 @@ onMounted(() => {
   padding-top: 12px;
   border-top: 1px solid var(--el-border-color-lighter);
 }
+
+.refund-link-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%);
+  border: 1px solid #fbbf24;
+  cursor: pointer;
+  max-width: 280px;
+  transition: box-shadow 0.2s;
+}
+.refund-link-card:hover {
+  box-shadow: 0 2px 8px rgba(251, 191, 36, 0.3);
+}
+.rl-icon { font-size: 24px; flex-shrink: 0; }
+.rl-body { flex: 1; min-width: 0; }
+.rl-title { font-size: 13px; font-weight: 600; color: #92400e; }
+.rl-order { font-size: 11px; color: #b45309; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rl-action { font-size: 11px; color: #d97706; margin-top: 4px; font-weight: 500; }
 </style>

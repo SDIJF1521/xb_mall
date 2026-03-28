@@ -32,6 +32,11 @@
                       <el-icon><Edit /></el-icon>
                       <template #title>评论管理</template>
                     </el-menu-item>
+                    <!--我的订单-->
+                    <el-menu-item index="7" @mouseenter="handleMouseEnter('7')">
+                      <el-icon><Document /></el-icon>
+                      <template #title>我的订单</template>
+                    </el-menu-item>
                     <!--浏览历史-->
                     <el-menu-item index="5" @mouseenter="handleMouseEnter('5')">
                       <el-icon><Clock /></el-icon>
@@ -74,6 +79,7 @@ import ConterComment from './content/conter_comment.vue'
 import Set from './content/set.vue'
 import BrowsingHistory from './content/browsing_history.vue'
 import CenterCsMessages from './content/center_cs_messages.vue'
+import CenterOrders from './content/center_orders.vue'
 
 export default {
   name: 'Center',
@@ -96,7 +102,8 @@ export default {
     ConterComment,
     Set,
     BrowsingHistory,
-    CenterCsMessages
+    CenterCsMessages,
+    CenterOrders
   },
   setup() {
     const url = 'http://127.0.0.1:8000/api';
@@ -128,9 +135,11 @@ export default {
   },
   mounted() {
     this.fetchCsUnread();
-    // 支持通过 URL 参数 ?tab=cs 直接打开客服消息
+    // 支持通过 URL 参数 ?tab=xxx 直接打开对应面板
     if (this.$route.query.tab === 'cs') {
       this.selectedType = '6';
+    } else if (this.$route.query.tab === 'orders') {
+      this.selectedType = '7';
     }
   },
   computed: {
@@ -147,6 +156,7 @@ export default {
         '4': 'Set',
         '5': 'BrowsingHistory',
         '6': 'CenterCsMessages',
+        '7': 'CenterOrders',
       }
       if (this.hoverType && map[this.hoverType]) return map[this.hoverType]
       if (!this.hoverType && this.selectedType && map[this.selectedType]) return map[this.selectedType]

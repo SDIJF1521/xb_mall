@@ -12,6 +12,7 @@ const AUTH_REQUIRED_ROUTES = [
     'ManagementCommodity',
     'ManagementCommodityApply',
     'ManagementSystemSettings',
+    'ManagementRefund',
 ];
 
 // API基础URL

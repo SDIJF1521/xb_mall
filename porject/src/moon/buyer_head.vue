@@ -424,10 +424,22 @@ const ALL_NAV_ITEMS: NavItem[] = [
         toFn: (id) => `/buyer_customer_service/${id}`,
     },
     {
+        value: '订单管理', label: '订单管理', desc: '查看和处理店铺订单',
+        keywords: ['订单', '订单管理', '交易', '发货', '退款', 'order', '出货'],
+        icon: List, color: 'blue', tag: '运营', tagType: 'primary',
+        to: '/buyer_order_manage',
+    },
+    {
         value: '广告投放', label: '广告投放', desc: '申请轮播图广告位推广商品',
         keywords: ['广告', '投放', '推广', '轮播', '横幅', 'ad', 'banner', '曝光'],
         icon: Promotion, color: 'orange', tag: '营销', tagType: 'warning',
         toFn: (id) => `/buyer_ad_apply/${id}`,
+    },
+    {
+        value: '系统设置', label: '系统设置', desc: '店铺系统与账号设置',
+        keywords: ['设置', '系统', '配置', '偏好', 'settings', '账号', '支付'],
+        icon: Setting, color: 'gray', tag: '设置', tagType: 'info',
+        to: '/buyer_set',
     },
 ]
 

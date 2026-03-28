@@ -25,6 +25,7 @@ const AUTH_REQUIRED_ROUTES = ['BuyerIndex',
                               'BuyerCsSelect',
                               'BuyerCustomerService',
                               'BuyerSet',
+                              'BuyerOrderManage',
                             ];
 
 // 验证令牌有效性
