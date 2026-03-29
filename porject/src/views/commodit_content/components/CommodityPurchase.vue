@@ -33,6 +33,49 @@
       <div v-if="isSoldOut" class="sold-out-badge">已售罄</div>
     </div>
 
+    <!-- 优惠券领取 -->
+    <div v-if="storeCoupons.length" class="coupon-strip">
+      <div class="coupon-strip__header">
+        <span class="coupon-strip__label">优惠券</span>
+        <router-link to="/coupon_center" class="coupon-strip__more">更多 ›</router-link>
+      </div>
+      <div class="coupon-strip__list">
+        <div
+          v-for="c in storeCoupons"
+          :key="c.id"
+          class="coupon-chip"
+          :class="[`coupon-chip--${c.coupon_type}`, { 'coupon-chip--disabled': c.claim_status !== 'available' }]"
+          @click="c.claim_status === 'available' && claimCoupon(c)"
+        >
+          <div class="coupon-chip__value">
+            <template v-if="c.coupon_type === 'discount'">
+              <span class="cv-num">{{ c.discount_value }}</span><span class="cv-unit">折</span>
+            </template>
+            <template v-else>
+              <span class="cv-unit">¥</span><span class="cv-num">{{ c.discount_value }}</span>
+            </template>
+          </div>
+          <div class="coupon-chip__info">
+            <span class="coupon-chip__name">{{ c.name }}</span>
+            <span class="coupon-chip__cond">满{{ c.min_order_amount }}可用</span>
+          </div>
+          <span
+            class="coupon-chip__btn"
+            :class="{
+              'is-claiming': claimingId === c.id,
+              'is-claimed': c.claim_status === 'claimed',
+              'is-sold-out': c.claim_status === 'sold_out',
+            }"
+          >
+            <template v-if="claimingId === c.id">...</template>
+            <template v-else-if="c.claim_status === 'claimed'">已领取</template>
+            <template v-else-if="c.claim_status === 'sold_out'">已领完</template>
+            <template v-else>领取</template>
+          </span>
+        </div>
+      </div>
+    </div>
+
     <div class="divider" />
 
     <!-- 规格选择 -->
@@ -135,8 +178,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
+import { ElMessage } from 'element-plus'
 import { ShoppingCart, Star, Van, RefreshLeft, Medal, Service, Shop, ArrowRight } from '@element-plus/icons-vue'
 import { Lightning } from '@element-plus/icons-vue'
 
@@ -151,6 +196,7 @@ interface Commodity {
   price: number
   type: string[]
   specification_list?: Spec[]
+  shopping_id?: number
 }
 
 const props = defineProps<{
@@ -196,6 +242,61 @@ const isSoldOut = computed(() => {
 
 const handleBuy = () => emit('buy', { specIndex: selectedSpecIndex.value, quantity: quantity.value })
 const handleAddToCart = () => emit('add-to-cart', { specIndex: selectedSpecIndex.value, quantity: quantity.value })
+
+const API = axios.create({ baseURL: 'http://127.0.0.1:8000/api' })
+const storeCoupons = ref<any[]>([])
+const claimingId = ref<number | null>(null)
+
+async function loadStoreCoupons() {
+  try {
+    const params: Record<string, any> = {
+      mall_id: props.mallId,
+      page: 1,
+      page_size: 6,
+    }
+    if (props.commodity.shopping_id) {
+      params.shopping_id = props.commodity.shopping_id
+    }
+    const token = localStorage.getItem('access_token')
+    const reqHeaders: Record<string, string> = {}
+    if (token) reqHeaders['access-token'] = token
+    const { data } = await API.get('/user_coupon/available', { params, headers: reqHeaders })
+    if (data.success) {
+      storeCoupons.value = data.list || []
+    }
+  } catch { /* ignore */ }
+}
+
+async function claimCoupon(c: any) {
+  const token = localStorage.getItem('access_token')
+  if (!token) {
+    ElMessage.warning('请先登录后领取')
+    router.push('/register')
+    return
+  }
+  claimingId.value = c.id
+  try {
+    const { data } = await API.post(
+      '/user_coupon/claim',
+      { coupon_id: c.id },
+      { headers: { 'access-token': token } },
+    )
+    if (data.success) {
+      ElMessage.success('领取成功')
+      await loadStoreCoupons()
+    } else {
+      ElMessage.warning(data.msg || '领取失败')
+    }
+  } catch {
+    ElMessage.error('领取失败')
+  } finally {
+    claimingId.value = null
+  }
+}
+
+onMounted(() => {
+  loadStoreCoupons()
+})
 </script>
 
 <style scoped lang="scss">
@@ -299,6 +400,130 @@ const handleAddToCart = () => emit('add-to-cart', { specIndex: selectedSpecIndex
     font-size: 13px;
     font-weight: 600;
     border: 1px solid var(--el-border-color);
+  }
+}
+
+/* ── 优惠券条 ── */
+.coupon-strip {
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  &__label {
+    font-size: 13px;
+    color: var(--el-text-color-secondary);
+    font-weight: 500;
+  }
+
+  &__more {
+    font-size: 12px;
+    color: var(--el-color-primary);
+    text-decoration: none;
+    &:hover { text-decoration: underline; }
+  }
+
+  &__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+.coupon-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 6px 0;
+  border-radius: 8px;
+  border: 1.5px solid;
+  cursor: pointer;
+  transition: all 0.2s;
+  overflow: hidden;
+
+  &--full_reduction {
+    border-color: #ff6b6b44;
+    &:hover { border-color: #ff6b6b; background: #ff6b6b08; }
+  }
+  &--discount {
+    border-color: #6c5ce744;
+    &:hover { border-color: #6c5ce7; background: #6c5ce708; }
+  }
+  &--fixed_amount {
+    border-color: #f0932b44;
+    &:hover { border-color: #f0932b; background: #f0932b08; }
+  }
+
+  &__value {
+    display: flex;
+    align-items: baseline;
+    padding: 4px 8px;
+    border-radius: 6px 0 0 6px;
+    color: #fff;
+    min-width: 48px;
+    justify-content: center;
+
+    .cv-num { font-size: 16px; font-weight: 800; line-height: 1; }
+    .cv-unit { font-size: 10px; font-weight: 600; }
+  }
+
+  &--full_reduction &__value { background: linear-gradient(135deg, #ff6b6b, #ee5a24); }
+  &--discount &__value { background: linear-gradient(135deg, #4834d4, #6c5ce7); }
+  &--fixed_amount &__value { background: linear-gradient(135deg, #f0932b, #ffbe76); }
+
+  &__info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+
+  &__name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100px;
+  }
+
+  &__cond {
+    font-size: 10px;
+    color: var(--el-text-color-placeholder);
+  }
+
+  &__btn {
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    padding: 3px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: all 0.2s;
+
+    &:hover:not(.is-claimed):not(.is-sold-out) {
+      transform: scale(1.05);
+      box-shadow: 0 2px 8px rgba(102,126,234,0.4);
+    }
+    &.is-claiming { opacity: 0.6; pointer-events: none; }
+    &.is-claimed {
+      background: #95a5a6;
+      cursor: default;
+    }
+    &.is-sold-out {
+      background: #bdc3c7;
+      cursor: default;
+    }
+  }
+
+  &--disabled {
+    opacity: 0.7;
+    cursor: default !important;
   }
 }
 

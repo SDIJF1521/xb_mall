@@ -23,21 +23,72 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-async def _verify_seller(token: str, redis: RedisClient, db) -> tuple:
+async def _verify_seller(
+    token: str, redis: RedisClient, db,
+    requested_mall_id: int | None = None,
+) -> tuple:
+    """
+    验证卖家身份，兼容 station=1（店主）和 station=2（店长/店员）。
+    station=1 时可通过 requested_mall_id 选择查看哪个店铺。
+    """
     verify = VerifyDuterToken(token, redis)
     token_data = await verify.token_data()
     if not token_data:
         return False, "Token 无效", None
-    sql_data = await execute_db_query(
-        db, "SELECT user FROM seller_sing WHERE user = %s", (token_data.get("user"),)
-    )
-    result = await verify.verify_token(sql_data=sql_data)
-    if not result[0]:
-        return False, "身份验证失败", None
+
+    station = token_data.get("station")
+
+    if station == "1":
+        sql_data = await execute_db_query(
+            db, "SELECT user FROM seller_sing WHERE user = %s", (token_data.get("user"),)
+        )
+        result = await verify.verify_token(sql_data=sql_data)
+        if not result[0]:
+            return False, "身份验证失败", None
+
+        raw_list = token_data.get("state_id_list", [])
+        state_id_list = [int(i) for i in raw_list if i]
+        if requested_mall_id is not None:
+            if requested_mall_id not in state_id_list:
+                return False, "您没有权限查看该店铺", None
+            token_data["_selected_mall_ids"] = [requested_mall_id]
+        else:
+            token_data["_selected_mall_ids"] = state_id_list
+
+    elif station == "2":
+        user = token_data.get("user")
+        mall_id = token_data.get("mall_id")
+        sql_data = await execute_db_query(
+            db, "SELECT user FROM store_user WHERE user = %s AND store_id = %s",
+            (user, mall_id),
+        )
+        result = await verify.verify_token(sql_data=sql_data)
+        if not result[0]:
+            return False, "身份验证失败", None
+
+        from services.buyer_role_authority import RoleAuthorityService
+        role_svc = RoleAuthorityService(
+            role=token_data.get("role"), db=db, redis=redis,
+            name=user, mall_id=mall_id,
+        )
+        role_authority = await role_svc.get_authority(mall_id)
+        if not role_authority:
+            return False, "未找到角色权限", None
+        perms = await role_svc.authority_resolver(int(role_authority[0][0]))
+        if not perms or not perms[2]:
+            return False, "您没有查看仪表盘的权限", None
+
+        token_data["_selected_mall_ids"] = [mall_id]
+    else:
+        return False, "未知的身份类型", None
+
     return True, "ok", token_data
 
 
 def _extract_mall_ids(payload: dict) -> list[int]:
+    selected = payload.get("_selected_mall_ids")
+    if selected:
+        return selected
     station = payload.get("station")
     if station == "2":
         mid = payload.get("mall_id")
@@ -67,12 +118,13 @@ def _build_date_range(period: str) -> tuple[datetime, datetime]:
 @router.get("/seller/dashboard/summary")
 async def seller_dashboard_summary(
     period: str = Query("month", description="week / month / three_months / year"),
+    mall_id: int | None = Query(None, description="店主指定查看的店铺ID"),
     access_token: str = Header(..., alias="Access-Token"),
     redis: RedisClient = Depends(get_redis),
     mongodb: MongoDBClient = Depends(get_mongodb_client),
     db=Depends(get_db),
 ):
-    ok, msg, payload = await _verify_seller(access_token, redis, db)
+    ok, msg, payload = await _verify_seller(access_token, redis, db, requested_mall_id=mall_id)
     if not ok:
         return {"success": False, "msg": msg}
 
@@ -218,12 +270,13 @@ STATUS_MAP = {
 @router.get("/seller/dashboard/export")
 async def seller_dashboard_export(
     period: str = Query("month", description="week / month / three_months / year"),
+    mall_id: int | None = Query(None, description="店主指定导出的店铺ID"),
     access_token: str = Header(..., alias="Access-Token"),
     redis: RedisClient = Depends(get_redis),
     mongodb: MongoDBClient = Depends(get_mongodb_client),
     db=Depends(get_db),
 ):
-    ok, msg, payload = await _verify_seller(access_token, redis, db)
+    ok, msg, payload = await _verify_seller(access_token, redis, db, requested_mall_id=mall_id)
     if not ok:
         return {"success": False, "msg": msg}
 

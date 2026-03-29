@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="porject/src/assets/logo.jpg" alt="XB Mall Logo" width="120" style="border-radius: 16px;" />
+
 # 🛒 XB Mall 电商平台
 
 ![Vue.js](https://img.shields.io/badge/Vue.js-3.x-4FC08D?logo=vue.js&logoColor=white)
@@ -36,7 +38,7 @@ xb_mall/
 
 ### `serve/services` 目录约定
 
-- **每个业务模块一个子目录**，入口为 `services/<模块名>/__init__.py`（包形式），例如：`manage_login/`、`manage_rbac/`、`management_token_verify/`、`manage_token_issue/`、`manage_admin_guard/`、`manage_rbac_migrate/`、`order/`、`refund/`、`order_migrate/`。
+- **每个业务模块一个子目录**，入口为 `services/<模块名>/__init__.py`（包形式），例如：`manage_login/`、`manage_rbac/`、`management_token_verify/`、`manage_token_issue/`、`manage_admin_guard/`、`manage_rbac_migrate/`、`order/`、`refund/`、`order_migrate/`、`promotion/`。
 - **不要在 `services/` 根目录**直接放置与业务模块同名的单文件 `*.py`（避免与包名冲突、便于维护）。
 - 复杂子域可在模块下再分子目录（如 `recommend/wide_deep/`）。
 
@@ -161,10 +163,12 @@ flowchart TB
         S10["违规与申诉\n违规标记/申诉工作流"]
         S11["广告投放\n申请/审核/轮播图管理"]
         S12["收藏/购物车/地址\nMySQL CRUD"]
+        S13["营销系统\n优惠券+活动\n策略模式+工厂模式"]
+        S14["订单与支付\n下单/支付宝支付/担保交易\n退款/纠纷仲裁"]
     end
 
     subgraph Data["数据与基础设施层"]
-        D1[("MySQL\n用户/商家/商品\n购物车/收藏/地址\n管理员/角色/广告")]
+        D1[("MySQL\n用户/商家/商品/订单\n购物车/收藏/地址\n管理员/角色/广告/优惠券")]
         D2[("MongoDB\n商品详情/评论\n浏览记录/聊天消息\n违规/申诉")]
         D3[("Redis\nToken状态/在线状态\n缓存/布隆过滤器\n验证码")]
         D4["文件存储\n头像/商品图片/广告图"]
@@ -247,8 +251,16 @@ flowchart TB
         P2 --> P6["POST /api/shopping_cart_add\n添加购物车"]
         P2 --> P7["POST /api/favorite_add\n收藏商品/店铺"]
         P2 --> P8["打开客服悬浮球\nWebSocket连接"]
+        P2 --> P12["GET /api/user_coupon/available\n商品关联优惠券\n显示领取状态"]
         P9["访问店铺页"] --> P10["GET /api/store_info"]
         P10 --> P11["GET /api/store_commodity_list"]
+    end
+
+    subgraph Promotion["优惠券与活动"]
+        PR1["访问领券中心\n/coupon_center"] --> PR2["GET /api/user_coupon/available\n可领优惠券列表+领取状态"]
+        PR2 --> PR3["POST /api/user_coupon/claim\n领取优惠券"]
+        PR4["访问活动专区\n/activity_zone"] --> PR5["GET /api/user_activity/active\n进行中活动列表"]
+        PR6["我的优惠券\nGET /api/user_coupon/my"]
     end
 
     subgraph Cart["购物车"]
@@ -344,6 +356,14 @@ flowchart TB
         OM4["POST /seller/order/refund_review\n退款审核（同意/拒绝）"]
     end
 
+    subgraph PromotionManage["营销管理"]
+        PM1["优惠券管理\nbuyer_coupon/create/list/status"]
+        PM2["活动管理\nbuyer_activity/create/list"]
+        PM3["加入平台活动\nbuyer_activity/join/quit"]
+        PM4["指定商品选择\n搜索+勾选+活动价/库存"]
+        PM5["店主多店铺切换\nstation=1 选择店铺"]
+    end
+
     subgraph AdApply["广告投放"]
         AD1["POST buyer_ad_apply\n选择商品+标题+描述+天数+广告图"]
         AD2["GET buyer_ad_apply_list\n我的申请记录"]
@@ -395,6 +415,11 @@ flowchart TB
         SS1 --> SS2["审核通过\nmanage_ad_apply_approve\n→ 写入ad_banner\n→ 清除轮播缓存"]
         SS1 --> SS3["驳回\nmanage_ad_apply_reject\n→ 填写驳回原因"]
         SS4["轮播图管理\nmanage_ad_banner_list\nmanage_ad_banner_update\nmanage_ad_banner_delete"]
+    end
+
+    subgraph PromotionAdmin["营销管理"]
+        PA1["优惠券管理\nmanage_coupon/create/list/status\n权限: admin.promotion"]
+        PA2["活动管理\nmanage_activity/create/list/status\n权限: admin.promotion"]
     end
 
     subgraph RefundManage["纠纷管理"]
@@ -511,6 +536,12 @@ flowchart TB
         T16["payment_transactions — 支付流水"]
         T17["escrow_account — 担保账户"]
         T18["refund_requests — 退款申请"]
+        T19["coupons — 优惠券"]
+        T20["user_coupons — 用户领取记录"]
+        T21["coupon_products — 优惠券指定商品"]
+        T22["activities — 活动"]
+        T23["activity_products — 活动商品"]
+        T24["activity_participants — 活动参与商家"]
     end
 
     subgraph MongoDB["MongoDB — 文档数据"]
@@ -607,7 +638,11 @@ flowchart TB
 | **平台纠纷管理** | 纠纷列表、退款详情、平台仲裁 | 权限码 `admin.refund` |
 | **平台 RBAC** | 后台账号、角色、权限、商城用户 | manage_user/role + 权限码 |
 | **广告投放** | 商家申请轮播图广告、平台审核、首页轮播展示 | MySQL ad_apply/ad_banner + Redis 缓存 |
-| **平台系统设置** | 广告设置、轮播图管理、申请审核（后续扩展商城/活动/系统配置） | 权限码 `admin.system_settings` |
+| **营销系统（优惠券）** | 平台/商家创建优惠券，用户领取使用，领券中心，商品详情页领券 | 策略模式 + 工厂模式 |
+|| **营销系统（活动）** | 秒杀/满减/折扣/拼团活动，商家加入平台活动，活动专区 | 策略模式 + 工厂模式 |
+|| **平台营销管理** | 平台创建/管理优惠券与活动，状态控制 | 权限码 `admin.promotion` |
+|| **商家营销管理** | 商家创建店铺优惠券与活动，加入平台活动，指定商品 | 支持多店铺店主选择 |
+|| **平台系统设置** | 广告设置、轮播图管理、申请审核 | 权限码 `admin.system_settings` |
 
 </div>
 
@@ -641,6 +676,12 @@ flowchart TB
 - 📝 **卖家订单管理** - 订单列表（状态筛选 + 关键词搜索 + 分页）、资金明细（担保账户流水）、退款申请列表及审核（同意/拒绝）
 - 🛍️ **买家订单** - 个人中心「我的订单」页面，展示用户全部订单，支持状态筛选、确认收货、申请退款、查看物流
 - ⚖️ **平台纠纷管理** - 平台管理端纠纷列表、退款详情查看、平台仲裁处理（权限码 `admin.refund`）
+- 🎟️ **领券中心** - 用户端独立领券页面，展示所有可领优惠券，显示领取状态（可领取/已领取/已领完）
+- 🔥 **活动专区** - 用户端活动列表页，展示进行中的促销活动及参与商品
+- 🏷️ **商品详情领券** - 商品详情页内嵌可用优惠券条，用户可直接领取店铺/商品关联优惠券
+- 📢 **平台营销管理** - 平台管理端独立「营销管理」页面（路由 `/management_promotion`），管理优惠券与活动（权限码 `admin.promotion`）
+- 🎯 **商家营销管理** - 卖家端营销管理页面，创建优惠券/活动，支持指定商品选择、店主多店铺切换
+- 🔗 **商家加入平台活动** - 商家可浏览平台发布的活动并选择加入或退出
 
 ### 🔧 后端功能亮点
 
@@ -682,6 +723,14 @@ flowchart TB
   - 删除轮播图：`DELETE /api/manage_ad_banner_delete`（清除轮播图缓存）
   - 公共接口（首页轮播）：`GET /api/ad_banner_active`（返回当前生效（启用且在投放期内）的轮播图，最多 10 条，按 `sort_order` 排序，Redis 缓存 120 秒）
   - 数据库迁移：`services/ad_migrate/` 在应用启动时自动建立 `ad_apply` 与 `ad_banner` 表
+- 🎟️ **营销系统服务**（`services/promotion/`）：
+  - 采用**策略模式**（`CouponStrategy` / `ActivityStrategy`）和**工厂模式**（`CouponFactory` / `ActivityFactory`）设计
+  - **优惠券管理**：创建（满减/折扣/固定金额）、上线/暂停/过期状态流转、领取（含每人限领/总量控制）、核销
+  - **活动管理**：创建（秒杀/满减/折扣/拼团）、活动商品管理（活动价/库存）、商家加入/退出平台活动
+  - **平台端路由**：`manage_coupon/*`、`manage_activity/*`（权限码 `admin.promotion`）
+  - **商家端路由**：`buyer_coupon/*`、`buyer_activity/*`（兼容 station=1 多店铺选择 + station=2 店员角色权限）
+  - **用户端路由**：`user_coupon/available`（支持按 mall_id/shopping_id 筛选 + 用户领取状态）、`user_coupon/claim`（领取）、`user_coupon/my`（我的优惠券）、`user_activity/active`（活动列表）
+  - 数据库表：`coupons`、`user_coupons`、`coupon_products`、`activities`、`activity_products`、`activity_coupons`、`activity_participants`
 
 ## 🧠 推荐系统
 
@@ -858,6 +907,7 @@ uv run python -m services.recommend.wide_deep.train
 | `admin.user.role` | 角色与权限配置 | 用户 |
 | `admin.audit_seller` | 商家申请审核页 | 审核 |
 | `admin.business` | 商家详情 | 商家 |
+| `admin.promotion` | 营销管理 | 运营 |
 | `admin.refund` | 纠纷管理 | 运营 |
 | `admin.system_settings` | 系统设置 | 设置 |
 | `admin.pay_config` | 支付配置 | 设置 |
@@ -1070,6 +1120,89 @@ ws://host/api/ws/customer_service/{mall_id}?token=<access_token>&client_type=use
 | 轮播图列表 | GET | `/api/manage_ad_banner_list` | 平台管理已上线轮播图（分页、状态筛选）|
 | 更新轮播图 | PATCH | `/api/manage_ad_banner_update` | 修改排序或启用状态 |
 | 删除轮播图 | DELETE | `/api/manage_ad_banner_delete` | 删除轮播图条目 |
+
+## 🎟️ 营销系统（优惠券与活动）
+
+平台内置完整的营销能力，支持**平台级**和**商家级**优惠券与活动的创建、管理和使用，用户可在领券中心、活动专区、商品详情页领取和使用优惠。
+
+### 架构设计
+
+- **策略模式**：`CouponStrategy`（优惠券策略）和 `ActivityStrategy`（活动策略）分别封装各自的业务逻辑
+- **工厂模式**：`CouponFactory` 和 `ActivityFactory` 负责创建不同类型的优惠券和活动实例
+- 服务入口：`serve/services/promotion/__init__.py`（`PromotionService` 类）
+
+### 优惠券类型
+
+| 类型 | 说明 |
+|------|------|
+| 满减券 | 订单满指定金额后减免固定金额 |
+| 折扣券 | 订单享受折扣比例优惠 |
+| 固定金额券 | 直接减免固定金额，无门槛或低门槛 |
+
+### 活动类型
+
+| 类型 | 说明 |
+|------|------|
+| 秒杀 | 限时限量低价抢购 |
+| 满减 | 满足条件后自动减免 |
+| 折扣 | 指定商品享受折扣价 |
+| 拼团 | 多人拼单享受优惠价格 |
+
+### 优惠券/活动状态流转
+
+```mermaid
+stateDiagram-v2
+    [*] --> 草稿: 创建优惠券/活动\nstatus=draft
+    草稿 --> 生效中: 手动上线\nstatus=active
+    生效中 --> 已暂停: 暂停发放\nstatus=paused
+    已暂停 --> 生效中: 恢复上线
+    生效中 --> 已过期: 到达结束时间\nstatus=expired
+    草稿 --> 已取消: 取消\nstatus=cancelled
+```
+
+### 三端入口
+
+| 端 | 入口 | 功能 |
+|-----|------|------|
+| **用户端** | 领券中心 `/coupon_center` | 查看可领优惠券、一键领取、显示领取状态 |
+| **用户端** | 活动专区 `/activity_zone` | 查看进行中的活动及参与商品 |
+| **用户端** | 商品详情页 | 展示该商品关联的可领优惠券 |
+| **商家端** | 营销管理 `/buyer_promotion_manage` | 创建/管理优惠券和活动，加入平台活动 |
+| **平台端** | 营销管理 `/management_promotion` | 平台级优惠券和活动管理 |
+
+### API 端点
+
+#### 用户端
+
+| 接口 | 方法 | 路径 | 说明 |
+|------|------|------|------|
+| 可用优惠券 | GET | `/api/user_coupon/available` | 支持 mall_id/shopping_id 筛选 + 用户领取状态 |
+| 领取优惠券 | POST | `/api/user_coupon/claim` | 领取，受每人限领和总量限制 |
+| 我的优惠券 | GET | `/api/user_coupon/my` | 用户已领优惠券列表 |
+| 活动列表 | GET | `/api/user_activity/active` | 进行中的活动列表 |
+
+#### 商家端
+
+| 接口 | 方法 | 路径 | 说明 |
+|------|------|------|------|
+| 创建优惠券 | POST | `/api/buyer_coupon/create` | 支持指定商品，mall_id 选择 |
+| 优惠券列表 | GET | `/api/buyer_coupon/list` | 商家优惠券列表 |
+| 更新状态 | POST | `/api/buyer_coupon/status` | 上线/暂停/取消 |
+| 创建活动 | POST | `/api/buyer_activity/create` | 支持指定商品及活动价/库存 |
+| 活动列表 | GET | `/api/buyer_activity/list` | 商家活动列表 |
+| 加入平台活动 | POST | `/api/buyer_activity/join` | 商家加入平台活动 |
+| 退出平台活动 | POST | `/api/buyer_activity/quit` | 商家退出平台活动 |
+
+#### 平台端（权限码 `admin.promotion`）
+
+| 接口 | 方法 | 路径 | 说明 |
+|------|------|------|------|
+| 创建优惠券 | POST | `/api/manage_coupon/create` | 平台级优惠券 |
+| 优惠券列表 | GET | `/api/manage_coupon/list` | 平台优惠券列表 |
+| 更新状态 | POST | `/api/manage_coupon/status` | 上线/暂停/取消 |
+| 创建活动 | POST | `/api/manage_activity/create` | 平台级活动 |
+| 活动列表 | GET | `/api/manage_activity/list` | 平台活动列表 |
+| 更新活动状态 | POST | `/api/manage_activity/status` | 上线/暂停/取消 |
 
 ## 🛍️ 订单与支付系统
 

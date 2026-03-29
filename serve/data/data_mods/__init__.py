@@ -749,6 +749,7 @@ class OrderCreateBody(BaseModel):
     address_id: int = Field(..., ge=1, description="收货地址ID")
     remark: Optional[str] = Field(None, max_length=500, description="买家备注")
     idempotency_key: str = Field(..., min_length=8, max_length=64, description="幂等键，防止重复下单")
+    user_coupon_id: Optional[int] = Field(None, description="用户优惠券ID（可选，使用优惠券时传入）")
 
 class OrderPayBody(BaseModel):
     order_no: str = Field(..., description="订单号")
@@ -845,3 +846,95 @@ class FavoriteListQuery:
         self.page = page
         self.page_size = page_size
         self.search = search
+
+
+# ════════════════════ 优惠券与活动模型 ════════════════════
+
+class CouponProductItem(BaseModel):
+    mall_id: int = Field(..., description="店铺ID")
+    shopping_id: int = Field(..., description="商品ID")
+
+class CouponCreateBody(BaseModel):
+    name: str = Field(..., max_length=200, description="优惠券名称")
+    coupon_type: str = Field(..., pattern=r"^(full_reduction|discount|fixed_amount)$",
+                             description="类型：full_reduction/discount/fixed_amount")
+    discount_value: float = Field(..., gt=0, description="优惠值")
+    min_order_amount: float = Field(0, ge=0, description="最低订单金额")
+    start_time: str = Field(..., description="开始时间 YYYY-MM-DD HH:MM:SS")
+    end_time: str = Field(..., description="结束时间 YYYY-MM-DD HH:MM:SS")
+    scope: str = Field("all_mall", pattern=r"^(all_mall|store|product)$",
+                        description="适用范围")
+    platform_scope: str = Field("all", pattern=r"^(all|merchant_choice)$",
+                                 description="平台控制范围")
+    max_discount: Optional[float] = Field(None, description="最大优惠金额（折扣券用）")
+    total_count: int = Field(0, ge=0, description="发放总量（0=不限）")
+    per_user_limit: int = Field(1, ge=1, description="每人限领")
+    description: Optional[str] = Field(None, max_length=500, description="使用说明")
+    product_ids: Optional[List[CouponProductItem]] = Field(None, description="适用商品列表")
+
+class CouponStatusBody(BaseModel):
+    coupon_id: int = Field(..., description="优惠券ID")
+    status: str = Field(..., pattern=r"^(active|paused|expired)$", description="目标状态")
+
+class CouponListQuery:
+    def __init__(
+        self,
+        issuer_type: Optional[str] = Query(None, description="发布方：platform/merchant"),
+        status: Optional[str] = Query(None, description="状态筛选"),
+        page: int = Query(1, ge=1),
+        page_size: int = Query(20, ge=1, le=50),
+    ):
+        self.issuer_type = issuer_type
+        self.status = status
+        self.page = page
+        self.page_size = page_size
+
+class CouponClaimBody(BaseModel):
+    coupon_id: int = Field(..., description="优惠券ID")
+
+class ActivityProductItem(BaseModel):
+    mall_id: int = Field(..., description="店铺ID")
+    shopping_id: int = Field(..., description="商品ID")
+    specification_id: Optional[int] = Field(None, description="规格ID")
+    activity_price: Optional[float] = Field(None, description="活动价格")
+    activity_stock: Optional[int] = Field(None, description="活动库存限制")
+
+class ActivityCreateBody(BaseModel):
+    name: str = Field(..., max_length=200, description="活动名称")
+    activity_type: str = Field(..., pattern=r"^(flash_sale|full_reduction|discount|group_buy)$",
+                                description="活动类型")
+    start_time: str = Field(..., description="开始时间 YYYY-MM-DD HH:MM:SS")
+    end_time: str = Field(..., description="结束时间 YYYY-MM-DD HH:MM:SS")
+    rules: dict = Field(..., description="活动规则（JSON）")
+    platform_scope: str = Field("all", pattern=r"^(all|merchant_choice)$",
+                                 description="平台控制范围")
+    description: Optional[str] = Field(None, max_length=500, description="活动说明")
+    products: Optional[List[ActivityProductItem]] = Field(None, description="活动商品列表")
+    coupon_ids: Optional[List[int]] = Field(None, description="关联优惠券ID列表")
+
+class ActivityStatusBody(BaseModel):
+    activity_id: int = Field(..., description="活动ID")
+    status: str = Field(..., pattern=r"^(active|paused|ended)$", description="目标状态")
+
+class ActivityListQuery:
+    def __init__(
+        self,
+        issuer_type: Optional[str] = Query(None, description="发起方：platform/merchant"),
+        activity_type: Optional[str] = Query(None, description="活动类型筛选"),
+        status: Optional[str] = Query(None, description="状态筛选"),
+        page: int = Query(1, ge=1),
+        page_size: int = Query(20, ge=1, le=50),
+    ):
+        self.issuer_type = issuer_type
+        self.activity_type = activity_type
+        self.status = status
+        self.page = page
+        self.page_size = page_size
+
+class MerchantJoinActivityBody(BaseModel):
+    activity_id: int = Field(..., description="活动ID")
+    products: List[ActivityProductItem] = Field(..., min_length=1, description="要加入的商品列表")
+
+class MerchantLeaveActivityBody(BaseModel):
+    activity_id: int = Field(..., description="活动ID")
+    shopping_ids: Optional[List[int]] = Field(None, description="要移除的商品ID列表（空=全部移除）")

@@ -29,6 +29,21 @@ function renderChart(data: { date: string; sales: number }[]) {
         setupResize()
     }
 
+    if (!data.length) {
+        chartInstance.clear()
+        chartInstance.setOption({
+            title: {
+                text: '销售额趋势',
+                subtext: '暂无数据',
+                left: 'center',
+                top: 'center',
+                textStyle: { fontSize: 16, fontWeight: 'bold' },
+                subtextStyle: { fontSize: 14, color: '#909399' },
+            },
+        })
+        return
+    }
+
     chartInstance.setOption({
         title: {
             text: '销售额趋势',
@@ -76,8 +91,8 @@ function renderChart(data: { date: string; sales: number }[]) {
 }
 
 watch(() => props.trend, (v) => {
-    if (v && v.length) renderChart(v)
-}, { immediate: true })
+    renderChart(v ?? [])
+}, { immediate: true, deep: true })
 
 function setupResize() {
     if (!chartRef.value || !chartInstance) return

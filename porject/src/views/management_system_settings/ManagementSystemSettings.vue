@@ -17,7 +17,6 @@
             <el-menu-item index="1-1">基础配置</el-menu-item>
             <el-menu-item index="1-2">支付配置</el-menu-item>
             <el-menu-item index="1-3">物流配置</el-menu-item>
-            <el-menu-item index="1-4">会员等级</el-menu-item>
           </el-sub-menu>
 
           <!-- 活动设置 -->
@@ -64,7 +63,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, shallowRef } from 'vue'
+import { ref, shallowRef, type Component } from 'vue'
 import ManagementNavigation from '@/moon/management_navigation.vue'
 import {
   Shop,
@@ -76,14 +75,12 @@ import {
 
 import AdSetting from './content/AdSetting.vue'
 import PaymentConfig from './content/PaymentConfig.vue'
+import CouponManagement from './content/CouponManagement.vue'
+import ActivityManagement from './content/ActivityManagement.vue'
 
 const MallBasicConfig = { template: '<div><h3>商城基础配置</h3><p>这里是商城的基础配置内容</p></div>' }
 const MallLogisticsConfig = { template: '<div><h3>物流配置</h3><p>这里是物流配置内容</p></div>' }
 const MallMemberLevel = { template: '<div><h3>会员等级</h3><p>这里是会员等级配置内容</p></div>' }
-const CouponManagement = { template: '<div><h3>优惠券管理</h3><p>这里是优惠券管理内容</p></div>' }
-const PromotionActivity = { template: '<div><h3>促销活动</h3><p>这里是促销活动配置内容</p></div>' }
-const FlashSaleActivity = { template: '<div><h3>秒杀活动</h3><p>这里是秒杀活动配置内容</p></div>' }
-const FullReductionActivity = { template: '<div><h3>满减活动</h3><p>这里是满减活动配置内容</p></div>' }
 const SystemParameters = { template: '<div><h3>系统参数</h3><p>这里是系统参数配置内容</p></div>' }
 const EmailConfig = { template: '<div><h3>邮件配置</h3><p>这里是邮件配置内容</p></div>' }
 const SmsConfig = { template: '<div><h3>短信配置</h3><p>这里是短信配置内容</p></div>' }
@@ -95,7 +92,7 @@ defineOptions({
 })
 
 const activeIndex = ref('1-1')
-const currentView = shallowRef(MallBasicConfig)
+const currentView = shallowRef<Component>(MallBasicConfig)
 
 function handleMenuSelect(index: string) {
   activeIndex.value = index
@@ -120,13 +117,9 @@ function handleMenuSelect(index: string) {
       currentView.value = CouponManagement
       break
     case '2-2':
-      currentView.value = PromotionActivity
-      break
     case '2-3':
-      currentView.value = FlashSaleActivity
-      break
     case '2-4':
-      currentView.value = FullReductionActivity
+      currentView.value = ActivityManagement
       break
     // 广告设置
     case '3':

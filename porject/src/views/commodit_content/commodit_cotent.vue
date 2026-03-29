@@ -91,6 +91,44 @@
       :shopping-id="commodity.shopping_id"
       :commodity="commodity"
     />
+
+    <!-- 优惠券选择弹窗 -->
+    <el-dialog v-model="couponDialogVisible" title="确认订单 - 选择优惠券" width="520px" destroy-on-close>
+      <div class="order-summary">
+        <p>商品金额：<b>¥{{ pendingOrderAmount.toFixed(2) }}</b></p>
+      </div>
+      <div v-if="usableCoupons.length > 0" class="coupon-select-list">
+        <div v-for="c in usableCoupons" :key="c.user_coupon_id"
+             class="coupon-select-item"
+             :class="{ active: selectedCouponId === c.user_coupon_id }"
+             @click="selectedCouponId = selectedCouponId === c.user_coupon_id ? null : c.user_coupon_id">
+          <div class="cs-left" :class="`cs-bg-${c.coupon_type}`">
+            <template v-if="c.coupon_type === 'discount'">
+              <span class="cs-amount">{{ c.discount_value }}</span><span class="cs-unit">折</span>
+            </template>
+            <template v-else>
+              <span class="cs-unit">¥</span><span class="cs-amount">{{ c.discount_value }}</span>
+            </template>
+          </div>
+          <div class="cs-right">
+            <div class="cs-name">{{ c.name }}</div>
+            <div class="cs-desc">满{{ c.min_order_amount }}元可用 · 预计优惠 ¥{{ c.estimated_discount.toFixed(2) }}</div>
+          </div>
+          <el-icon v-if="selectedCouponId === c.user_coupon_id" class="cs-check"><Select /></el-icon>
+        </div>
+      </div>
+      <el-empty v-else description="暂无可用优惠券" :image-size="60" />
+      <div class="order-pay-summary" v-if="selectedCoupon">
+        <span>优惠：-¥{{ selectedCoupon.estimated_discount.toFixed(2) }}</span>
+        <span class="pay-total">实付：¥{{ (pendingOrderAmount - selectedCoupon.estimated_discount).toFixed(2) }}</span>
+      </div>
+      <template #footer>
+        <el-button @click="couponDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="buyLoading" @click="confirmOrder">
+          {{ selectedCouponId ? '使用优惠券下单' : '不使用优惠券下单' }}
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -174,6 +212,18 @@ const fetchCommodity = async () => {
   }
 }
 
+/* ── 优惠券相关 ── */
+const couponDialogVisible = ref(false)
+const usableCoupons = ref<any[]>([])
+const selectedCouponId = ref<number | null>(null)
+const pendingOrderAmount = ref(0)
+const pendingBuyParams = ref<{ specIndex: number; quantity: number; addressId: number } | null>(null)
+
+const selectedCoupon = computed(() => {
+  if (!selectedCouponId.value) return null
+  return usableCoupons.value.find((c: any) => c.user_coupon_id === selectedCouponId.value) || null
+})
+
 const handleBuy = async ({ specIndex, quantity }: { specIndex: number; quantity: number }) => {
   const token = localStorage.getItem('access_token')
   if (!token) {
@@ -185,7 +235,6 @@ const handleBuy = async ({ specIndex, quantity }: { specIndex: number; quantity:
 
   buyLoading.value = true
   try {
-    // 1. 获取用户默认地址
     const addrRes = await Axios.post('/get_address_apply', new URLSearchParams({ token }))
     if (!addrRes.data?.current || !addrRes.data?.data) {
       ElMessage.warning('请先设置收货地址')
@@ -193,7 +242,6 @@ const handleBuy = async ({ specIndex, quantity }: { specIndex: number; quantity:
       return
     }
 
-    // 2. 获取地址列表找到默认地址 ID
     const listRes = await Axios.post('/get_address', new URLSearchParams({ token }))
     if (!listRes.data?.current) {
       ElMessage.warning('获取地址失败，请重试')
@@ -203,7 +251,6 @@ const handleBuy = async ({ specIndex, quantity }: { specIndex: number; quantity:
     let defaultAddrId: number | null = null
     for (const key of Object.keys(addrList)) {
       const row = addrList[key]
-      // row: [temp_id, address_id, name, phone, save, city, county, address, apply_option]
       if (row[8] === 1) {
         defaultAddrId = row[1]
         break
@@ -215,26 +262,71 @@ const handleBuy = async ({ specIndex, quantity }: { specIndex: number; quantity:
       return
     }
 
-    // 3. 确定 specification_id
+    const specList = commodity.value.specification_list || []
+    const spec = specList[specIndex]
+    const price = spec?.price ?? 0
+    const orderAmount = +(price * quantity).toFixed(2)
+
+    pendingOrderAmount.value = orderAmount
+    pendingBuyParams.value = { specIndex, quantity, addressId: defaultAddrId }
+    selectedCouponId.value = null
+
+    try {
+      const couponRes = await Axios.get('/user_coupon/usable', {
+        params: { mall_id: commodity.value.mall_id, order_amount: orderAmount },
+        headers: getHeaders(),
+      })
+      usableCoupons.value = couponRes.data?.list || []
+    } catch {
+      usableCoupons.value = []
+    }
+
+    couponDialogVisible.value = true
+  } catch (err: unknown) {
+    const status = (err as { response?: { status?: number } })?.response?.status
+    if (status === 401 || status === 403) {
+      ElMessage.warning('请先登录')
+      router.push('/register')
+    } else {
+      ElMessage.error('准备下单失败，请稍后重试')
+    }
+  } finally {
+    buyLoading.value = false
+  }
+}
+
+const confirmOrder = async () => {
+  if (!commodity.value || !pendingBuyParams.value) return
+
+  buyLoading.value = true
+  try {
+    const { specIndex, quantity, addressId } = pendingBuyParams.value
     const specList = commodity.value.specification_list || []
     const spec = specList[specIndex]
     const specificationId = spec?.specification_id ?? specIndex
 
-    // 4. 创建订单
     const idempotencyKey = `buy_${commodity.value.mall_id}_${commodity.value.shopping_id}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
-    const orderRes = await Axios.post('/order/create', {
+    const body: any = {
       items: [{
         mall_id: commodity.value.mall_id,
         shopping_id: commodity.value.shopping_id,
         specification_id: specificationId,
         quantity,
       }],
-      address_id: defaultAddrId,
+      address_id: addressId,
       idempotency_key: idempotencyKey,
-    }, { headers: getHeaders() })
+    }
+    if (selectedCouponId.value) {
+      body.user_coupon_id = selectedCouponId.value
+    }
+
+    const orderRes = await Axios.post('/order/create', body, { headers: getHeaders() })
 
     if (orderRes.data?.success) {
-      ElMessage.success('下单成功，请在15分钟内完成支付')
+      couponDialogVisible.value = false
+      const discount = orderRes.data.coupon_discount
+      const msg = discount ? `下单成功，优惠 ¥${discount.toFixed(2)}，请在15分钟内完成支付` : '下单成功，请在15分钟内完成支付'
+      ElMessage.success(msg)
       router.push('/personal_center?tab=orders')
     } else {
       ElMessage.error(orderRes.data?.msg || '下单失败')
@@ -437,5 +529,70 @@ onMounted(async () => {
   text-align: center;
   color: var(--el-text-color-placeholder);
   font-size: 13px;
+}
+
+/* 优惠券选择弹窗 */
+.order-summary {
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+.coupon-select-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.coupon-select-item {
+  display: flex;
+  align-items: center;
+  border: 2px solid #ebeef5;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  overflow: hidden;
+}
+.coupon-select-item.active {
+  border-color: #409eff;
+}
+.coupon-select-item:hover {
+  border-color: #b3d8ff;
+}
+.cs-left {
+  width: 80px;
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  padding: 12px 8px;
+  color: #fff;
+  flex-shrink: 0;
+}
+.cs-bg-full_reduction { background: linear-gradient(135deg, #ff6b6b, #ee5a24); }
+.cs-bg-discount { background: linear-gradient(135deg, #4834d4, #6c5ce7); }
+.cs-bg-fixed_amount { background: linear-gradient(135deg, #f0932b, #ffbe76); }
+.cs-amount { font-size: 22px; font-weight: bold; }
+.cs-unit { font-size: 12px; }
+.cs-right {
+  flex: 1;
+  padding: 8px 12px;
+}
+.cs-name { font-size: 14px; font-weight: 500; }
+.cs-desc { font-size: 12px; color: #999; margin-top: 2px; }
+.cs-check {
+  margin-right: 12px;
+  color: #409eff;
+  font-size: 20px;
+}
+.order-pay-summary {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 12px;
+  font-size: 14px;
+}
+.pay-total {
+  color: #f56c6c;
+  font-weight: bold;
+  font-size: 16px;
 }
 </style>

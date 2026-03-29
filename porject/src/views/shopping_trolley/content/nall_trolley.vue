@@ -160,6 +160,44 @@
         </div>
       </div>
     </div>
+
+    <!-- 优惠券选择弹窗 -->
+    <el-dialog v-model="couponDialogVisible" title="确认订单 - 选择优惠券" width="520px" destroy-on-close>
+      <div class="order-summary">
+        <p>商品金额：<b>¥{{ cartPendingAmount.toFixed(2) }}</b></p>
+      </div>
+      <div v-if="cartUsableCoupons.length > 0" class="coupon-select-list">
+        <div v-for="c in cartUsableCoupons" :key="c.user_coupon_id"
+             class="coupon-select-item"
+             :class="{ active: cartSelectedCouponId === c.user_coupon_id }"
+             @click="cartSelectedCouponId = cartSelectedCouponId === c.user_coupon_id ? null : c.user_coupon_id">
+          <div class="cs-left" :class="`cs-bg-${c.coupon_type}`">
+            <template v-if="c.coupon_type === 'discount'">
+              <span class="cs-amount">{{ c.discount_value }}</span><span class="cs-unit">折</span>
+            </template>
+            <template v-else>
+              <span class="cs-unit">¥</span><span class="cs-amount">{{ c.discount_value }}</span>
+            </template>
+          </div>
+          <div class="cs-right">
+            <div class="cs-name">{{ c.name }}</div>
+            <div class="cs-desc">满{{ c.min_order_amount }}元可用 · 预计优惠 ¥{{ c.estimated_discount.toFixed(2) }}</div>
+          </div>
+          <el-icon v-if="cartSelectedCouponId === c.user_coupon_id" class="cs-check"><Select /></el-icon>
+        </div>
+      </div>
+      <el-empty v-else description="暂无可用优惠券" :image-size="60" />
+      <div class="order-pay-summary" v-if="cartSelectedCoupon">
+        <span>优惠：-¥{{ cartSelectedCoupon.estimated_discount.toFixed(2) }}</span>
+        <span class="pay-total">实付：¥{{ (cartPendingAmount - cartSelectedCoupon.estimated_discount).toFixed(2) }}</span>
+      </div>
+      <template #footer>
+        <el-button @click="couponDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="settling" @click="confirmCartOrder">
+          {{ cartSelectedCouponId ? '使用优惠券下单' : '不使用优惠券下单' }}
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -426,6 +464,18 @@ const clearAll = async () => {
   }
 }
 
+/* ── 优惠券相关 ── */
+const couponDialogVisible = ref(false)
+const cartUsableCoupons = ref<any[]>([])
+const cartSelectedCouponId = ref<number | null>(null)
+const cartPendingAmount = ref(0)
+const cartPendingAddressId = ref<number | null>(null)
+
+const cartSelectedCoupon = computed(() => {
+  if (!cartSelectedCouponId.value) return null
+  return cartUsableCoupons.value.find((c: any) => c.user_coupon_id === cartSelectedCouponId.value) || null
+})
+
 const handleSettle = async () => {
   const items = selectedList.value
   if (items.length === 0) {
@@ -433,7 +483,6 @@ const handleSettle = async () => {
     return
   }
 
-  // 一个订单只能包含同一店铺的商品
   const mallIds = new Set(items.map(i => i.mall_id))
   if (mallIds.size > 1) {
     ElMessage.warning('一个订单只能包含同一店铺的商品，请分开结算')
@@ -449,7 +498,6 @@ const handleSettle = async () => {
 
   settling.value = true
   try {
-    // 1. 获取默认地址
     const addrRes = await Axios.post('/get_address_apply', new URLSearchParams({ token }))
     if (!addrRes.data?.current || !addrRes.data?.data) {
       ElMessage.warning('请先设置收货地址')
@@ -477,22 +525,58 @@ const handleSettle = async () => {
       return
     }
 
-    // 2. 创建订单
+    const mallId = [...mallIds][0]
+    const orderAmount = +items.reduce((sum, i) => sum + i.price * i.quantity, 0).toFixed(2)
+    cartPendingAmount.value = orderAmount
+    cartPendingAddressId.value = defaultAddrId
+    cartSelectedCouponId.value = null
+
+    try {
+      const couponRes = await Axios.get('/user_coupon/usable', {
+        params: { mall_id: mallId, order_amount: orderAmount },
+        headers: getHeaders(),
+      })
+      cartUsableCoupons.value = couponRes.data?.list || []
+    } catch {
+      cartUsableCoupons.value = []
+    }
+
+    couponDialogVisible.value = true
+  } catch {
+    ElMessage.error('结算准备失败，请稍后重试')
+  } finally {
+    settling.value = false
+  }
+}
+
+const confirmCartOrder = async () => {
+  const items = selectedList.value
+  if (!cartPendingAddressId.value) return
+
+  settling.value = true
+  try {
     const idempotencyKey = `cart_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
-    const orderRes = await Axios.post('/order/create', {
+    const body: any = {
       items: items.map(i => ({
         mall_id: i.mall_id,
         shopping_id: i.shopping_id,
         specification_id: i.specification_id,
         quantity: i.quantity,
       })),
-      address_id: defaultAddrId,
+      address_id: cartPendingAddressId.value,
       idempotency_key: idempotencyKey,
-    }, { headers: getHeaders() })
+    }
+    if (cartSelectedCouponId.value) {
+      body.user_coupon_id = cartSelectedCouponId.value
+    }
+
+    const orderRes = await Axios.post('/order/create', body, { headers: getHeaders() })
 
     if (orderRes.data?.success) {
-      ElMessage.success('下单成功，请在15分钟内完成支付')
-      // 清除已结算的购物车项
+      couponDialogVisible.value = false
+      const discount = orderRes.data.coupon_discount
+      const msg = discount ? `下单成功，优惠 ¥${discount.toFixed(2)}，请在15分钟内完成支付` : '下单成功，请在15分钟内完成支付'
+      ElMessage.success(msg)
       for (const item of items) {
         try {
           await Axios.delete('/shopping_cart_delete', {
@@ -885,4 +969,23 @@ html.dark .qty-input :deep(.el-input-number__increase:hover) {
 html.dark :deep(.el-empty__description) {
   color: var(--vt-c-text-dark-2);
 }
+
+/* 优惠券选择弹窗 */
+.order-summary { margin-bottom: 12px; font-size: 14px; }
+.coupon-select-list { display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; }
+.coupon-select-item { display: flex; align-items: center; border: 2px solid #ebeef5; border-radius: 8px; cursor: pointer; transition: border-color 0.2s; overflow: hidden; }
+.coupon-select-item.active { border-color: #409eff; }
+.coupon-select-item:hover { border-color: #b3d8ff; }
+.cs-left { width: 80px; display: flex; justify-content: center; align-items: baseline; padding: 12px 8px; color: #fff; flex-shrink: 0; }
+.cs-bg-full_reduction { background: linear-gradient(135deg, #ff6b6b, #ee5a24); }
+.cs-bg-discount { background: linear-gradient(135deg, #4834d4, #6c5ce7); }
+.cs-bg-fixed_amount { background: linear-gradient(135deg, #f0932b, #ffbe76); }
+.cs-amount { font-size: 22px; font-weight: bold; }
+.cs-unit { font-size: 12px; }
+.cs-right { flex: 1; padding: 8px 12px; }
+.cs-name { font-size: 14px; font-weight: 500; }
+.cs-desc { font-size: 12px; color: #999; margin-top: 2px; }
+.cs-check { margin-right: 12px; color: #409eff; font-size: 20px; }
+.order-pay-summary { display: flex; justify-content: flex-end; gap: 16px; margin-top: 12px; font-size: 14px; }
+.pay-total { color: #f56c6c; font-weight: bold; font-size: 16px; }
 </style>

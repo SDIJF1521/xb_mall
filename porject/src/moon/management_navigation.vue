@@ -1,6 +1,9 @@
 <template>
   <div class="management-navigation">
-    <h2 :class="titleColor">xb商城后台</h2>
+    <div class="brand">
+      <img src="@/assets/logo.jpg" alt="logo" class="brand-logo" />
+      <h2 :class="titleColor">xb商城后台</h2>
+    </div>
 
     <el-menu
       :default-active="activeIndex"
@@ -11,6 +14,7 @@
       <el-menu-item v-if="pDash" index="1">仪表盘</el-menu-item>
       <el-menu-item v-if="pCommodity" index="2">商品管理</el-menu-item>
       <el-menu-item v-if="pUser" index="3">用户管理</el-menu-item>
+      <el-menu-item v-if="pPromotion" index="6">营销管理</el-menu-item>
       <el-menu-item v-if="pRefund" index="5">纠纷管理</el-menu-item>
       <el-menu-item v-if="pCommodity" index="4">设置</el-menu-item>
     </el-menu>
@@ -51,6 +55,7 @@ const pUser = computed(() =>
     'admin.user.role',
   ]),
 );
+const pPromotion = computed(() => hasAdminPermission('admin.promotion'));
 const pRefund = computed(() => hasAdminPermission('admin.refund'));
 
 const activeIndex = ref('')
@@ -62,6 +67,7 @@ const handleSelect = (index: string) => {
   else if (index === '3') router.push('/user_management');
   else if (index === '4') router.push('/management_system_settings');
   else if (index === '5') router.push('/management_refund');
+  else if (index === '6') router.push('/management_promotion');
 }
 
 // 定义组件名称
@@ -89,6 +95,8 @@ function syncNav(path: string) {
     activeIndex.value = '4';
   else if (path.startsWith('/management_refund'))
     activeIndex.value = '5';
+  else if (path.startsWith('/management_promotion'))
+    activeIndex.value = '6';
 }
 
 watch(
@@ -136,6 +144,18 @@ const toggLeTheme = ref()
   align-items: center;
   justify-content: space-between;
   padding: 0 20px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.brand-logo {
+  height: 36px;
+  width: 36px;
+  border-radius: 8px;
+  object-fit: cover;
 }
 
 .el-menu-center {

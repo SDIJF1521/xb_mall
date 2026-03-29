@@ -11,6 +11,7 @@ export const MANAGE_HOME_ANY = [
   'admin.user.role',
   'admin.audit_seller',
   'admin.business',
+  'admin.promotion',
   'admin.refund',
   'admin.system_settings',
   'admin.pay_config',

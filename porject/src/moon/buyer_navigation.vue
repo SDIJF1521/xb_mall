@@ -50,6 +50,10 @@
                 <el-icon><Box/></el-icon>
                 <span slot="title">物流管理</span>
             </el-menu-item>
+            <el-menu-item index="11">
+                <el-icon><Ticket/></el-icon>
+                <span slot="title">营销管理</span>
+            </el-menu-item>
             <el-menu-item index="10">
                 <el-icon><Promotion/></el-icon>
                 <span slot="title">广告投放</span>
@@ -75,7 +79,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import router from '@/router'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
-import { Eleme, Odometer, Shop, List, Handbag, User, DocumentCopy, Box, Setting, Service, Promotion } from '@element-plus/icons-vue'
+import { Eleme, Odometer, Shop, List, Handbag, User, DocumentCopy, Box, Setting, Service, Promotion, Ticket } from '@element-plus/icons-vue'
 import { useBuyerNavigationStore } from '@/moon/buyer_navigatiom_pinia'
 
 const store = useBuyerNavigationStore()
@@ -132,11 +136,15 @@ onMounted(() => {
             selected.value = '4'; break;
         case '/buyer_cs_select':
             selected.value = '6'; break;
+        case '/buyer_promotion_manage':
+            selected.value = '11'; break;
         default:
             if (route.path.startsWith('/buyer_customer_service')) {
                 selected.value = '6';
             } else if (route.path.startsWith('/buyer_ad_apply')) {
                 selected.value = '10';
+            } else if (route.path.startsWith('/buyer_promotion_manage')) {
+                selected.value = '11';
             }
             break;
         case '/buyer_set':
@@ -165,6 +173,8 @@ const handleSelect = (index: string) => {
         }
     } else if (index === '9') {
         router.push('/buyer_set')
+    } else if (index === '11') {
+        router.push('/buyer_promotion_manage')
     } else if (index === '10') {
         const token = localStorage.getItem('buyer_access_token')
         if (token) {

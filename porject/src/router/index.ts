@@ -44,7 +44,11 @@ import BuyerSet from '@/views/buyer_set/BuyerSet.vue'
 import BuyerOrderManage from '@/views/buyer_order_manage/BuyerOrderManage.vue'
 import ManagementSystemSettings from '@/views/management_system_settings/ManagementSystemSettings.vue'
 import ManagementRefund from '@/views/management_refund/ManagementRefund.vue'
+import ManagementPromotion from '@/views/management_promotion/ManagementPromotion.vue'
 import BuyerAdApply from '@/views/buyer_ad_apply/BuyerAdApply.vue'
+import BuyerPromotionManage from '@/views/buyer_promotion_manage/BuyerPromotionManage.vue'
+import CouponCenter from '@/views/coupon_center/CouponCenter.vue'
+import ActivityZone from '@/views/activity_zone/ActivityZone.vue'
 
 import { setupHeartbeatGuard } from './heartbeatGuard'
 import { setupAuthGuard } from './authGuard';
@@ -315,6 +319,13 @@ const routes: Array<RouteRecordRaw> = [
     component:ManagementSystemSettings,
     meta: { adminPermission: 'admin.system_settings' }
   },
+  // 平台端营销管理
+  {
+    path: '/management_promotion',
+    name: 'ManagementPromotion',
+    component: ManagementPromotion,
+    meta: { adminPermission: 'admin.promotion' }
+  },
   // 平台端纠纷管理
   {
     path: '/management_refund',
@@ -322,11 +333,29 @@ const routes: Array<RouteRecordRaw> = [
     component: ManagementRefund,
     meta: { adminPermission: 'admin.refund' }
   },
+  // 商家端营销管理页
+  {
+    path: '/buyer_promotion_manage',
+    name: 'BuyerPromotionManage',
+    component: BuyerPromotionManage
+  },
   // 商家端广告投放申请页
   {
     path:'/buyer_ad_apply/:id',
     name:'BuyerAdApply',
     component:BuyerAdApply
+  },
+  // C端领券中心
+  {
+    path: '/coupon_center',
+    name: 'CouponCenter',
+    component: CouponCenter
+  },
+  // C端活动专区
+  {
+    path: '/activity_zone',
+    name: 'ActivityZone',
+    component: ActivityZone
   },
   {
     // 404 页面 - 匹配所有未定义的路由

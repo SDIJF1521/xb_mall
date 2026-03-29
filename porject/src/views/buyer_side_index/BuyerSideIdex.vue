@@ -8,6 +8,20 @@
                 </el-header>
                 <el-main>
                     <div class="toolbar">
+                        <el-select
+                            v-if="isOwner && storeList.length >= 1"
+                            v-model="selectedMallId"
+                            placeholder="选择店铺"
+                            style="width: 200px"
+                            @change="onStoreChange"
+                        >
+                            <el-option
+                                v-for="s in storeList"
+                                :key="s.id"
+                                :label="s.mall_name"
+                                :value="s.id"
+                            />
+                        </el-select>
                         <el-select v-model="period" placeholder="选择时间范围" style="width: 200px" @change="fetchDashboard">
                             <el-option
                                 v-for="item in periodOptions"
@@ -69,12 +83,58 @@ const dashData = reactive<DashData>({
     recent_orders: [],
 })
 
+const isOwner = ref(false)
+const storeList = ref<{ id: number; mall_name: string }[]>([])
+const selectedMallId = ref<number | null>(null)
+
+function decodeTokenPayload(token: string): Record<string, any> | null {
+    try {
+        const parts = token.split('.')
+        if (parts.length < 2) return null
+        const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+        return JSON.parse(atob(payload))
+    } catch {
+        return null
+    }
+}
+
+async function loadStoreList() {
+    const token = localStorage.getItem('buyer_access_token')
+    if (!token) return
+    const payload = decodeTokenPayload(token)
+    if (!payload || String(payload.station) !== '1') return
+    isOwner.value = true
+    try {
+        const form = new FormData()
+        form.append('token', token)
+        const res = await Axios.post('/get_mall_name', form)
+        if (res.data?.mall_name?.length) {
+            storeList.value = res.data.mall_name
+            selectedMallId.value = storeList.value[0].id
+        }
+    } catch (e) {
+        console.error('加载店铺列表失败', e)
+    }
+}
+
+function mallParam(): Record<string, any> {
+    const p: Record<string, any> = {}
+    if (isOwner.value && selectedMallId.value != null) {
+        p.mall_id = selectedMallId.value
+    }
+    return p
+}
+
+function onStoreChange() {
+    fetchDashboard()
+}
+
 async function fetchDashboard() {
     const token = localStorage.getItem('buyer_access_token')
     if (!token) return
     try {
         const res = await Axios.get('/seller/dashboard/summary', {
-            params: { period: period.value },
+            params: { period: period.value, ...mallParam() },
             headers: { 'Access-Token': token },
         })
         if (res.data?.success) {
@@ -82,9 +142,18 @@ async function fetchDashboard() {
             dashData.pie = res.data.pie || []
             dashData.trend = res.data.trend || []
             dashData.recent_orders = res.data.recent_orders || []
+        } else {
+            dashData.cards = undefined
+            dashData.pie = []
+            dashData.trend = []
+            dashData.recent_orders = []
         }
     } catch (e) {
         console.error('仪表盘数据加载失败', e)
+        dashData.cards = undefined
+        dashData.pie = []
+        dashData.trend = []
+        dashData.recent_orders = []
     }
 }
 
@@ -94,7 +163,7 @@ async function exportReport() {
     exporting.value = true
     try {
         const res = await Axios.get('/seller/dashboard/export', {
-            params: { period: period.value },
+            params: { period: period.value, ...mallParam() },
             headers: { 'Access-Token': token },
             responseType: 'blob',
         })
@@ -119,8 +188,9 @@ async function exportReport() {
     }
 }
 
-onMounted(() => {
+onMounted(async () => {
     new BuyerTheme().initTheme()
+    await loadStoreList()
     fetchDashboard()
 })
 </script>

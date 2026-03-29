@@ -42,6 +42,11 @@
                       <el-icon><Clock /></el-icon>
                       <template #title>浏览历史</template>
                     </el-menu-item>
+                    <!--我的优惠券-->
+                    <el-menu-item index="8" @mouseenter="handleMouseEnter('8')">
+                      <el-icon><Ticket /></el-icon>
+                      <template #title>我的优惠券</template>
+                    </el-menu-item>
                     <!--客服消息-->
                     <el-menu-item index="6" @mouseenter="handleMouseEnter('6')">
                       <el-badge :value="csUnreadCount" :hidden="csUnreadCount === 0" :max="99" class="cs-menu-badge">
@@ -80,6 +85,7 @@ import Set from './content/set.vue'
 import BrowsingHistory from './content/browsing_history.vue'
 import CenterCsMessages from './content/center_cs_messages.vue'
 import CenterOrders from './content/center_orders.vue'
+import CenterCoupons from './content/center_coupons.vue'
 
 export default {
   name: 'Center',
@@ -103,7 +109,8 @@ export default {
     Set,
     BrowsingHistory,
     CenterCsMessages,
-    CenterOrders
+    CenterOrders,
+    CenterCoupons
   },
   setup() {
     const url = 'http://127.0.0.1:8000/api';
@@ -140,6 +147,8 @@ export default {
       this.selectedType = '6';
     } else if (this.$route.query.tab === 'orders') {
       this.selectedType = '7';
+    } else if (this.$route.query.tab === 'coupons') {
+      this.selectedType = '8';
     }
   },
   computed: {
@@ -157,6 +166,7 @@ export default {
         '5': 'BrowsingHistory',
         '6': 'CenterCsMessages',
         '7': 'CenterOrders',
+        '8': 'CenterCoupons',
       }
       if (this.hoverType && map[this.hoverType]) return map[this.hoverType]
       if (!this.hoverType && this.selectedType && map[this.selectedType]) return map[this.selectedType]

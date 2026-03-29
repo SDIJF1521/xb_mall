@@ -5,6 +5,11 @@
     mode="horizontal"
     @select="handleSelect"
   >
+    <router-link to="/" class="nav-brand">
+      <img src="@/assets/logo.jpg" alt="logo" class="nav-brand-logo" />
+      <span class="nav-brand-title">XB商城</span>
+    </router-link>
+
     <!-- 首页 -->
     <router-link to="/" custom>
       <template #default="{ navigate, isActive }">
@@ -27,6 +32,32 @@
           index="2"
         >
           商城
+        </el-menu-item>
+      </template>
+    </router-link>
+
+    <!-- 领券中心 -->
+    <router-link to="/coupon_center" custom>
+      <template #default="{ navigate, isActive }">
+        <el-menu-item
+          :class="{ 'is-active': isActive }"
+          @click="navigate"
+          index="5"
+        >
+          领券
+        </el-menu-item>
+      </template>
+    </router-link>
+
+    <!-- 活动专区 -->
+    <router-link to="/activity_zone" custom>
+      <template #default="{ navigate, isActive }">
+        <el-menu-item
+          :class="{ 'is-active': isActive }"
+          @click="navigate"
+          index="6"
+        >
+          活动
         </el-menu-item>
       </template>
     </router-link>
@@ -103,6 +134,8 @@ export default {
         case '/mall': return '2';
         case '/shopping_trolley': return '3';
         case '/personal_center': return isCsTab.value ? '4-2' : '4-1';
+        case '/coupon_center': return '5';
+        case '/activity_zone': return '6';
         default: return '';
       }
     });
@@ -165,6 +198,33 @@ export default {
 /* 主题切换开关样式 */
 .theme-switch {
   margin-left: 20px;
+}
+
+/* 品牌 Logo + 标题 */
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 20px 0 8px;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.nav-brand-logo {
+  height: 36px;
+  width: 36px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+.nav-brand-title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  background: linear-gradient(135deg, #409eff, #7b2ff7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  white-space: nowrap;
 }
 
 /* 菜单居中显示 */

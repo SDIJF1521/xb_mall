@@ -168,6 +168,13 @@ from routes.seller_order import router as seller_order_router
 from routes.seller_dashboard import router as seller_dashboard_router
 from routes.manage_refund import router as manage_refund_router
 
+from routes.manage_coupon import router as manage_coupon_router
+from routes.manage_activity import router as manage_activity_router
+from routes.buyer_coupon import router as buyer_coupon_router
+from routes.buyer_activity import router as buyer_activity_router
+from routes.user_coupon import router as user_coupon_router
+from routes.user_activity import router as user_activity_router
+
 from routes.user_list import router as user_list_router
 from routes.today_user_list import router as today_user_list_router
 from routes.number_merchants import router as number_merchants_router
@@ -412,6 +419,10 @@ async def lifespan(app: FastAPI):
         from services.order_migrate import run_order_migration
         await run_order_migration(db_pool)
         logger.info("订单模块表结构已检查")
+
+        from services.promotion_migrate import run_promotion_migration
+        await run_promotion_migration(db_pool)
+        logger.info("优惠券与活动模块表结构已检查")
 
         # 初始化布隆过滤器管理器
         logger.info("正在初始化布隆过滤器管理器...")
@@ -1037,3 +1048,21 @@ app.include_router(seller_dashboard_router, prefix='/api')
 
 # 平台端纠纷管理路由
 app.include_router(manage_refund_router, prefix='/api')
+
+# 平台端优惠券管理路由
+app.include_router(manage_coupon_router, prefix='/api')
+
+# 平台端活动管理路由
+app.include_router(manage_activity_router, prefix='/api')
+
+# 商家端优惠券管理路由
+app.include_router(buyer_coupon_router, prefix='/api')
+
+# 商家端活动管理路由
+app.include_router(buyer_activity_router, prefix='/api')
+
+# C端用户优惠券路由
+app.include_router(user_coupon_router, prefix='/api')
+
+# C端用户活动路由
+app.include_router(user_activity_router, prefix='/api')

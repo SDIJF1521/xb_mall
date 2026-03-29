@@ -90,6 +90,7 @@ async def create_order(
         result = await svc.create_order(
             user=user, items=data.items, address_id=data.address_id,
             remark=data.remark, idempotency_key=data.idempotency_key,
+            user_coupon_id=data.user_coupon_id,
         )
         return {"code": 200 if result["success"] else 400, **result}
     except Exception as e:

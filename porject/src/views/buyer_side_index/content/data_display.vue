@@ -38,12 +38,11 @@ const cardList = ref([
 ])
 
 watch(() => props.cards, (v) => {
-    if (!v) return
     cardList.value = [
-        { name: '商品总数', value: v.product_count },
-        { name: '订单总数', value: v.order_count },
-        { name: '销售额', value: v.total_sales },
-        { name: '待处理退款', value: v.pending_refund },
+        { name: '商品总数', value: v?.product_count ?? 0 },
+        { name: '订单总数', value: v?.order_count ?? 0 },
+        { name: '销售额', value: v?.total_sales ?? 0 },
+        { name: '待处理退款', value: v?.pending_refund ?? 0 },
     ]
 }, { immediate: true })
 
@@ -67,6 +66,21 @@ function renderPie(data: { name: string; value: number }[]) {
             useDirtyRect: false,
         })
         setupResize()
+    }
+
+    if (!data.length) {
+        chartInstance.clear()
+        chartInstance.setOption({
+            title: {
+                text: '订单状态分布',
+                subtext: '暂无数据',
+                left: 'center',
+                top: 'center',
+                textStyle: { fontSize: 22, fontWeight: 'bold', color: '#303133' },
+                subtextStyle: { fontSize: 14, color: '#909399' },
+            },
+        })
+        return
     }
 
     const seriesData = data.map(d => ({
@@ -126,8 +140,8 @@ function renderPie(data: { name: string; value: number }[]) {
 }
 
 watch(() => props.pie, (v) => {
-    if (v && v.length) renderPie(v)
-}, { immediate: true })
+    renderPie(v ?? [])
+}, { immediate: true, deep: true })
 
 function setupResize() {
     if (!pieChart.value || !chartInstance) return

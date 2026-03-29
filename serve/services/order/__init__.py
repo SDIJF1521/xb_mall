@@ -179,7 +179,8 @@ class OrderService:
     # ════════════════════ 创建订单 ════════════════════
 
     async def create_order(self, user: str, items: list, address_id: int,
-                           remark: str | None, idempotency_key: str) -> dict:
+                           remark: str | None, idempotency_key: str,
+                           user_coupon_id: int | None = None) -> dict:
         existing = await self._check_idempotency(idempotency_key, "order")
         if existing:
             return {"success": True, "msg": "订单已创建（幂等）", "order_no": existing}
@@ -277,12 +278,62 @@ class OrderService:
 
         total_amount = round(total_amount, 2)
 
+        coupon_discount = 0
+        actual_amount = total_amount
+        if user_coupon_id:
+            from services.promotion import PromotionService
+            from services.promotion.strategy import get_coupon_strategy
+
+            promo_svc = PromotionService(self.db)
+            uc_rows = await self.db.execute_query(
+                """SELECT uc.id, uc.coupon_id, uc.status, c.coupon_type,
+                          c.scope, c.min_order_amount, c.discount_value,
+                          c.max_discount, c.status AS c_status, c.mall_id,
+                          c.start_time, c.end_time
+                   FROM user_coupons uc
+                   JOIN coupons c ON c.id = uc.coupon_id
+                   WHERE uc.id = %s AND uc.user = %s""",
+                (user_coupon_id, user),
+            )
+            if not uc_rows:
+                return {"success": False, "msg": "优惠券不存在"}
+
+            uc = uc_rows[0]
+            if uc[2] != "unused":
+                return {"success": False, "msg": "优惠券已使用或已过期"}
+            if uc[8] != "active":
+                return {"success": False, "msg": "优惠券已失效"}
+
+            now = datetime.now()
+            if now < uc[10] or now > uc[11]:
+                return {"success": False, "msg": "优惠券不在有效期内"}
+
+            scope = uc[4]
+            coupon_mall = uc[9]
+            if scope == "store" and coupon_mall != mall_id:
+                return {"success": False, "msg": "该优惠券不适用于此店铺"}
+            if scope == "product" and coupon_mall != mall_id:
+                return {"success": False, "msg": "该优惠券不适用于此店铺商品"}
+
+            if total_amount < float(uc[5]):
+                return {"success": False, "msg": f"订单金额未达到优惠券最低消费 ¥{float(uc[5]):.2f}"}
+
+            strategy = get_coupon_strategy(uc[3])
+            coupon_discount = float(strategy.calculate_discount(
+                Decimal(str(total_amount)),
+                {"min_order_amount": float(uc[5]), "discount_value": float(uc[6]),
+                 "max_discount": float(uc[7]) if uc[7] else None},
+            ))
+            actual_amount = round(total_amount - coupon_discount, 2)
+            if actual_amount < 0.01:
+                actual_amount = 0.01
+
         await self.db.execute_query(
             """INSERT INTO orders
                (order_no, user, mall_id, total_amount, status, address_id,
                 receiver_name, receiver_phone, receiver_addr, remark, version, expire_at)
                VALUES (%s, %s, %s, %s, 'pending', %s, %s, %s, %s, %s, 0, %s)""",
-            (order_no, user, mall_id, total_amount, address_id,
+            (order_no, user, mall_id, actual_amount, address_id,
              receiver_name, receiver_phone, receiver_addr, remark,
              expire_at.strftime("%Y-%m-%d %H:%M:%S")),
         )
@@ -303,15 +354,24 @@ class OrderService:
                  oi["price"], oi["quantity"], oi["subtotal"]),
             )
 
+        if user_coupon_id and coupon_discount > 0:
+            from services.promotion import PromotionService
+            promo_svc = PromotionService(self.db)
+            await promo_svc.use_coupon(user_coupon_id, user, order_no)
+
         await self._set_idempotency(idempotency_key, "order", order_no, ttl=1800)
 
-        return {
+        result_data = {
             "success": True,
             "msg": "下单成功",
             "order_no": order_no,
-            "total_amount": total_amount,
+            "total_amount": actual_amount,
             "expire_at": expire_at.strftime("%Y-%m-%d %H:%M:%S"),
         }
+        if coupon_discount > 0:
+            result_data["original_amount"] = total_amount
+            result_data["coupon_discount"] = coupon_discount
+        return result_data
 
     # ════════════════════ 支付订单（生成支付宝跳转表单） ════════════════════
 
