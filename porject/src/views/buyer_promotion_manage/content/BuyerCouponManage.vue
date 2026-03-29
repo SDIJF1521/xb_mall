@@ -110,58 +110,111 @@
         </el-form-item>
         <el-form-item v-if="form.scope === 'product'" label="选择商品" required>
           <div class="product-picker">
+            <!-- 搜索栏 -->
             <div class="product-picker__search">
               <el-input
                 v-model="productSearch"
                 placeholder="搜索商品名称"
                 clearable
                 style="width: 240px"
-                @keyup.enter="searchProducts"
+                @keyup.enter="loadShopProducts()"
               />
-              <el-button type="primary" size="default" @click="searchProducts">搜索</el-button>
-              <el-button size="default" @click="searchProducts('')">全部</el-button>
+              <el-button type="primary" size="default" @click="loadShopProducts()">搜索</el-button>
+              <el-button size="default" @click="loadShopProducts(true)">全部</el-button>
             </div>
+
+            <!-- 商品列表（带规格展开） -->
             <div v-if="productSearching" class="product-picker__loading">
               <el-skeleton :rows="2" animated />
             </div>
             <div v-else-if="productOptions.length" class="product-picker__list">
-              <div
-                v-for="p in productOptions"
-                :key="p.id"
-                class="product-picker__item"
-                :class="{ 'is-selected': selectedProducts.some(s => s.shopping_id === p.id) }"
-                @click="toggleProduct(p)"
-              >
-                <el-image
-                  v-if="p.img"
-                  :src="'data:image/png;base64,' + p.img"
-                  fit="cover"
-                  class="product-picker__img"
-                />
-                <div v-else class="product-picker__img product-picker__img--empty">
-                  <el-icon><Goods /></el-icon>
+              <div v-for="p in productOptions" :key="p.shopping_id" class="product-picker__item-wrap">
+                <!-- 商品行 -->
+                <div
+                  class="product-picker__item"
+                  :class="{ 'is-partially': isProductPartiallySelected(p), 'is-selected': isProductFullySelected(p) }"
+                  @click="toggleExpandProduct(p)"
+                >
+                  <el-image
+                    v-if="p.img"
+                    :src="'data:image/png;base64,' + p.img"
+                    fit="cover"
+                    class="product-picker__img"
+                  />
+                  <div v-else class="product-picker__img product-picker__img--empty">
+                    <el-icon><Goods /></el-icon>
+                  </div>
+                  <div class="product-picker__info">
+                    <div class="product-picker__name">{{ p.name }}</div>
+                    <div class="product-picker__id">
+                      ID: {{ p.shopping_id }}
+                      <span v-if="p.specifications?.length" class="spec-count">{{ p.specifications.length }} 个规格</span>
+                    </div>
+                  </div>
+                  <div class="product-picker__actions">
+                    <!-- 无规格：直接勾选整个商品 -->
+                    <el-checkbox
+                      v-if="!p.specifications?.length"
+                      :model-value="isWholeProductSelected(p)"
+                      @change="toggleWholeProduct(p)"
+                      @click.stop
+                    />
+                    <!-- 有规格：展开箭头 -->
+                    <el-icon v-else :style="expandedProduct === p.shopping_id ? 'transform:rotate(90deg)' : ''" style="transition:transform 0.2s">
+                      <ArrowRight />
+                    </el-icon>
+                  </div>
                 </div>
-                <div class="product-picker__info">
-                  <div class="product-picker__name">{{ p.name }}</div>
-                  <div class="product-picker__id">ID: {{ p.id }}</div>
+
+                <!-- 规格展开列表 -->
+                <div v-if="p.specifications?.length && expandedProduct === p.shopping_id" class="product-picker__specs">
+                  <div
+                    v-for="sp in p.specifications"
+                    :key="sp.specification_id"
+                    class="product-picker__spec-row"
+                    @click="toggleSpec(p, sp)"
+                  >
+                    <el-checkbox
+                      :model-value="isSpecSelected(p.shopping_id, sp.specification_id)"
+                      @change="toggleSpec(p, sp)"
+                      @click.stop
+                    />
+                    <span class="spec-name">{{ sp.name }}</span>
+                    <span class="spec-price">¥{{ sp.price }}</span>
+                    <span class="spec-stock">库存 {{ sp.stock }}</span>
+                  </div>
+                  <div class="product-picker__spec-actions">
+                    <el-link type="primary" size="small" @click.stop="selectAllSpecs(p)">全选规格</el-link>
+                    <el-link size="small" @click.stop="deselectAllSpecs(p)" style="margin-left: 8px">清除</el-link>
+                  </div>
                 </div>
-                <el-icon v-if="selectedProducts.some(s => s.shopping_id === p.id)" class="product-picker__check"><CircleCheckFilled /></el-icon>
               </div>
             </div>
             <div v-else-if="productSearched" class="product-picker__empty">
               <el-empty description="未找到商品" :image-size="60" />
             </div>
+
+            <!-- 已选规格区 -->
             <div v-if="selectedProducts.length" class="product-picker__selected">
-              <div class="product-picker__selected-title">已选 {{ selectedProducts.length }} 件商品</div>
-              <el-tag
-                v-for="(sp, i) in selectedProducts"
-                :key="sp.shopping_id"
-                closable
-                style="margin: 2px 4px"
-                @close="selectedProducts.splice(i, 1)"
-              >
-                {{ sp.name }} ({{ sp.shopping_id }})
-              </el-tag>
+              <div class="product-picker__selected-title">
+                已选 {{ selectedProducts.length }} 条（规格/商品）
+              </div>
+              <div class="selected-tags">
+                <div
+                  v-for="(sp, i) in selectedProducts"
+                  :key="`${sp.shopping_id}-${sp.specification_id}`"
+                  class="selected-tag-item"
+                >
+                  <el-tag
+                    closable
+                    :type="sp.specification_id ? 'success' : ''"
+                    @close="selectedProducts.splice(i, 1)"
+                  >
+                    {{ sp.product_name }}
+                    <span v-if="sp.spec_name"> · {{ sp.spec_name }}</span>
+                  </el-tag>
+                </div>
+              </div>
             </div>
           </div>
         </el-form-item>
@@ -200,6 +253,19 @@
           <el-descriptions-item label="创建时间">{{ detail.created_at?.slice(0, 16) }}</el-descriptions-item>
           <el-descriptions-item v-if="detail.description" label="说明" :span="2">{{ detail.description }}</el-descriptions-item>
         </el-descriptions>
+
+        <div v-if="detail.products?.length" style="margin-top: 16px">
+          <h4 style="margin-bottom: 8px">适用商品 ({{ detail.products.length }})</h4>
+          <el-table :data="detail.products" size="small" stripe>
+            <el-table-column prop="shopping_id" label="商品ID" width="100" />
+            <el-table-column label="规格" width="120">
+              <template #default="{ row }">
+                <el-tag v-if="row.specification_id" size="small" type="success">规格 {{ row.specification_id }}</el-tag>
+                <span v-else style="color: var(--el-text-color-placeholder); font-size: 12px">全部规格</span>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
       </template>
     </el-dialog>
   </div>
@@ -209,7 +275,7 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
-import { Plus, Refresh, Goods, CircleCheckFilled } from '@element-plus/icons-vue'
+import { Plus, Refresh, Goods, CircleCheckFilled, ArrowRight } from '@element-plus/icons-vue'
 
 defineOptions({ name: 'BuyerCouponManage' })
 
@@ -239,41 +305,41 @@ const form = ref<any>({
   timeRange: null, description: '',
 })
 
+interface SelectedItem {
+  mall_id: number
+  shopping_id: number
+  product_name: string
+  specification_id: number | null
+  spec_name: string
+}
+
 const productSearch = ref('')
 const productOptions = ref<any[]>([])
 const productSearching = ref(false)
 const productSearched = ref(false)
-const selectedProducts = ref<{ mall_id: number; shopping_id: number; name: string }[]>([])
+const expandedProduct = ref<number | null>(null)
+const selectedProducts = ref<SelectedItem[]>([])
 
 function onScopeChange() {
   if (form.value.scope === 'product') {
     selectedProducts.value = []
     productOptions.value = []
     productSearched.value = false
-    searchProducts('')
+    expandedProduct.value = null
+    loadShopProducts(true)
   }
 }
 
-async function searchProducts(keyword?: string) {
-  const mallId = props.mallId
-  if (!mallId) return ElMessage.warning('未选择店铺')
-
+async function loadShopProducts(clear?: boolean) {
+  if (!props.mallId) return ElMessage.warning('未选择店铺')
+  if (clear) productSearch.value = ''
   productSearching.value = true
   productSearched.value = false
   try {
-    const params: Record<string, any> = { stroe_id: mallId, page: 1 }
-    const kw = keyword !== undefined ? keyword : productSearch.value
-    if (kw?.trim()) params.select = kw.trim()
-    const { data } = await API.get('/buyer_get_commoidt', { params, headers: { 'access-token': token } })
-    if (data.success && data.data) {
-      productOptions.value = data.data.map((p: any) => ({
-        id: p.id,
-        name: p.name,
-        img: p.img_list?.[0] || null,
-      }))
-    } else {
-      productOptions.value = []
-    }
+    const params: Record<string, any> = { page: 1, page_size: 50, ...mallParam() }
+    if (productSearch.value.trim()) params.search = productSearch.value.trim()
+    const { data } = await API.get('/buyer_activity/shop_products', { params, headers })
+    productOptions.value = data.current ? (data.data || []) : []
   } catch {
     ElMessage.error('搜索商品失败')
     productOptions.value = []
@@ -283,13 +349,63 @@ async function searchProducts(keyword?: string) {
   }
 }
 
-function toggleProduct(p: any) {
-  const idx = selectedProducts.value.findIndex(s => s.shopping_id === p.id)
-  if (idx >= 0) {
-    selectedProducts.value.splice(idx, 1)
+// ── 整体商品（无规格）选择 ──
+function isWholeProductSelected(p: any) {
+  return selectedProducts.value.some(s => s.shopping_id === p.shopping_id && s.specification_id === null)
+}
+function toggleWholeProduct(p: any) {
+  if (isWholeProductSelected(p)) {
+    selectedProducts.value = selectedProducts.value.filter(s => s.shopping_id !== p.shopping_id)
   } else {
-    selectedProducts.value.push({ mall_id: props.mallId!, shopping_id: p.id, name: p.name })
+    selectedProducts.value = selectedProducts.value.filter(s => s.shopping_id !== p.shopping_id)
+    selectedProducts.value.push({
+      mall_id: props.mallId!, shopping_id: p.shopping_id,
+      product_name: p.name, specification_id: null, spec_name: '',
+    })
   }
+}
+
+// ── 规格选择 ──
+function isSpecSelected(shopping_id: number, spec_id: number) {
+  return selectedProducts.value.some(s => s.shopping_id === shopping_id && s.specification_id === spec_id)
+}
+function toggleSpec(p: any, sp: any) {
+  if (isSpecSelected(p.shopping_id, sp.specification_id)) {
+    selectedProducts.value = selectedProducts.value.filter(
+      s => !(s.shopping_id === p.shopping_id && s.specification_id === sp.specification_id)
+    )
+  } else {
+    selectedProducts.value.push({
+      mall_id: props.mallId!, shopping_id: p.shopping_id,
+      product_name: p.name, specification_id: sp.specification_id, spec_name: sp.name,
+    })
+  }
+}
+function selectAllSpecs(p: any) {
+  for (const sp of p.specifications || []) {
+    if (!isSpecSelected(p.shopping_id, sp.specification_id)) {
+      selectedProducts.value.push({
+        mall_id: props.mallId!, shopping_id: p.shopping_id,
+        product_name: p.name, specification_id: sp.specification_id, spec_name: sp.name,
+      })
+    }
+  }
+}
+function deselectAllSpecs(p: any) {
+  selectedProducts.value = selectedProducts.value.filter(s => s.shopping_id !== p.shopping_id)
+}
+function isProductPartiallySelected(p: any) {
+  if (!p.specifications?.length) return false
+  const cnt = p.specifications.filter((sp: any) => isSpecSelected(p.shopping_id, sp.specification_id)).length
+  return cnt > 0 && cnt < p.specifications.length
+}
+function isProductFullySelected(p: any) {
+  if (!p.specifications?.length) return isWholeProductSelected(p)
+  return p.specifications.every((sp: any) => isSpecSelected(p.shopping_id, sp.specification_id))
+}
+function toggleExpandProduct(p: any) {
+  if (!p.specifications?.length) return
+  expandedProduct.value = expandedProduct.value === p.shopping_id ? null : p.shopping_id
 }
 
 const detailVisible = ref(false)
@@ -339,6 +455,7 @@ function openCreateDialog() {
   productOptions.value = []
   productSearched.value = false
   productSearch.value = ''
+  expandedProduct.value = null
   createVisible.value = true
 }
 
@@ -363,7 +480,9 @@ async function submitCreate() {
     }
     if (f.scope === 'product') {
       body.product_ids = selectedProducts.value.map(s => ({
-        mall_id: s.mall_id, shopping_id: s.shopping_id,
+        mall_id: s.mall_id,
+        shopping_id: s.shopping_id,
+        specification_id: s.specification_id ?? undefined,
       }))
     }
     const { data } = await API.post('/buyer_coupon/create', body, { params: mallParam(), headers })
@@ -481,6 +600,41 @@ onMounted(() => loadList(1))
 .product-picker__id { font-size: 11px; color: var(--el-text-color-placeholder); }
 .product-picker__check { color: var(--el-color-primary); font-size: 18px; }
 .product-picker__empty { padding: 12px 0; }
+.product-picker__actions { display: flex; align-items: center; gap: 6px; margin-left: auto; flex-shrink: 0; }
+.product-picker__item-wrap { margin-bottom: 2px; border-radius: 6px; overflow: hidden; }
+.product-picker__item.is-partially { background: var(--el-color-warning-light-9); }
+.spec-count { font-size: 10px; color: var(--el-color-primary); margin-left: 4px; }
+
+.product-picker__specs {
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  padding: 6px 8px 4px 44px;
+}
+.product-picker__spec-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.12s;
+  &:hover { background: var(--el-fill-color); }
+}
+.spec-name { font-size: 13px; flex: 1; }
+.spec-price { font-size: 12px; color: var(--el-color-danger); font-weight: 500; }
+.spec-stock { font-size: 11px; color: var(--el-text-color-placeholder); }
+.product-picker__spec-actions {
+  display: flex;
+  padding: 4px 0 2px;
+  border-top: 1px dashed var(--el-border-color-lighter);
+  margin-top: 4px;
+}
+
+.selected-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.selected-tag-item { display: inline-flex; }
+
 .product-picker__selected {
   margin-top: 12px;
   padding: 10px;

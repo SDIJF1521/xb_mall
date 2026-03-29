@@ -60,7 +60,9 @@ class PromotionService:
         if product_ids:
             for p in product_ids:
                 await self.db.execute_query(
-                    "INSERT INTO coupon_products (coupon_id, mall_id, shopping_id) VALUES (%s,%s,%s)",
+                    """INSERT IGNORE INTO coupon_products
+                       (coupon_id, mall_id, shopping_id)
+                       VALUES (%s, %s, %s)""",
                     (coupon_id, p["mall_id"], p["shopping_id"]),
                 )
 
@@ -195,7 +197,8 @@ class PromotionService:
             (coupon_id,),
         )
         detail["products"] = [
-            {"mall_id": p[0], "shopping_id": p[1]} for p in (products or [])
+            {"mall_id": p[0], "shopping_id": p[1]}
+            for p in (products or [])
         ]
         return {"success": True, "data": detail}
 
@@ -325,8 +328,13 @@ class PromotionService:
         )
         activity_id = act_row[0][0]
 
+        activity_type = data["activity_type"]
+        # 规则定价（discount_rate）和购物车级满减：activity_price 存 NULL，由规则计算
+        price_by_rule = activity_type in self._RULE_PRICED_TYPES or activity_type in self._CART_LEVEL_TYPES
+
         joined_by = data["issuer_type"]
         for p in products:
+            stored_price = None if price_by_rule else p.get("activity_price")
             await self.db.execute_query(
                 """INSERT INTO activity_products
                    (activity_id, mall_id, shopping_id, specification_id,
@@ -334,7 +342,7 @@ class PromotionService:
                    VALUES (%s,%s,%s,%s,%s,%s,%s)""",
                 (
                     activity_id, p["mall_id"], p["shopping_id"],
-                    p.get("specification_id"), p.get("activity_price"),
+                    p.get("specification_id"), stored_price,
                     p.get("activity_stock"), joined_by,
                 ),
             )
@@ -530,24 +538,34 @@ class PromotionService:
 
     # ════════════════════ 商家加入/退出平台活动 ════════════════════
 
+    # 价格由活动规则（discount_rate）决定的活动类型，商家不得自设 activity_price
+    _RULE_PRICED_TYPES = {"flash_sale", "discount", "group_buy"}
+    # 满减是购物车级别折扣，商品价格不变，activity_price 无意义
+    _CART_LEVEL_TYPES = {"full_reduction"}
+
     async def merchant_join_activity(
         self, activity_id: int, mall_id: int, products: list[dict]
     ) -> dict:
         """商家将自己的商品加入平台活动"""
         act_rows = await self.db.execute_query(
-            "SELECT id, issuer_type, platform_scope, status FROM activities WHERE id = %s",
+            "SELECT id, issuer_type, platform_scope, status, activity_type FROM activities WHERE id = %s",
             (activity_id,),
         )
         if not act_rows:
             return {"success": False, "msg": "活动不存在"}
 
-        issuer, scope, status = act_rows[0][1], act_rows[0][2], act_rows[0][3]
+        issuer, scope, status, activity_type = (
+            act_rows[0][1], act_rows[0][2], act_rows[0][3], act_rows[0][4]
+        )
         if issuer != "platform":
             return {"success": False, "msg": "只能加入平台活动"}
         if status != "active":
             return {"success": False, "msg": "活动未开始或已结束"}
         if scope != "merchant_choice":
             return {"success": False, "msg": "该活动不允许商家自选加入"}
+
+        # 规则定价和购物车级活动：activity_price 由平台规则决定，存 NULL
+        price_by_rule = activity_type in self._RULE_PRICED_TYPES or activity_type in self._CART_LEVEL_TYPES
 
         added = 0
         for p in products:
@@ -561,6 +579,7 @@ class PromotionService:
             if existing:
                 continue
 
+            stored_price = None if price_by_rule else p.get("activity_price")
             await self.db.execute_query(
                 """INSERT INTO activity_products
                    (activity_id, mall_id, shopping_id, specification_id,
@@ -568,7 +587,7 @@ class PromotionService:
                    VALUES (%s,%s,%s,%s,%s,%s,'merchant')""",
                 (
                     activity_id, mall_id, p["shopping_id"],
-                    p.get("specification_id"), p.get("activity_price"),
+                    p.get("specification_id"), stored_price,
                     p.get("activity_stock"),
                 ),
             )
@@ -756,8 +775,13 @@ class PromotionService:
 
     # ════════════════════ C端下单时可用优惠券 ════════════════════
 
-    async def get_usable_coupons(self, user: str, mall_id: int, order_amount: float) -> dict:
-        """根据店铺和订单金额筛选用户已领且可使用的优惠券"""
+    async def get_usable_coupons(
+        self, user: str, mall_id: int, order_amount: float,
+        shopping_ids: list[int] | None = None,
+    ) -> dict:
+        """根据店铺和订单金额筛选用户已领且可使用的优惠券。
+        shopping_ids: 订单商品ID列表，传入时对 scope=product 的券进行精确范围验证。
+        """
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         rows = await self.db.execute_query(
@@ -777,13 +801,23 @@ class PromotionService:
         for r in (rows or []):
             scope = r[5]
             coupon_mall_id = r[12]
+            coupon_id_val = r[1]
             usable = False
             if scope == "all_mall":
                 usable = True
             elif scope == "store" and coupon_mall_id == mall_id:
                 usable = True
             elif scope == "product" and coupon_mall_id == mall_id:
-                usable = True
+                if shopping_ids:
+                    # 精确验证：订单中至少有一个商品在该券的适用商品范围内
+                    ph = ",".join(["%s"] * len(shopping_ids))
+                    cp_rows = await self.db.execute_query(
+                        f"SELECT 1 FROM coupon_products WHERE coupon_id = %s AND shopping_id IN ({ph}) LIMIT 1",
+                        (coupon_id_val, *shopping_ids),
+                    )
+                    usable = bool(cp_rows)
+                else:
+                    usable = True
 
             if not usable:
                 continue

@@ -43,6 +43,34 @@
             <el-breadcrumb-item>{{ commodity.name }}</el-breadcrumb-item>
           </el-breadcrumb>
 
+          <!-- 活动横幅：展示所有当前生效活动 -->
+          <template v-if="commodity.activities?.length">
+            <!-- 多活动叠加提示 -->
+            <div v-if="commodity.activities.length > 1" class="activity-stack-tip">
+              <el-icon style="vertical-align: middle; margin-right: 4px"><Lightning /></el-icon>
+              当前共 <b>{{ commodity.activities.length }}</b> 个活动叠加生效，已为您自动计算最优价格
+            </div>
+
+            <!-- 每个活动一条横幅 -->
+            <div
+              v-for="(act, idx) in commodity.activities"
+              :key="idx"
+              class="activity-strip"
+              :class="`activity-strip--${act.activity_type}`"
+            >
+              <div class="activity-strip__left">
+                <span class="activity-strip__issuer">{{ act.issuer_type === 'platform' ? '平台' : '商家' }}</span>
+                <span class="activity-strip__badge">{{ activityTypeLabel(act.activity_type) }}</span>
+                <span class="activity-strip__name">{{ act.activity_name }}</span>
+                <span v-if="activityDiscountText(act)" class="activity-strip__discount">{{ activityDiscountText(act) }}</span>
+              </div>
+              <div v-if="idx === 0" class="activity-strip__right">
+                <span class="activity-strip__countdown-label">距结束</span>
+                <span class="activity-strip__countdown">{{ countdownStr }}</span>
+              </div>
+            </div>
+          </template>
+
           <!-- 上半区：图片 + 购买 -->
           <div class="top-section">
             <div class="gallery-col">
@@ -92,40 +120,131 @@
       :commodity="commodity"
     />
 
-    <!-- 优惠券选择弹窗 -->
-    <el-dialog v-model="couponDialogVisible" title="确认订单 - 选择优惠券" width="520px" destroy-on-close>
-      <div class="order-summary">
-        <p>商品金额：<b>¥{{ pendingOrderAmount.toFixed(2) }}</b></p>
-      </div>
-      <div v-if="usableCoupons.length > 0" class="coupon-select-list">
-        <div v-for="c in usableCoupons" :key="c.user_coupon_id"
-             class="coupon-select-item"
-             :class="{ active: selectedCouponId === c.user_coupon_id }"
-             @click="selectedCouponId = selectedCouponId === c.user_coupon_id ? null : c.user_coupon_id">
-          <div class="cs-left" :class="`cs-bg-${c.coupon_type}`">
-            <template v-if="c.coupon_type === 'discount'">
-              <span class="cs-amount">{{ c.discount_value }}</span><span class="cs-unit">折</span>
-            </template>
-            <template v-else>
-              <span class="cs-unit">¥</span><span class="cs-amount">{{ c.discount_value }}</span>
-            </template>
-          </div>
-          <div class="cs-right">
-            <div class="cs-name">{{ c.name }}</div>
-            <div class="cs-desc">满{{ c.min_order_amount }}元可用 · 预计优惠 ¥{{ c.estimated_discount.toFixed(2) }}</div>
-          </div>
-          <el-icon v-if="selectedCouponId === c.user_coupon_id" class="cs-check"><Select /></el-icon>
+    <!-- 优惠券 / 优惠方式选择弹窗 -->
+    <el-dialog
+      v-model="couponDialogVisible"
+      :title="isNonStackable ? '确认订单 - 选择优惠方式' : '确认订单 - 选择优惠券'"
+      width="520px"
+      destroy-on-close
+    >
+      <!-- ① 不可叠加：让用户在"活动折扣"和"优惠券"中二选一 -->
+      <template v-if="isNonStackable">
+        <el-alert
+          title="当前活动不支持叠加优惠券，请选择一种优惠方式"
+          type="warning" :closable="false" show-icon style="margin-bottom: 14px"
+        />
+        <el-radio-group v-model="discountPreference" style="margin-bottom: 14px; display: flex; gap: 12px">
+          <el-radio-button value="activity">
+            使用活动折扣（¥{{ pendingOrderAmount.toFixed(2) }}）
+          </el-radio-button>
+          <el-radio-button value="coupon">
+            使用优惠券（原价 ¥{{ originalOrderAmount.toFixed(2) }}）
+          </el-radio-button>
+        </el-radio-group>
+
+        <!-- 活动折扣模式：无需选券 -->
+        <div v-if="discountPreference === 'activity'" class="order-summary">
+          <p>活动折后价：<b style="color:#cf1322">¥{{ pendingOrderAmount.toFixed(2) }}</b></p>
+          <p style="font-size:12px;color:var(--el-text-color-secondary)">
+            不可叠加优惠券，活动优惠已自动计算
+          </p>
         </div>
+
+        <!-- 优惠券模式：以原价匹配可用券 -->
+        <div v-else>
+          <div class="order-summary">
+            <p>以原价计算：<b>¥{{ originalOrderAmount.toFixed(2) }}</b>（活动折扣不生效）</p>
+          </div>
+          <div v-if="usableCouponsForOriginal.length > 0" class="coupon-select-list">
+            <div
+              v-for="c in usableCouponsForOriginal"
+              :key="c.user_coupon_id"
+              class="coupon-select-item"
+              :class="{ active: selectedCouponId === c.user_coupon_id }"
+              @click="selectedCouponId = selectedCouponId === c.user_coupon_id ? null : c.user_coupon_id"
+            >
+              <div class="cs-left" :class="`cs-bg-${c.coupon_type}`">
+                <template v-if="c.coupon_type === 'discount'">
+                  <span class="cs-amount">{{ c.discount_value }}</span><span class="cs-unit">折</span>
+                </template>
+                <template v-else>
+                  <span class="cs-unit">¥</span><span class="cs-amount">{{ c.discount_value }}</span>
+                </template>
+              </div>
+              <div class="cs-right">
+                <div class="cs-name">{{ c.name }}</div>
+                <div class="cs-desc">满{{ c.min_order_amount }}元可用 · 预计优惠 ¥{{ c.estimated_discount.toFixed(2) }}</div>
+              </div>
+              <el-icon v-if="selectedCouponId === c.user_coupon_id" class="cs-check"><Select /></el-icon>
+            </div>
+          </div>
+          <el-empty v-else description="暂无可用优惠券" :image-size="60" />
+        </div>
+      </template>
+
+      <!-- ② 可叠加（或无折扣活动）：正常选券叠加 -->
+      <template v-else>
+        <div class="order-summary">
+          <p>
+            活动折后金额：<b>¥{{ pendingOrderAmount.toFixed(2) }}</b>
+            <el-tag v-if="isStackable" size="small" type="success" style="margin-left: 6px">支持折上折</el-tag>
+          </p>
+          <p v-if="isStackable" style="font-size:12px;color:var(--el-color-success)">
+            选择优惠券可在活动价基础上进一步叠加优惠
+          </p>
+        </div>
+        <div v-if="usableCoupons.length > 0" class="coupon-select-list">
+          <div
+            v-for="c in usableCoupons"
+            :key="c.user_coupon_id"
+            class="coupon-select-item"
+            :class="{ active: selectedCouponId === c.user_coupon_id }"
+            @click="selectedCouponId = selectedCouponId === c.user_coupon_id ? null : c.user_coupon_id"
+          >
+            <div class="cs-left" :class="`cs-bg-${c.coupon_type}`">
+              <template v-if="c.coupon_type === 'discount'">
+                <span class="cs-amount">{{ c.discount_value }}</span><span class="cs-unit">折</span>
+              </template>
+              <template v-else>
+                <span class="cs-unit">¥</span><span class="cs-amount">{{ c.discount_value }}</span>
+              </template>
+            </div>
+            <div class="cs-right">
+              <div class="cs-name">{{ c.name }}</div>
+              <div class="cs-desc">满{{ c.min_order_amount }}元可用 · 预计优惠 ¥{{ c.estimated_discount.toFixed(2) }}</div>
+            </div>
+            <el-icon v-if="selectedCouponId === c.user_coupon_id" class="cs-check"><Select /></el-icon>
+          </div>
+        </div>
+        <el-empty v-else description="暂无可用优惠券" :image-size="60" />
+      </template>
+
+      <!-- 实付汇总 -->
+      <div class="order-pay-summary">
+        <template v-if="isNonStackable && discountPreference === 'activity'">
+          <span>活动优惠：-¥{{ (originalOrderAmount - pendingOrderAmount).toFixed(2) }}</span>
+          <span class="pay-total">实付：¥{{ pendingOrderAmount.toFixed(2) }}</span>
+        </template>
+        <template v-else-if="selectedCoupon">
+          <template v-if="isNonStackable && discountPreference === 'coupon'">
+            <span>优惠券优惠：-¥{{ selectedCoupon.estimated_discount.toFixed(2) }}</span>
+            <span class="pay-total">实付：¥{{ Math.max(originalOrderAmount - selectedCoupon.estimated_discount, 0.01).toFixed(2) }}</span>
+          </template>
+          <template v-else>
+            <span>活动 + 优惠券叠加：-¥{{ (originalOrderAmount - pendingOrderAmount + selectedCoupon.estimated_discount).toFixed(2) }}</span>
+            <span class="pay-total">实付：¥{{ Math.max(pendingOrderAmount - selectedCoupon.estimated_discount, 0.01).toFixed(2) }}</span>
+          </template>
+        </template>
+        <template v-else>
+          <span style="color:var(--el-text-color-placeholder)">未选择优惠券</span>
+          <span class="pay-total">实付：¥{{ pendingOrderAmount.toFixed(2) }}</span>
+        </template>
       </div>
-      <el-empty v-else description="暂无可用优惠券" :image-size="60" />
-      <div class="order-pay-summary" v-if="selectedCoupon">
-        <span>优惠：-¥{{ selectedCoupon.estimated_discount.toFixed(2) }}</span>
-        <span class="pay-total">实付：¥{{ (pendingOrderAmount - selectedCoupon.estimated_discount).toFixed(2) }}</span>
-      </div>
+
       <template #footer>
         <el-button @click="couponDialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="buyLoading" @click="confirmOrder">
-          {{ selectedCouponId ? '使用优惠券下单' : '不使用优惠券下单' }}
+          {{ confirmBtnLabel }}
         </el-button>
       </template>
     </el-dialog>
@@ -133,11 +252,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
 
+import { Lightning } from '@element-plus/icons-vue'
 import AppNavigation from '@/moon/navigation.vue'
 import CommodityGallery from './components/CommodityGallery.vue'
 import CommodityPurchase from './components/CommodityPurchase.vue'
@@ -150,6 +270,18 @@ interface Spec {
   price: number
   stock: number
   specification_id?: number
+  original_price?: number | null
+  activity_name?: string
+  activity_type?: string
+}
+
+interface ActivityInfo {
+  activity_name: string
+  activity_type: string
+  discount_rate?: number | null
+  end_time?: string
+  rules?: Record<string, any>
+  issuer_type?: string
 }
 
 interface Commodity {
@@ -161,6 +293,7 @@ interface Commodity {
   price: number
   img_list: string[]
   specification_list: Spec[]
+  activities?: ActivityInfo[]
 }
 
 const route = useRoute()
@@ -214,14 +347,49 @@ const fetchCommodity = async () => {
 
 /* ── 优惠券相关 ── */
 const couponDialogVisible = ref(false)
-const usableCoupons = ref<any[]>([])
+const usableCoupons = ref<any[]>([])          // 基于活动价查出的可用券
+const usableCouponsForOriginal = ref<any[]>([]) // 基于原价查出的可用券（不可叠加/券模式用）
 const selectedCouponId = ref<number | null>(null)
-const pendingOrderAmount = ref(0)
+const pendingOrderAmount = ref(0)             // 活动折后金额
+const pendingOriginalAmount = ref(0)          // 商品原价金额（用于不可叠加时券模式）
 const pendingBuyParams = ref<{ specIndex: number; quantity: number; addressId: number } | null>(null)
 
+/** 当前选中的券（从 usableCoupons 或 usableCouponsForOriginal 中查找） */
 const selectedCoupon = computed(() => {
   if (!selectedCouponId.value) return null
-  return usableCoupons.value.find((c: any) => c.user_coupon_id === selectedCouponId.value) || null
+  const all = [...usableCoupons.value, ...usableCouponsForOriginal.value]
+  return all.find((c: any) => c.user_coupon_id === selectedCouponId.value) || null
+})
+
+/** 是否存在不可叠加活动（明确设置 stackable=false）*/
+const isNonStackable = computed(() =>
+  commodity.value?.activities?.some(
+    (a: any) => a.rules?.stackable === false,
+  ) ?? false,
+)
+/** 是否存在可叠加活动（有活动且未明确禁止叠加，即 stackable !== false）*/
+const isStackable = computed(() => {
+  const acts = commodity.value?.activities
+  if (!acts?.length) return false
+  // 只要有任意一个活动没有明确禁止叠加，即视为支持折上折
+  return acts.some((a: any) => a.rules?.stackable !== false)
+})
+
+/** 不可叠加时用户选择的优惠模式 */
+const discountPreference = ref<'activity' | 'coupon'>('activity')
+
+/** 原价金额（无活动时与 pendingOrderAmount 相同） */
+const originalOrderAmount = computed(() =>
+  pendingOriginalAmount.value || pendingOrderAmount.value,
+)
+
+/** 确认按钮文字 */
+const confirmBtnLabel = computed(() => {
+  if (isNonStackable.value) {
+    if (discountPreference.value === 'activity') return '使用活动折扣下单'
+    return selectedCouponId.value ? '使用优惠券下单' : '不使用优惠券（原价）下单'
+  }
+  return selectedCouponId.value ? '使用优惠券下单（折上折）' : '不使用优惠券下单'
 })
 
 const handleBuy = async ({ specIndex, quantity }: { specIndex: number; quantity: number }) => {
@@ -264,21 +432,45 @@ const handleBuy = async ({ specIndex, quantity }: { specIndex: number; quantity:
 
     const specList = commodity.value.specification_list || []
     const spec = specList[specIndex]
-    const price = spec?.price ?? 0
-    const orderAmount = +(price * quantity).toFixed(2)
+    const activityPrice = spec?.price ?? 0
+    const originalPrice = spec?.original_price ?? activityPrice
+    const orderAmount = +(activityPrice * quantity).toFixed(2)
+    const origAmount = +(originalPrice * quantity).toFixed(2)
 
     pendingOrderAmount.value = orderAmount
+    pendingOriginalAmount.value = origAmount
     pendingBuyParams.value = { specIndex, quantity, addressId: defaultAddrId }
     selectedCouponId.value = null
+    discountPreference.value = 'activity'
 
+    // 拉取两份可用券：活动价基础 + 原价基础（供不可叠加时的券模式使用）
+    // 传入 shopping_ids 使后端对商品券进行精确范围验证
     try {
-      const couponRes = await Axios.get('/user_coupon/usable', {
-        params: { mall_id: commodity.value.mall_id, order_amount: orderAmount },
-        headers: getHeaders(),
-      })
-      usableCoupons.value = couponRes.data?.list || []
+      const [actRes, origRes] = await Promise.all([
+        Axios.get('/user_coupon/usable', {
+          params: {
+            mall_id: commodity.value.mall_id,
+            order_amount: orderAmount,
+            shopping_ids: commodity.value.shopping_id,
+          },
+          headers: getHeaders(),
+        }),
+        origAmount !== orderAmount
+          ? Axios.get('/user_coupon/usable', {
+              params: {
+                mall_id: commodity.value.mall_id,
+                order_amount: origAmount,
+                shopping_ids: commodity.value.shopping_id,
+              },
+              headers: getHeaders(),
+            })
+          : Promise.resolve({ data: { list: [] } }),
+      ])
+      usableCoupons.value = actRes.data?.list || []
+      usableCouponsForOriginal.value = origRes.data?.list || []
     } catch {
       usableCoupons.value = []
+      usableCouponsForOriginal.value = []
     }
 
     couponDialogVisible.value = true
@@ -306,6 +498,11 @@ const confirmOrder = async () => {
     const specificationId = spec?.specification_id ?? specIndex
 
     const idempotencyKey = `buy_${commodity.value.mall_id}_${commodity.value.shopping_id}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
+    // 确定优惠模式
+    const preferMode = (isNonStackable.value && discountPreference.value === 'coupon')
+      ? 'coupon'
+      : 'activity'
+
     const body: any = {
       items: [{
         mall_id: commodity.value.mall_id,
@@ -315,8 +512,10 @@ const confirmOrder = async () => {
       }],
       address_id: addressId,
       idempotency_key: idempotencyKey,
+      prefer_mode: preferMode,
     }
-    if (selectedCouponId.value) {
+    // 仅在「coupon 模式」或「可叠加模式下选了券」时传 user_coupon_id
+    if (selectedCouponId.value && (preferMode === 'coupon' || !isNonStackable.value)) {
       body.user_coupon_id = selectedCouponId.value
     }
 
@@ -324,8 +523,16 @@ const confirmOrder = async () => {
 
     if (orderRes.data?.success) {
       couponDialogVisible.value = false
-      const discount = orderRes.data.coupon_discount
-      const msg = discount ? `下单成功，优惠 ¥${discount.toFixed(2)}，请在15分钟内完成支付` : '下单成功，请在15分钟内完成支付'
+      const totalDiscount = orderRes.data.total_discount
+      const actDiscount = orderRes.data.activity_discount
+      const couponDiscount = orderRes.data.coupon_discount
+      let msg = '下单成功，请在15分钟内完成支付'
+      if (totalDiscount > 0) {
+        const parts: string[] = []
+        if (actDiscount > 0) parts.push(`活动省¥${actDiscount.toFixed(2)}`)
+        if (couponDiscount > 0) parts.push(`券省¥${couponDiscount.toFixed(2)}`)
+        msg = `下单成功，共节省¥${totalDiscount.toFixed(2)}（${parts.join(' + ')}），请在15分钟内完成支付`
+      }
       ElMessage.success(msg)
       router.push('/personal_center?tab=orders')
     } else {
@@ -448,9 +655,60 @@ const handleWishlist = async () => {
   }
 }
 
+// ── 活动倒计时 ──
+const countdownStr = ref('')
+let countdownTimer: ReturnType<typeof setInterval> | null = null
+
+function startCountdown(endTime: string) {
+  if (countdownTimer) clearInterval(countdownTimer)
+  function update() {
+    const diff = new Date(endTime).getTime() - Date.now()
+    if (diff <= 0) {
+      countdownStr.value = '已结束'
+      if (countdownTimer) clearInterval(countdownTimer)
+      return
+    }
+    const h = Math.floor(diff / 3600000)
+    const m = Math.floor((diff % 3600000) / 60000)
+    const s = Math.floor((diff % 60000) / 1000)
+    countdownStr.value = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+  }
+  update()
+  countdownTimer = setInterval(update, 1000)
+}
+
+// 工具函数：单个活动的类型标签
+function activityTypeLabel(type: string) {
+  const map: Record<string, string> = {
+    flash_sale: '限时秒杀', full_reduction: '限时满减',
+    discount: '限时折扣', group_buy: '拼团优惠',
+  }
+  return map[type] || '活动'
+}
+
+// 工具函数：单个活动的折扣说明文字
+function activityDiscountText(act: ActivityInfo) {
+  const dr = act.discount_rate
+  const rules = act.rules || {}
+  if (act.activity_type === 'full_reduction' && rules.thresholds?.length) {
+    return rules.thresholds.map((t: any) => `满¥${t.min_amount}减¥${t.reduction}`).join(' / ')
+  }
+  if (dr != null) return `${(dr * 10).toFixed(1)} 折`
+  return ''
+}
+
+// 主活动（结束时间最早的，用于倒计时横幅）
+const primaryActivity = computed(() => commodity.value?.activities?.[0] ?? null)
+
 onMounted(async () => {
   await fetchCommodity()
   await checkFavorite()
+  const endTime = primaryActivity.value?.end_time
+  if (endTime) startCountdown(endTime)
+})
+
+onUnmounted(() => {
+  if (countdownTimer) clearInterval(countdownTimer)
 })
 </script>
 
@@ -464,6 +722,104 @@ onMounted(async () => {
 .breadcrumb {
   font-size: 13px;
   padding: 4px 0;
+}
+
+/* ── 多活动叠加提示 ── */
+.activity-stack-tip {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #fffbe6, #fff);
+  border: 1.5px solid #ffe58f;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #ad6800;
+  font-weight: 500;
+}
+
+/* ── 活动横幅 ── */
+.activity-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-radius: 12px;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  &--flash_sale   { background: linear-gradient(135deg, #ff4d4f 0%, #ff7a45 100%); }
+  &--discount     { background: linear-gradient(135deg, #722ed1 0%, #9254de 100%); }
+  &--group_buy    { background: linear-gradient(135deg, #1677ff 0%, #4096ff 100%); }
+  &--full_reduction { background: linear-gradient(135deg, #d4380d 0%, #fa8c16 100%); }
+
+  &__left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  &__issuer {
+    background: rgba(0,0,0,0.2);
+    color: rgba(255,255,255,0.9);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+
+  &__badge {
+    background: rgba(255,255,255,0.25);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.4);
+    white-space: nowrap;
+    letter-spacing: 0.5px;
+  }
+
+  &__name {
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+
+  &__discount {
+    background: rgba(255,255,255,0.18);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 800;
+    padding: 2px 12px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+  }
+
+  &__right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  &__countdown-label {
+    color: rgba(255,255,255,0.8);
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  &__countdown {
+    background: rgba(0,0,0,0.25);
+    color: #fff;
+    font-size: 18px;
+    font-weight: 800;
+    padding: 4px 14px;
+    border-radius: 8px;
+    letter-spacing: 3px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
 }
 
 /* ── 骨架屏 ── */

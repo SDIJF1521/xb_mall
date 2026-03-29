@@ -750,6 +750,11 @@ class OrderCreateBody(BaseModel):
     remark: Optional[str] = Field(None, max_length=500, description="买家备注")
     idempotency_key: str = Field(..., min_length=8, max_length=64, description="幂等键，防止重复下单")
     user_coupon_id: Optional[int] = Field(None, description="用户优惠券ID（可选，使用优惠券时传入）")
+    prefer_mode: Optional[str] = Field(
+        None,
+        pattern=r"^(activity|coupon)$",
+        description="优惠模式：activity=使用活动折扣（默认），coupon=放弃活动折扣仅用优惠券",
+    )
 
 class OrderPayBody(BaseModel):
     order_no: str = Field(..., description="订单号")
@@ -853,6 +858,7 @@ class FavoriteListQuery:
 class CouponProductItem(BaseModel):
     mall_id: int = Field(..., description="店铺ID")
     shopping_id: int = Field(..., description="商品ID")
+    specification_id: Optional[int] = Field(None, description="规格ID（不填则适用该商品全部规格）")
 
 class CouponCreateBody(BaseModel):
     name: str = Field(..., max_length=200, description="优惠券名称")
@@ -931,9 +937,16 @@ class ActivityListQuery:
         self.page = page
         self.page_size = page_size
 
+class MerchantJoinProductItem(BaseModel):
+    """商家加入平台活动时选择的商品项（mall_id 由后端从 token 自动注入）"""
+    shopping_id: int = Field(..., description="商品ID")
+    specification_id: Optional[int] = Field(None, description="规格ID（不填则代表整个商品）")
+    activity_price: Optional[float] = Field(None, ge=0, description="活动价格（不填则使用原价）")
+    activity_stock: Optional[int] = Field(None, ge=0, description="活动库存限制（不填则不限）")
+
 class MerchantJoinActivityBody(BaseModel):
     activity_id: int = Field(..., description="活动ID")
-    products: List[ActivityProductItem] = Field(..., min_length=1, description="要加入的商品列表")
+    products: List[MerchantJoinProductItem] = Field(..., min_length=1, description="商家选择的商品列表")
 
 class MerchantLeaveActivityBody(BaseModel):
     activity_id: int = Field(..., description="活动ID")

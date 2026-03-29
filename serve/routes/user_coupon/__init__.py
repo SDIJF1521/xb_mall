@@ -103,18 +103,28 @@ async def my_coupons(
 async def usable_coupons(
     mall_id: int = Query(..., ge=1, description="店铺ID"),
     order_amount: float = Query(..., gt=0, description="订单金额"),
+    shopping_ids: str | None = Query(None, description="逗号分隔的商品ID列表，用于商品券精确范围验证"),
     access_token: Annotated[str | None, Header(alias="access-token")] = None,
 ):
-    """下单时可用的优惠券列表（按店铺和金额筛选）"""
+    """下单时可用的优惠券列表（按店铺和金额筛选，传入 shopping_ids 可对商品券进行精确验证）"""
     if not access_token:
         return {"code": 401, "msg": "请先登录", "success": False}
     user = await _resolve_user(access_token)
     if not user:
         return {"code": 403, "msg": "无效的token", "success": False}
 
+    sid_list: list[int] | None = None
+    if shopping_ids:
+        try:
+            sid_list = [int(x.strip()) for x in shopping_ids.split(",") if x.strip()]
+        except ValueError:
+            return {"code": 400, "msg": "shopping_ids 格式错误，应为逗号分隔的整数列表", "success": False}
+
     try:
         svc = PromotionService(db_pool)
-        result = await svc.get_usable_coupons(user=user, mall_id=mall_id, order_amount=order_amount)
+        result = await svc.get_usable_coupons(
+            user=user, mall_id=mall_id, order_amount=order_amount, shopping_ids=sid_list
+        )
         return {"code": 200, **result}
     except Exception as e:
         logger.error("获取可用优惠券异常: %s", e, exc_info=True)

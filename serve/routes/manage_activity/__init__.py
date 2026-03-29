@@ -52,7 +52,7 @@ async def create_activity(
             "rules": data.rules,
             "platform_scope": data.platform_scope,
             "description": data.description,
-            "created_by": admin_info.get("user", "platform") if admin_info else "platform",
+            "created_by": admin_info if admin_info else "platform",
             "products": [p.model_dump() for p in data.products] if data.products else None,
             "coupon_ids": data.coupon_ids,
         }

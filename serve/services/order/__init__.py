@@ -180,7 +180,13 @@ class OrderService:
 
     async def create_order(self, user: str, items: list, address_id: int,
                            remark: str | None, idempotency_key: str,
-                           user_coupon_id: int | None = None) -> dict:
+                           user_coupon_id: int | None = None,
+                           prefer_mode: str = "activity") -> dict:
+        """
+        prefer_mode:
+          - "activity"（默认）：正常应用活动折扣，若活动 stackable=True 则可再叠加优惠券
+          - "coupon"：放弃所有活动折扣，以原价计算后仅应用优惠券
+        """
         existing = await self._check_idempotency(idempotency_key, "order")
         if existing:
             return {"success": True, "msg": "订单已创建（幂等）", "order_no": existing}
@@ -199,12 +205,17 @@ class OrderService:
         order_no = generate_order_no()
         expire_at = datetime.now() + timedelta(minutes=ORDER_EXPIRE_MINUTES)
         total_amount = 0
+        original_total = 0   # 未叠加任何活动前的原始商品总价
         order_items_data = []
 
         mall_ids = set(item.mall_id for item in items)
         if len(mall_ids) != 1:
             return {"success": False, "msg": "一个订单只能包含同一店铺的商品"}
         mall_id = mall_ids.pop()
+
+        _full_reduction_rules_list: list[dict] = []   # 收集满减活动规则（已按活动ID去重）
+        _full_reduction_activity_ids: set[int] = set()  # 防止同一满减活动对多个商品行重复计提
+        _has_non_stackable: bool = False               # 是否存在不可叠加活动（影响券是否可用）
 
         for item in items:
             doc = await self.mongo.find_one(
@@ -223,10 +234,57 @@ class OrderService:
             if not spec:
                 return {"success": False, "msg": f"商品 {item.shopping_id} 的规格 {item.specification_id} 不存在"}
 
-            price = float(spec.get("price", 0))
+            original_price = float(spec.get("price", 0))
             stock = int(spec.get("stock", 0))
             if stock < item.quantity:
                 return {"success": False, "msg": f"商品「{doc.get('name', '')}」库存不足，当前仅剩 {stock} 件"}
+
+            # ── 查询当前所有生效的活动折扣（prefer_mode='coupon' 时跳过活动折扣）──
+            price = original_price
+            if prefer_mode != "coupon":
+                act_rows = await self.db.execute_query(
+                    """SELECT ap.activity_price, ap.specification_id,
+                              a.activity_type, a.rules, a.id
+                       FROM activity_products ap
+                       JOIN activities a ON ap.activity_id = a.id
+                       WHERE ap.shopping_id = %s AND ap.mall_id = %s
+                         AND (ap.specification_id = %s OR ap.specification_id IS NULL)
+                         AND ap.status = 'active'
+                         AND a.status = 'active'
+                         AND NOW() BETWEEN a.start_time AND a.end_time
+                       ORDER BY (ap.specification_id IS NULL) ASC""",
+                    (item.shopping_id, item.mall_id, item.specification_id),
+                )
+                if act_rows:
+                    _RULE_PRICED_O = ("flash_sale", "discount", "group_buy")
+                    combined_rate = 1.0
+                    has_rate_discount = False
+                    for act_price_raw, ap_sid, act_type, rules_raw, act_id in act_rows:
+                        try:
+                            rules = json.loads(rules_raw) if isinstance(rules_raw, str) else (rules_raw or {})
+                        except Exception:
+                            rules = {}
+                        # 收集不可叠加标志（stackable 默认 True，明确设为 False 时才阻断优惠券叠加）
+                        if not rules.get("stackable", True):
+                            _has_non_stackable = True
+                        if act_type in _RULE_PRICED_O:
+                            dr = rules.get("discount_rate")
+                            if dr is not None:
+                                combined_rate *= float(dr)
+                                has_rate_discount = True
+                        elif act_type == "full_reduction":
+                            # 按活动ID去重，同一满减活动在多个订单行间只加入一次
+                            if act_id not in _full_reduction_activity_ids:
+                                _full_reduction_rules_list.append(rules)
+                                _full_reduction_activity_ids.add(act_id)
+                        elif act_price_raw is not None:
+                            # 自由定价：取最低显式活动价对应折率
+                            if original_price > 0:
+                                explicit_rate = float(act_price_raw) / original_price
+                                combined_rate = min(combined_rate, explicit_rate)
+                                has_rate_discount = True
+                    if has_rate_discount:
+                        price = max(round(original_price * combined_rate, 2), 0.01)
 
             max_retry = 3
             deducted = False
@@ -265,6 +323,7 @@ class OrderService:
 
             subtotal = round(price * item.quantity, 2)
             total_amount += subtotal
+            original_total += round(original_price * item.quantity, 2)
             order_items_data.append({
                 "mall_id": item.mall_id,
                 "shopping_id": item.shopping_id,
@@ -278,8 +337,24 @@ class OrderService:
 
         total_amount = round(total_amount, 2)
 
+        # ── 满减活动叠加（prefer_mode='coupon' 时不叠加满减）──
+        activity_discount = 0.0
+        if prefer_mode != "coupon":
+            for fr_rules in _full_reduction_rules_list:
+                thresholds = fr_rules.get("thresholds") or []
+                for t in sorted(thresholds, key=lambda x: x.get("min_amount", 0), reverse=True):
+                    if total_amount >= float(t.get("min_amount", 0)):
+                        activity_discount += float(t.get("reduction", 0))
+                        break
+
         coupon_discount = 0
-        actual_amount = total_amount
+        actual_amount = max(round(total_amount - activity_discount, 2), 0.01)
+
+        # 不可叠加活动时，若 prefer_mode 为 activity 则服务端强制忽略优惠券
+        if _has_non_stackable and prefer_mode == "activity" and user_coupon_id:
+            user_coupon_id = None
+            logger.info("订单 %s 含不可叠加活动，已忽略传入的 user_coupon_id", order_no)
+
         if user_coupon_id:
             from services.promotion import PromotionService
             from services.promotion.strategy import get_coupon_strategy
@@ -310,21 +385,32 @@ class OrderService:
 
             scope = uc[4]
             coupon_mall = uc[9]
+            coupon_id_val = uc[1]
             if scope == "store" and coupon_mall != mall_id:
                 return {"success": False, "msg": "该优惠券不适用于此店铺"}
-            if scope == "product" and coupon_mall != mall_id:
-                return {"success": False, "msg": "该优惠券不适用于此店铺商品"}
+            if scope == "product":
+                if coupon_mall != mall_id:
+                    return {"success": False, "msg": "该优惠券不适用于此店铺商品"}
+                # 验证订单商品是否在券的适用商品范围内
+                order_shopping_ids = list({item.shopping_id for item in items})
+                ph = ",".join(["%s"] * len(order_shopping_ids))
+                cp_rows = await self.db.execute_query(
+                    f"SELECT 1 FROM coupon_products WHERE coupon_id = %s AND shopping_id IN ({ph}) LIMIT 1",
+                    (coupon_id_val, *order_shopping_ids),
+                )
+                if not cp_rows:
+                    return {"success": False, "msg": "该优惠券仅适用于指定商品，当前订单商品不在适用范围内"}
 
-            if total_amount < float(uc[5]):
+            if actual_amount < float(uc[5]):
                 return {"success": False, "msg": f"订单金额未达到优惠券最低消费 ¥{float(uc[5]):.2f}"}
 
             strategy = get_coupon_strategy(uc[3])
             coupon_discount = float(strategy.calculate_discount(
-                Decimal(str(total_amount)),
+                Decimal(str(actual_amount)),
                 {"min_order_amount": float(uc[5]), "discount_value": float(uc[6]),
                  "max_discount": float(uc[7]) if uc[7] else None},
             ))
-            actual_amount = round(total_amount - coupon_discount, 2)
+            actual_amount = round(actual_amount - coupon_discount, 2)
             if actual_amount < 0.01:
                 actual_amount = 0.01
 
@@ -361,6 +447,11 @@ class OrderService:
 
         await self._set_idempotency(idempotency_key, "order", order_no, ttl=1800)
 
+        # 活动总折扣 = 商品原价合计 - 活动折后合计（含秒杀/折扣/拼团价差） + 满减金额
+        item_activity_discount = round(original_total - total_amount, 2)  # 商品级活动折扣（价差）
+        total_activity_discount = round(item_activity_discount + activity_discount, 2)  # 含满减
+        total_discount = round(total_activity_discount + coupon_discount, 2)
+
         result_data = {
             "success": True,
             "msg": "下单成功",
@@ -368,9 +459,12 @@ class OrderService:
             "total_amount": actual_amount,
             "expire_at": expire_at.strftime("%Y-%m-%d %H:%M:%S"),
         }
+        if total_activity_discount > 0:
+            result_data["activity_discount"] = total_activity_discount
         if coupon_discount > 0:
-            result_data["original_amount"] = total_amount
-            result_data["coupon_discount"] = coupon_discount
+            result_data["coupon_discount"] = round(coupon_discount, 2)
+        if total_discount > 0:
+            result_data["total_discount"] = total_discount
         return result_data
 
     # ════════════════════ 支付订单（生成支付宝跳转表单） ════════════════════

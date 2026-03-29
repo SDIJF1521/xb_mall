@@ -20,14 +20,48 @@
 
     <div class="divider" />
 
+    <!-- 活动信息卡：展示所有生效活动 -->
+    <div v-if="props.commodity.activities?.length" class="activity-cards-wrap">
+      <div
+        v-for="(act, idx) in props.commodity.activities"
+        :key="idx"
+        class="activity-card-panel"
+        :class="`activity-card-panel--${act.activity_type}`"
+      >
+        <div class="acp-top">
+          <span v-if="act.issuer_type" class="acp-issuer">{{ act.issuer_type === 'platform' ? '平台' : '商家' }}</span>
+          <span class="acp-badge">{{ activityTypeLabel(act.activity_type) }}</span>
+          <span class="acp-name">{{ act.activity_name }}</span>
+        </div>
+        <div class="acp-detail">
+          <template v-if="act.activity_type === 'full_reduction'">
+            <span class="acp-rule" v-for="(t, i) in (act.rules?.thresholds || [])" :key="i">
+              满¥{{ t.min_amount }} 减¥{{ t.reduction }}
+            </span>
+          </template>
+          <template v-else-if="act.discount_rate != null">
+            <span class="acp-rule">{{ (act.discount_rate * 10).toFixed(1) }} 折优惠</span>
+          </template>
+        </div>
+      </div>
+      <div v-if="currentOriginalPrice !== null" class="acp-total-save">
+        叠加后共节省 ¥{{ (currentOriginalPrice - currentPrice).toFixed(2) }}
+      </div>
+    </div>
+
     <!-- 价格区 -->
     <div class="price-block">
       <div class="price-row">
-        <span class="price-label">价格</span>
+        <span class="price-label" :class="{ 'price-label--sale': currentActivityName }">
+          {{ currentActivityName ? '活动价' : '价格' }}
+        </span>
         <div class="price-main">
           <span class="price-symbol">¥</span>
           <span class="price-int">{{ priceInt }}</span>
           <span class="price-dec">.{{ priceDec }}</span>
+        </div>
+        <div v-if="currentOriginalPrice !== null" class="price-original">
+          原价 ¥{{ currentOriginalPrice }}
         </div>
       </div>
       <div v-if="isSoldOut" class="sold-out-badge">已售罄</div>
@@ -86,12 +120,13 @@
           v-for="(spec, idx) in props.commodity.specification_list"
           :key="idx"
           class="spec-chip"
-          :class="{ active: selectedSpecIndex === idx, out: spec.stock === 0 }"
+          :class="{ active: selectedSpecIndex === idx, out: spec.stock === 0, 'on-sale': spec.original_price != null }"
           :disabled="spec.stock === 0"
           @click="selectedSpecIndex = idx"
         >
           <span class="sc-name">{{ spec.specs?.join(' · ') || '—' }}</span>
-          <span class="sc-price">¥{{ spec.price }}</span>
+          <span v-if="spec.original_price != null" class="sc-original-price">¥{{ spec.original_price }}</span>
+          <span class="sc-price" :class="{ 'sc-price--sale': spec.original_price != null }">¥{{ spec.price }}</span>
           <div v-if="spec.stock === 0" class="sc-mask">售罄</div>
         </button>
       </div>
@@ -190,6 +225,17 @@ interface Spec {
   price: number
   stock: number
   specification_id?: number
+  original_price?: number | null
+  activity_name?: string
+  activity_type?: string
+}
+interface Activity {
+  activity_name: string
+  activity_type: string
+  discount_rate?: number | null
+  end_time?: string
+  rules?: Record<string, any>
+  issuer_type?: string
 }
 interface Commodity {
   name: string
@@ -197,6 +243,7 @@ interface Commodity {
   type: string[]
   specification_list?: Spec[]
   shopping_id?: number
+  activities?: Activity[]
 }
 
 const props = defineProps<{
@@ -228,6 +275,21 @@ const selectedSpec = computed<Spec | undefined>(
 const currentPrice = computed(
   () => selectedSpec.value?.price ?? props.commodity.price ?? 0
 )
+const currentOriginalPrice = computed<number | null>(() => {
+  const specOrig = selectedSpec.value?.original_price
+  if (specOrig != null) return specOrig
+  return null
+})
+const primaryActivity = computed(() => props.commodity.activities?.[0] ?? null)
+const currentActivityName = computed(() => primaryActivity.value?.activity_name ?? null)
+const currentActivityType = computed(() => primaryActivity.value?.activity_type ?? null)
+
+function activityTypeLabel(type: string) {
+  return { flash_sale: '限时秒杀', full_reduction: '满减活动', discount: '折扣活动', group_buy: '拼团活动' }[type] || '活动'
+}
+function activityTagType(type: string) {
+  return { flash_sale: 'danger', full_reduction: 'warning', discount: 'success', group_buy: '' }[type] || 'info'
+}
 
 const priceInt = computed(() => Math.floor(currentPrice.value))
 const priceDec = computed(() => {
@@ -344,6 +406,94 @@ onMounted(() => {
   }
 }
 
+/* ── 活动信息卡容器 ── */
+.activity-cards-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.acp-total-save {
+  font-size: 13px;
+  color: #cf1322;
+  font-weight: 700;
+  text-align: right;
+  padding: 2px 4px;
+}
+
+/* ── 活动信息卡 ── */
+.activity-card-panel {
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1.5px solid;
+
+  &--flash_sale   { background: linear-gradient(135deg,#fff1f0,#fff); border-color: #ffccc7; }
+  &--discount     { background: linear-gradient(135deg,#f9f0ff,#fff); border-color: #d3adf7; }
+  &--group_buy    { background: linear-gradient(135deg,#e6f4ff,#fff); border-color: #91caff; }
+  &--full_reduction { background: linear-gradient(135deg,#fff7e6,#fff); border-color: #ffd591; }
+
+  .acp-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .acp-issuer {
+    font-size: 10px;
+    font-weight: 700;
+    color: #fff;
+    padding: 1px 6px;
+    border-radius: 20px;
+    opacity: 0.8;
+    background: rgba(0,0,0,0.2);
+    white-space: nowrap;
+  }
+
+  .acp-badge {
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 20px;
+    white-space: nowrap;
+
+    .activity-card-panel--flash_sale &    { background: #f5222d; }
+    .activity-card-panel--discount &      { background: #722ed1; }
+    .activity-card-panel--group_buy &     { background: #1677ff; }
+    .activity-card-panel--full_reduction & { background: #d46b08; }
+  }
+
+  .acp-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #262626;
+  }
+
+  .acp-detail {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .acp-rule {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: 6px;
+    background: rgba(0,0,0,0.05);
+    color: #cf1322;
+  }
+
+  .acp-save {
+    font-size: 12px;
+    color: #8c8c8c;
+  }
+}
+
 /* ── 价格 ── */
 .price-block {
   display: flex;
@@ -354,12 +504,18 @@ onMounted(() => {
     display: flex;
     align-items: baseline;
     gap: 16px;
+    flex-wrap: wrap;
   }
 
   .price-label {
     font-size: 13px;
     color: var(--el-text-color-placeholder);
     flex-shrink: 0;
+
+    &--sale {
+      color: #cf1322;
+      font-weight: 600;
+    }
   }
 
   .price-main {
@@ -388,6 +544,14 @@ onMounted(() => {
     line-height: 1;
     align-self: flex-end;
     margin-bottom: 4px;
+  }
+
+  .price-original {
+    font-size: 14px;
+    color: var(--el-text-color-placeholder);
+    text-decoration: line-through;
+    align-self: flex-end;
+    margin-bottom: 6px;
   }
 
   .sold-out-badge {
@@ -535,7 +699,7 @@ onMounted(() => {
   font-weight: 500;
 }
 
-.spec-block { }
+.spec-block { display: flex; flex-direction: column; }
 
 .spec-grid {
   display: flex;
@@ -600,9 +764,32 @@ onMounted(() => {
     font-weight: 500;
   }
 
+  .sc-original-price {
+    font-size: 11px;
+    color: var(--el-text-color-placeholder);
+    text-decoration: line-through;
+  }
+
   .sc-price {
     font-size: 12px;
     color: var(--el-color-danger);
+
+    &--sale {
+      color: #cf1322;
+      font-weight: 700;
+    }
+  }
+
+  &.on-sale {
+    border-color: #ffccc7;
+    background: #fff1f0;
+
+    &.active {
+      border-color: #cf1322;
+      background: #fff1f0;
+
+      .sc-name { color: #cf1322; }
+    }
   }
 
   .sc-mask {
@@ -619,7 +806,7 @@ onMounted(() => {
 }
 
 /* ── 数量 ── */
-.qty-block { }
+.qty-block { display: flex; flex-direction: column; }
 
 .qty-row {
   display: flex;

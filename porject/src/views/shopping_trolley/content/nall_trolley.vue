@@ -165,6 +165,13 @@
     <el-dialog v-model="couponDialogVisible" title="确认订单 - 选择优惠券" width="520px" destroy-on-close>
       <div class="order-summary">
         <p>商品金额：<b>¥{{ cartPendingAmount.toFixed(2) }}</b></p>
+        <el-alert
+          title="若商品参与活动（秒杀/满减/拼团/折扣），活动折扣将由系统自动计算；在此基础上可再叠加优惠券（折上折）"
+          type="success"
+          :closable="false"
+          show-icon
+          style="margin-top: 8px; font-size: 12px"
+        />
       </div>
       <div v-if="cartUsableCoupons.length > 0" class="coupon-select-list">
         <div v-for="c in cartUsableCoupons" :key="c.user_coupon_id"
@@ -181,20 +188,22 @@
           </div>
           <div class="cs-right">
             <div class="cs-name">{{ c.name }}</div>
-            <div class="cs-desc">满{{ c.min_order_amount }}元可用 · 预计优惠 ¥{{ c.estimated_discount.toFixed(2) }}</div>
+            <div class="cs-desc">满{{ c.min_order_amount }}元可用 · 额外优惠 ¥{{ c.estimated_discount.toFixed(2) }}（折上折）</div>
           </div>
           <el-icon v-if="cartSelectedCouponId === c.user_coupon_id" class="cs-check"><Select /></el-icon>
         </div>
       </div>
       <el-empty v-else description="暂无可用优惠券" :image-size="60" />
       <div class="order-pay-summary" v-if="cartSelectedCoupon">
-        <span>优惠：-¥{{ cartSelectedCoupon.estimated_discount.toFixed(2) }}</span>
-        <span class="pay-total">实付：¥{{ (cartPendingAmount - cartSelectedCoupon.estimated_discount).toFixed(2) }}</span>
+        <span>额外券优惠：-¥{{ cartSelectedCoupon.estimated_discount.toFixed(2) }}</span>
+        <span class="pay-total" style="font-size:12px;color:var(--el-text-color-secondary)">
+          （实付以活动折扣叠加券后为准）
+        </span>
       </div>
       <template #footer>
         <el-button @click="couponDialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="settling" @click="confirmCartOrder">
-          {{ cartSelectedCouponId ? '使用优惠券下单' : '不使用优惠券下单' }}
+          {{ cartSelectedCouponId ? '折上折下单' : '下单（活动价自动计算）' }}
         </el-button>
       </template>
     </el-dialog>
@@ -574,8 +583,16 @@ const confirmCartOrder = async () => {
 
     if (orderRes.data?.success) {
       couponDialogVisible.value = false
-      const discount = orderRes.data.coupon_discount
-      const msg = discount ? `下单成功，优惠 ¥${discount.toFixed(2)}，请在15分钟内完成支付` : '下单成功，请在15分钟内完成支付'
+      const totalDiscount = orderRes.data.total_discount
+      const actDiscount = orderRes.data.activity_discount
+      const couponDiscount = orderRes.data.coupon_discount
+      let msg = '下单成功，请在15分钟内完成支付'
+      if (totalDiscount > 0) {
+        const parts: string[] = []
+        if (actDiscount > 0) parts.push(`活动省¥${actDiscount.toFixed(2)}`)
+        if (couponDiscount > 0) parts.push(`券省¥${couponDiscount.toFixed(2)}`)
+        msg = `下单成功，共节省¥${totalDiscount.toFixed(2)}（${parts.join(' + ')}），请在15分钟内完成支付`
+      }
       ElMessage.success(msg)
       for (const item of items) {
         try {

@@ -682,6 +682,7 @@ flowchart TB
 - 📢 **平台营销管理** - 平台管理端独立「营销管理」页面（路由 `/management_promotion`），管理优惠券与活动（权限码 `admin.promotion`）
 - 🎯 **商家营销管理** - 卖家端营销管理页面，创建优惠券/活动，支持指定商品选择、店主多店铺切换
 - 🔗 **商家加入平台活动** - 商家可浏览平台发布的活动并选择加入或退出
+- 💥 **折上折下单** - 商品详情页和购物车结算均支持活动折扣叠加优惠券；购物车弹窗显示折上折提示，成功消息展示"共节省¥X（活动省¥A + 券省¥B）"
 
 ### 🔧 后端功能亮点
 
@@ -729,8 +730,10 @@ flowchart TB
   - **活动管理**：创建（秒杀/满减/折扣/拼团）、活动商品管理（活动价/库存）、商家加入/退出平台活动
   - **平台端路由**：`manage_coupon/*`、`manage_activity/*`（权限码 `admin.promotion`）
   - **商家端路由**：`buyer_coupon/*`、`buyer_activity/*`（兼容 station=1 多店铺选择 + station=2 店员角色权限）
-  - **用户端路由**：`user_coupon/available`（支持按 mall_id/shopping_id 筛选 + 用户领取状态）、`user_coupon/claim`（领取）、`user_coupon/my`（我的优惠券）、`user_activity/active`（活动列表）
-  - 数据库表：`coupons`、`user_coupons`、`coupon_products`、`activities`、`activity_products`、`activity_coupons`、`activity_participants`
+  - **用户端路由**：`user_coupon/available`（支持按 mall_id/shopping_id 筛选 + 用户领取状态）、`user_coupon/usable`（下单时按金额/店铺/商品范围过滤可用券）、`user_coupon/claim`（领取）、`user_coupon/mine`（我的优惠券）、`user_activity/active`（活动列表）
+  - **折上折**：`create_order` 优先应用活动折扣（秒杀/折扣/拼团商品级 + 满减订单级），在活动折后金额基础上再减优惠券（默认 `stackable=True`）；若活动设置 `stackable=False` 则不可叠加；响应字段：`activity_discount`（活动省）、`coupon_discount`（券省）、`total_discount`（总节省）
+  - **`prefer_mode`**：`activity`（默认，优先活动+叠加券）/ `coupon`（放弃活动仅用券）
+  - 数据库表：`coupons`、`user_coupons`、`coupon_products`（按商品整体生效，无规格维度）、`activities`、`activity_products`（支持规格维度 specification_id）、`activity_coupons`、`activity_participants`
 
 ## 🧠 推荐系统
 
@@ -1160,13 +1163,28 @@ stateDiagram-v2
     草稿 --> 已取消: 取消\nstatus=cancelled
 ```
 
+### 折上折（活动 + 优惠券叠加）
+
+下单时，活动折扣与优惠券可**自动叠加**（折上折），规则如下：
+
+| 活动类型 | 折扣方式 | 默认是否可叠加券 |
+|---------|---------|---------------|
+| `flash_sale` 限时秒杀 | 活动价（商品级） | ✅ 可叠加（除非明确设 `stackable=false`） |
+| `discount` 折扣活动 | 折扣率（商品级） | ✅ 可叠加 |
+| `group_buy` 拼团 | 折扣率/活动价（商品级） | ✅ 可叠加 |
+| `full_reduction` 满减 | 满额减总价（订单级） | ✅ 可叠加 |
+
+- 活动创建时可在 `rules.stackable` 明确设为 `false` 来禁止叠加券
+- 下单响应包含 `activity_discount`（活动省）、`coupon_discount`（券省）、`total_discount`（总节省），前端统一展示"共节省¥X（活动省¥A + 券省¥B）"
+
 ### 三端入口
 
 | 端 | 入口 | 功能 |
 |-----|------|------|
 | **用户端** | 领券中心 `/coupon_center` | 查看可领优惠券、一键领取、显示领取状态 |
 | **用户端** | 活动专区 `/activity_zone` | 查看进行中的活动及参与商品 |
-| **用户端** | 商品详情页 | 展示该商品关联的可领优惠券 |
+| **用户端** | 商品详情页 | 展示该商品关联的可领优惠券，支持直接领取 |
+| **用户端** | 购物车结算 | 自动显示折上折提示，支持叠加选择优惠券 |
 | **商家端** | 营销管理 `/buyer_promotion_manage` | 创建/管理优惠券和活动，加入平台活动 |
 | **平台端** | 营销管理 `/management_promotion` | 平台级优惠券和活动管理 |
 
@@ -1176,9 +1194,10 @@ stateDiagram-v2
 
 | 接口 | 方法 | 路径 | 说明 |
 |------|------|------|------|
-| 可用优惠券 | GET | `/api/user_coupon/available` | 支持 mall_id/shopping_id 筛选 + 用户领取状态 |
+| 可用优惠券 | GET | `/api/user_coupon/available` | 支持 mall_id/shopping_id 筛选 + 用户领取状态（available/claimed/sold_out） |
+| 下单可用券 | GET | `/api/user_coupon/usable` | 按店铺、订单金额、商品范围筛选可用优惠券，含预计优惠额 |
 | 领取优惠券 | POST | `/api/user_coupon/claim` | 领取，受每人限领和总量限制 |
-| 我的优惠券 | GET | `/api/user_coupon/my` | 用户已领优惠券列表 |
+| 我的优惠券 | GET | `/api/user_coupon/mine` | 用户已领优惠券列表（支持 unused/used/expired 筛选） |
 | 活动列表 | GET | `/api/user_activity/active` | 进行中的活动列表 |
 
 #### 商家端
@@ -1203,6 +1222,20 @@ stateDiagram-v2
 | 创建活动 | POST | `/api/manage_activity/create` | 平台级活动 |
 | 活动列表 | GET | `/api/manage_activity/list` | 平台活动列表 |
 | 更新活动状态 | POST | `/api/manage_activity/status` | 上线/暂停/取消 |
+
+### 数据库表
+
+| 表名 | 说明 |
+|------|------|
+| `coupons` | 优惠券主表，字段：`coupon_no`、`name`、`coupon_type`（full_reduction/discount/fixed）、`issuer_type`（platform/merchant）、`mall_id`、`scope`（all/store/product）、`platform_scope`、`min_order_amount`、`discount_value`、`max_discount`、`total_count`、`per_user_limit`、`start_time`、`end_time`、`status`（draft/active/paused/expired/cancelled） |
+| `user_coupons` | 用户领取记录，字段：`coupon_id`、`user`、`status`（unused/used/expired）、`order_no`、`claimed_at`、`used_at` |
+| `coupon_products` | 优惠券指定商品关联，字段：`coupon_id`、`mall_id`、`shopping_id`（无 specification_id，优惠券按商品整体生效） |
+| `activities` | 活动主表，字段：`activity_no`、`name`、`activity_type`（flash_sale/full_reduction/discount/group_buy）、`issuer_type`、`mall_id`、`scope`、`rules`（JSON，含 discount_rate/thresholds/stackable 等）、`start_time`、`end_time`、`status` |
+| `activity_products` | 活动商品关联，字段：`activity_id`、`mall_id`、`shopping_id`、`specification_id`（NULL=全规格）、`activity_price`、`activity_stock`、`sold_count`、`joined_by`（platform/merchant）、`status` |
+| `activity_coupons` | 活动绑定优惠券关联，字段：`activity_id`、`coupon_id` |
+| `activity_participants` | 商家参与活动记录，字段：`activity_id`、`mall_id`、`joined_at` |
+
+> 迁移服务 `services/promotion_migrate/` 在应用启动时自动建立以上所有表。
 
 ## 🛍️ 订单与支付系统
 
@@ -1247,7 +1280,7 @@ stateDiagram-v2
 
 | 接口 | 方法 | 路径 | 说明 |
 |------|------|------|------|
-| 创建订单 | POST | `/api/order/create` | 幂等键防重复，扣库存（乐观锁） |
+| 创建订单 | POST | `/api/order/create` | 幂等键防重复，扣库存（乐观锁）；支持 `user_coupon_id`（优惠券）和 `prefer_mode`（`activity`=活动+叠加券 / `coupon`=仅用券放弃活动）；响应含 `activity_discount`、`coupon_discount`、`total_discount` |
 | 发起支付 | POST | `/api/order/pay` | 返回支付宝支付表单 HTML |
 | 支付回调 | POST | `/api/order/alipay_notify` | 支付宝异步通知，验签 + 更新状态 + 入担保 |
 | 支付跳转 | GET | `/api/order/alipay_return` | 支付后同步跳转前端 |
@@ -1328,7 +1361,7 @@ stateDiagram-v2
 
 - **许可证**: GPLv3
 - **作者**: SDIJF1521
-- **版本**: 0.9.0
+- **版本**: 0.9.1
 
 ## 🤝贡献指南
 

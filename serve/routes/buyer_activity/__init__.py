@@ -1,15 +1,19 @@
 """
 商家端活动管理路由
-- POST   /buyer_activity/create       创建商家活动
-- POST   /buyer_activity/status       更新活动状态
-- GET    /buyer_activity/list         本店活动列表
-- GET    /buyer_activity/detail       活动详情
-- POST   /buyer_activity/delete       删除活动
-- GET    /buyer_activity/joinable     可加入的平台活动列表
-- POST   /buyer_activity/join         加入平台活动（商家自选商品）
-- POST   /buyer_activity/leave        退出平台活动
+- POST   /buyer_activity/create              创建商家活动
+- POST   /buyer_activity/status              更新活动状态
+- GET    /buyer_activity/list                本店活动列表
+- GET    /buyer_activity/detail              活动详情
+- POST   /buyer_activity/delete              删除活动
+- GET    /buyer_activity/joinable            可加入的平台活动列表
+- GET    /buyer_activity/shop_products       获取本店商品+规格列表（用于创建自有活动时选商品）
+- GET    /buyer_activity/my_products         获取本店商品列表（用于选择加入平台活动）
+- POST   /buyer_activity/join                加入平台活动（商家自选商品）
+- POST   /buyer_activity/leave               退出平台活动
+- GET    /buyer_activity/product_discounts   本店商品当前参与的所有生效折扣活动（估算用）
 """
 
+import asyncio
 import logging
 from typing import Annotated
 
@@ -24,6 +28,8 @@ from data.data_mods import (
 from data.sql_client import get_db, execute_db_query
 from data.sql_client_pool import db_pool
 from data.redis_client import RedisClient, get_redis
+from data.mongodb_client import MongoDBClient, get_mongodb_client
+from data.file_client import read_file_base64_with_cache
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -283,6 +289,154 @@ async def joinable_activities(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/buyer_activity/shop_products")
+async def shop_products(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=50),
+    search: str = Query("", description="按商品名称搜索"),
+    token: str = Header(..., alias="access-token"),
+    mall_id: int | None = Query(None, description="店主指定操作的店铺ID"),
+    db=Depends(get_db),
+    redis: RedisClient = Depends(get_redis),
+    mongodb: MongoDBClient = Depends(get_mongodb_client),
+):
+    """获取商家本店商品列表（含规格），用于创建店铺自有活动时选择商品"""
+    try:
+        ok, err, token_data = await _verify_merchant(token, redis, db, requested_mall_id=mall_id)
+        if not ok:
+            return {"current": False, "msg": err}
+
+        mid = int(token_data.get("mall_id"))
+        offset = (page - 1) * page_size
+
+        mongo_filter: dict = {"mall_id": mid, "audit": 1}
+        if search.strip():
+            mongo_filter["name"] = {"$regex": search.strip(), "$options": "i"}
+
+        total = await mongodb.count_documents("shopping", mongo_filter)
+        docs = await mongodb.find_many(
+            "shopping", mongo_filter,
+            skip=offset, limit=page_size,
+            sort=[("shopping_id", -1)],
+        )
+
+        async def _build(doc: dict) -> dict:
+            img_b64 = ""
+            if doc.get("img_list"):
+                img_b64 = await read_file_base64_with_cache(doc["img_list"][0], redis, cache_expire=3600) or ""
+
+            specs = []
+            for sp in (doc.get("specification_list") or []):
+                sid = sp.get("specification_id") or sp.get("id")
+                # 规格名：优先 specs（字符串列表），其次 name 字段
+                raw_specs = sp.get("specs") or []
+                spec_name = " · ".join(raw_specs) if raw_specs else sp.get("name", "") or f"规格{sid}"
+                specs.append({
+                    "specification_id": sid,
+                    "name": spec_name,
+                    "price": float(sp.get("price", 0)),
+                    "stock": int(sp.get("stock", 0)),
+                })
+
+            return {
+                "shopping_id": doc["shopping_id"],
+                "name": doc.get("name", ""),
+                "img": img_b64,
+                "specifications": specs,
+            }
+
+        items = await asyncio.gather(*[_build(d) for d in (docs or [])])
+        return {
+            "current": True,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "data": list(items),
+        }
+    except Exception as e:
+        logger.error("获取店铺商品列表异常: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/buyer_activity/my_products")
+async def my_products(
+    activity_id: int = Query(..., description="目标平台活动ID，用于过滤已加入的商品"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=50),
+    search: str = Query("", description="按商品名称搜索"),
+    token: str = Header(..., alias="access-token"),
+    mall_id: int | None = Query(None, description="店主指定操作的店铺ID"),
+    db=Depends(get_db),
+    redis: RedisClient = Depends(get_redis),
+    mongodb: MongoDBClient = Depends(get_mongodb_client),
+):
+    """获取商家本店商品列表（含规格），供选择加入平台活动"""
+    try:
+        ok, err, token_data = await _verify_merchant(token, redis, db, requested_mall_id=mall_id)
+        if not ok:
+            return {"current": False, "msg": err}
+
+        mid = int(token_data.get("mall_id"))
+        offset = (page - 1) * page_size
+
+        mongo_filter: dict = {"mall_id": mid, "audit": 1}
+        if search.strip():
+            mongo_filter["name"] = {"$regex": search.strip(), "$options": "i"}
+
+        total = await mongodb.count_documents("shopping", mongo_filter)
+        docs = await mongodb.find_many(
+            "shopping", mongo_filter,
+            skip=offset, limit=page_size,
+            sort=[("shopping_id", -1)],
+        )
+
+        already_joined_rows = await db_pool.execute_query(
+            """SELECT shopping_id, specification_id FROM activity_products
+               WHERE activity_id = %s AND mall_id = %s AND status = 'active'""",
+            (activity_id, mid),
+        )
+        joined_set = {(r[0], r[1]) for r in (already_joined_rows or [])}
+
+        async def _build(doc: dict) -> dict:
+            img_b64 = ""
+            if doc.get("img_list"):
+                img_b64 = await read_file_base64_with_cache(doc["img_list"][0], redis, cache_expire=3600) or ""
+
+            specs = []
+            for sp in (doc.get("specification_list") or []):
+                sid = sp.get("specification_id") or sp.get("id")
+                raw_specs = sp.get("specs") or []
+                spec_name = " · ".join(raw_specs) if raw_specs else sp.get("name", "") or f"规格{sid}"
+                specs.append({
+                    "specification_id": sid,
+                    "name": spec_name,
+                    "price": float(sp.get("price", 0)),
+                    "stock": sp.get("stock", 0),
+                    "already_joined": (doc["shopping_id"], sid) in joined_set,
+                })
+
+            no_spec_joined = not specs and (doc["shopping_id"], None) in joined_set
+            return {
+                "shopping_id": doc["shopping_id"],
+                "name": doc.get("name", ""),
+                "img": img_b64,
+                "specifications": specs,
+                "already_joined": no_spec_joined,
+            }
+
+        items = await asyncio.gather(*[_build(d) for d in (docs or [])])
+        return {
+            "current": True,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "data": list(items),
+        }
+    except Exception as e:
+        logger.error("获取商家商品列表异常: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/buyer_activity/join")
 async def join_activity(
     data: Annotated[MerchantJoinActivityBody, Body()],
@@ -291,21 +445,29 @@ async def join_activity(
     db=Depends(get_db),
     redis: RedisClient = Depends(get_redis),
 ):
-    """商家端将商品加入平台活动"""
+    """商家端将自选商品加入平台活动（mall_id 由 token 自动注入，无需前端填写）"""
     try:
         ok, err, token_data = await _verify_merchant(token, redis, db, require_write=True, requested_mall_id=mall_id)
         if not ok:
             return {"current": False, "msg": err}
 
-        mall_id = token_data.get("mall_id")
-        if not mall_id:
+        mid = token_data.get("mall_id")
+        if not mid:
             return {"current": False, "msg": "未找到店铺信息"}
 
         svc = _get_service(redis)
         result = await svc.merchant_join_activity(
             activity_id=data.activity_id,
-            mall_id=int(mall_id),
-            products=[p.model_dump() for p in data.products],
+            mall_id=int(mid),
+            products=[
+                {
+                    "shopping_id": p.shopping_id,
+                    "specification_id": p.specification_id,
+                    "activity_price": p.activity_price,
+                    "activity_stock": p.activity_stock,
+                }
+                for p in data.products
+            ],
         )
         return {"current": True, **result}
     except Exception as e:
@@ -340,4 +502,59 @@ async def leave_activity(
         return {"current": True, **result}
     except Exception as e:
         logger.error("商家退出活动异常: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/buyer_activity/product_discounts")
+async def product_discounts(
+    token: str = Header(..., alias="access-token"),
+    mall_id: int | None = Query(None, description="店主指定操作的店铺ID"),
+    db=Depends(get_db),
+    redis: RedisClient = Depends(get_redis),
+):
+    """
+    查询本店所有商品当前参与的生效折扣活动（秒杀/折扣/拼团）。
+    返回按 shopping_id 分组的活动列表，前端用于创建活动时估算折上折价格。
+    """
+    try:
+        ok, err, token_data = await _verify_merchant(token, redis, db, requested_mall_id=mall_id)
+        if not ok:
+            return {"current": False, "msg": err}
+
+        mid = int(token_data.get("mall_id"))
+
+        rows = await db_pool.execute_query(
+            """SELECT ap.shopping_id, a.id AS activity_id, a.name AS activity_name,
+                      a.activity_type, a.rules
+               FROM activity_products ap
+               JOIN activities a ON ap.activity_id = a.id
+               WHERE ap.mall_id = %s
+                 AND ap.status = 'active'
+                 AND a.status = 'active'
+                 AND NOW() BETWEEN a.start_time AND a.end_time
+                 AND a.activity_type IN ('flash_sale', 'discount', 'group_buy')
+               ORDER BY ap.shopping_id""",
+            (mid,),
+        )
+
+        import json as _json
+        product_map: dict[int, list] = {}
+        for shopping_id, act_id, act_name, act_type, rules_raw in (rows or []):
+            try:
+                rules = _json.loads(rules_raw) if isinstance(rules_raw, str) else (rules_raw or {})
+            except Exception:
+                rules = {}
+            dr = rules.get("discount_rate")
+            if dr is None:
+                continue
+            product_map.setdefault(shopping_id, []).append({
+                "activity_id": act_id,
+                "activity_name": act_name,
+                "activity_type": act_type,
+                "discount_rate": float(dr),
+            })
+
+        return {"current": True, "success": True, "data": product_map}
+    except Exception as e:
+        logger.error("查询商品活动折扣异常: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
