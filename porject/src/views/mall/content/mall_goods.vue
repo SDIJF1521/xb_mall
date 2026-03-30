@@ -7,7 +7,7 @@
     <div class="goods-grid">
       <div
         v-for="item in goods"
-        :key="item.shopping_id"
+        :key="`${item.mall_id}_${item.shopping_id}`"
         class="goods-card"
         @click="goToDetail(item)"
       >
@@ -43,7 +43,7 @@
               type="primary"
               size="small"
               class="cart-btn"
-              :loading="cartLoading[item.shopping_id]"
+              :loading="cartLoading[`${item.mall_id}_${item.shopping_id}`]"
               @click.stop="handleAddToCart(item)"
             >
               <el-icon><ShoppingCart /></el-icon>
@@ -51,8 +51,8 @@
             </el-button>
             <el-button
               size="small"
-              :type="favState[item.shopping_id]?.wishlisted ? 'danger' : 'default'"
-              :loading="wishlistLoading[item.shopping_id]"
+              :type="favState[`${item.mall_id}_${item.shopping_id}`]?.wishlisted ? 'danger' : 'default'"
+              :loading="wishlistLoading[`${item.mall_id}_${item.shopping_id}`]"
               class="fav-btn"
               circle
               @click.stop="handleFavorite(item)"
@@ -114,7 +114,7 @@ const batchCheckFavorites = async (items: GoodsItem[]) => {
   )
   const results = await Promise.all(checks)
   results.forEach((res, idx) => {
-    const key = items[idx].shopping_id
+    const key = `${items[idx].mall_id}_${items[idx].shopping_id}`
     if (res?.data?.success) {
       favState[key] = { wishlisted: res.data.is_favorited, favId: res.data.favorite_id ?? null }
     } else if (!favState[key]) {
@@ -136,7 +136,7 @@ const handleFavorite = async (item: GoodsItem) => {
     router.push('/register')
     return
   }
-  const key = item.shopping_id
+  const key = `${item.mall_id}_${item.shopping_id}`
   const headers = { 'access-token': token }
   wishlistLoading[key] = true
   try {
@@ -188,7 +188,7 @@ const handleAddToCart = async (item: GoodsItem) => {
     return
   }
   try {
-    cartLoading[item.shopping_id] = true
+    cartLoading[`${item.mall_id}_${item.shopping_id}`] = true
     const res = await Axios.post(
       '/shopping_cart_add',
       {
@@ -214,7 +214,7 @@ const handleAddToCart = async (item: GoodsItem) => {
       ElMessage.error('加入购物车失败')
     }
   } finally {
-    cartLoading[item.shopping_id] = false
+    cartLoading[`${item.mall_id}_${item.shopping_id}`] = false
   }
 }
 </script>

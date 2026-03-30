@@ -117,7 +117,7 @@ interface Comment {
 
 const Axios = axios.create({ baseURL: 'http://127.0.0.1:8000/api' })
 
-const isLoggedIn = computed(() => !!localStorage.getItem('buyer_access_token'))
+const isLoggedIn = computed(() => !!localStorage.getItem('access_token'))
 
 const loading   = ref(false)
 const submitting = ref(false)
@@ -151,7 +151,7 @@ const resetForm = () => { form.rating = 5; form.content = ''; showForm.value = f
 const fetchComments = async (page = 1) => {
   loading.value = true
   try {
-    const res = await Axios.get('/commodity_comments', { params: { shopping_id: props.shoppingId, page } })
+    const res = await Axios.get('/commodity_comments', { params: { shopping_id: props.shoppingId, mall_id: props.mallId, page } })
     if (res.data.success) {
       comments.value = res.data.data || []
       total.value = res.data.total || 0
@@ -163,7 +163,7 @@ const submitComment = async () => {
   if (!form.content.trim()) return
   submitting.value = true
   try {
-    const token = localStorage.getItem('buyer_access_token')
+    const token = localStorage.getItem('access_token')
     const res = await Axios.post('/commodity_comment', null, {
       params: {
         shopping_id: props.shoppingId,

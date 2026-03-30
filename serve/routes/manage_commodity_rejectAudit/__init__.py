@@ -28,7 +28,7 @@ async def manage_commodity_rejectAudit(data:Annotated[ManageRejectCommodityApply
             await execute_db_query(db,
                                    'update shopping set audit = %s where mall_id = %s and shopping_id = %s',
                                    (2,data.mall_id,data.shopping_id))
-            await mongodb.update_one('shopping',{'shopping_id':data.shopping_id}, {'$set': {'audit': 2}})
+            await mongodb.update_one('shopping',{'mall_id':data.mall_id,'shopping_id':data.shopping_id}, {'$set': {'audit': 2}})
             
             mongodb_data_msg = await mongodb.find_one('commodity_msg',{'mall_id':data.mall_id,'shopping_id':data.shopping_id,'pass':0,'auditor':username})
 

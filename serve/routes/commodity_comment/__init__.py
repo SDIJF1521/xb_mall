@@ -39,7 +39,7 @@ async def commodity_comment(
 
     existing = await mongodb.find_one(
         'commodity_comment',
-        {'shopping_id': shopping_id, 'username': username},
+        {'mall_id': mall_id, 'shopping_id': shopping_id, 'username': username},
     )
     if existing:
         return {'code': 400, 'msg': '您已评论过该商品', 'success': False}
@@ -57,6 +57,6 @@ async def commodity_comment(
     )
 
     cache = CacheService(redis)
-    await redis.delete(cache._make_key('commodity:comments', shopping_id, 1))
+    await redis.delete(cache._make_key('commodity:comments', mall_id, shopping_id, 1))
 
     return {'code': 200, 'msg': '评论发布成功', 'success': True}

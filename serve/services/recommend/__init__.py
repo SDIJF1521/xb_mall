@@ -66,15 +66,15 @@ class RecommendCommodity:
         self.__class__._wd_loaded = True
         return self.__class__._wide_deep
 
-    async def _load_user_favorites(self, user: str) -> set[int]:
-        """从 MySQL 加载用户收藏的商品ID集合"""
+    async def _load_user_favorites(self, user: str) -> set[tuple[int, int]]:
+        """从 MySQL 加载用户收藏的 (mall_id, shopping_id) 集合"""
         try:
             rows = await db_pool.execute_query(
-                "SELECT shopping_id FROM user_favorites "
+                "SELECT mall_id, shopping_id FROM user_favorites "
                 "WHERE user = %s AND type = 'commodity' AND shopping_id IS NOT NULL",
                 (user,),
             )
-            return {int(r[0]) for r in rows} if rows else set()
+            return {(int(r[0]), int(r[1])) for r in rows} if rows else set()
         except Exception:
             return set()
 
@@ -82,8 +82,8 @@ class RecommendCommodity:
         """获取用户收藏商品所属的类型列表，用于类型偏好加权"""
         fav_ids = await self._load_user_favorites(user)
         types: list[str] = []
-        for sid in fav_ids:
-            prod = await self.mongodb.find_one("shopping", {"shopping_id": sid})
+        for mall_id, sid in fav_ids:
+            prod = await self.mongodb.find_one("shopping", {"mall_id": mall_id, "shopping_id": sid})
             if prod:
                 t = prod.get("type") or []
                 if isinstance(t, str):
@@ -92,11 +92,11 @@ class RecommendCommodity:
         return types
 
     # 基于 Wide & Deep 的智能推荐
-    async def _index_recommend_commodity(self, user: str) -> List[int]:
+    async def _index_recommend_commodity(self, user: str) -> List[tuple[int, int]]:
         """
         基于 Wide & Deep 的智能推荐，同时融合收藏偏好加权
         :param user: 用户名
-        :return: 推荐的 shopping_id 列表(最多12个)
+        :return: 推荐的 (mall_id, shopping_id) 列表(最多12个)
         """
         wd = self._get_wide_deep()
         if wd is None:
@@ -104,14 +104,17 @@ class RecommendCommodity:
 
         # 获取已审核候选商品
         audit_rows = await db_pool.execute_query(
-            "SELECT s.shopping_id "
+            "SELECT s.mall_id, s.shopping_id "
             "FROM shopping s "
             "JOIN store st ON s.mall_id = st.mall_id "
             "WHERE s.audit = 1 AND st.state = 1"
         )
         if not audit_rows:
             return []
-        candidate_ids = [int(r[0]) for r in audit_rows]
+        sid_to_mall: dict[int, int] = {}
+        for r in audit_rows:
+            sid_to_mall.setdefault(int(r[1]), int(r[0]))
+        candidate_ids = list(sid_to_mall.keys())
 
         # 获取用户浏览历史和收藏历史
         user_records = await self.mongodb.find_many("user_browse_record", {"user": user})
@@ -121,7 +124,7 @@ class RecommendCommodity:
             if sid is not None:
                 interacted.add(int(sid))
 
-        fav_ids = await self._load_user_favorites(user)
+        fav_sids = {sid for _, sid in await self._load_user_favorites(user)}
 
         candidates = [i for i in candidate_ids if i not in interacted]
         if not candidates:
@@ -134,7 +137,8 @@ class RecommendCommodity:
         item2idx = getattr(wd, "item2idx", {})
 
         for iid in candidates:
-            prod = await self.mongodb.find_one("shopping", {"shopping_id": iid})
+            mid = sid_to_mall.get(iid)
+            prod = await self.mongodb.find_one("shopping", {"mall_id": mid, "shopping_id": iid}) if mid else None
             if not prod:
                 continue
             types = prod.get("type") or []
@@ -163,7 +167,8 @@ class RecommendCommodity:
             scored: list[tuple[int, float]] = []
             for rank, sid in enumerate(ids):
                 base_score = 1.0 / (rank + 1)
-                prod = await self.mongodb.find_one("shopping", {"shopping_id": sid})
+                mid = sid_to_mall.get(sid)
+                prod = await self.mongodb.find_one("shopping", {"mall_id": mid, "shopping_id": sid}) if mid else None
                 bonus = 0.0
                 if prod:
                     ptypes = prod.get("type") or []
@@ -173,12 +178,12 @@ class RecommendCommodity:
                         bonus += type_freq.get(str(t), 0) * 0.15
                 scored.append((sid, base_score + bonus))
             scored.sort(key=lambda x: -x[1])
-            return [s for s, _ in scored[:12]]
+            return [(sid_to_mall.get(s, 0), s) for s, _ in scored[:12]]
 
-        return ids[:12]
+        return [(sid_to_mall.get(s, 0), s) for s in ids[:12]]
 
     # 无 Wide & Deep 模型时, 使用协同过滤回退
-    async def _fallback_collaborative_filter(self, user: str) -> List[int]:
+    async def _fallback_collaborative_filter(self, user: str) -> List[tuple[int, int]]:
         """无 Wide & Deep 模型时, 使用协同过滤 + 收藏偏好回退"""
         from collections import defaultdict
 
@@ -186,13 +191,14 @@ class RecommendCommodity:
             return r.get("shopping_id") or r.get("commodity_id")
 
         user_records = await self.mongodb.find_many("user_browse_record", {"user": user})
-        fav_ids = await self._load_user_favorites(user)
+        fav_pairs = await self._load_user_favorites(user)
+        fav_sids = {sid for _, sid in fav_pairs}
 
         user_item_ids = {
             int(_get_sid(r)) for r in user_records
             if _get_sid(r) is not None
         }
-        user_item_ids |= fav_ids
+        user_item_ids |= fav_sids
 
         if not user_item_ids:
             return []
@@ -220,14 +226,14 @@ class RecommendCommodity:
         type_scores: dict[int, float] = defaultdict(float)
         source_ids = user_item_ids.copy()
         for sid in source_ids:
-            prod = await self.mongodb.find_one("shopping", {"shopping_id": sid})
+            prod = await self.mongodb.find_one("shopping", {"shopping_id": sid, "audit": 1})
             if prod and prod.get("type"):
                 types = prod["type"] if isinstance(prod["type"], list) else [prod["type"]]
-                weight = 2.0 if sid in fav_ids else 1.0
+                weight = 2.0 if sid in fav_sids else 1.0
                 for t in types:
                     t_val = str(t) if t else "<pad>"
                     similar = await self.mongodb.find_many(
-                        "shopping", {"type": t_val}, limit=50
+                        "shopping", {"type": t_val, "audit": 1}, limit=50
                     )
                     for s in similar:
                         sid2 = s.get("shopping_id")
@@ -238,14 +244,17 @@ class RecommendCommodity:
             item_scores[item] = item_scores.get(item, 0) * 0.6 + type_scores.get(item, 0) * 0.4
 
         audit_rows = await db_pool.execute_query(
-            "SELECT s.shopping_id "
+            "SELECT s.mall_id, s.shopping_id "
             "FROM shopping s "
             "JOIN store st ON s.mall_id = st.mall_id "
             "WHERE s.audit = 1 AND st.state = 1"
         )
         if not audit_rows:
             return []
-        audited = {int(r[0]) for r in audit_rows}
+        sid_to_mall: dict[int, int] = {}
+        for r in audit_rows:
+            sid_to_mall.setdefault(int(r[1]), int(r[0]))
+        audited = set(sid_to_mall.keys())
         candidates = [(s, sc) for s, sc in item_scores.items() if s in audited]
         candidates.sort(key=lambda x: -x[1])
-        return [s for s, _ in candidates[:12]]
+        return [(sid_to_mall.get(s, 0), s) for s, _ in candidates[:12]]

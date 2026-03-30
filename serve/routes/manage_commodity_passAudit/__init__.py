@@ -30,14 +30,14 @@ async def manage_commodity_passAudit(data:Annotated[ManageCommodityPassAudit,For
             await execute_db_query(db,
                                    'update shopping set audit = %s where mall_id = %s and shopping_id = %s',
                                    (1,data.mall_id,data.shopping_id))
-            await mongodb.update_one('shopping',{'shopping_id':data.shopping_id},
+            await mongodb.update_one('shopping',{'mall_id':data.mall_id,'shopping_id':data.shopping_id},
                                     {'$set':{'audit':1}})
             
             mongodb_commodity_data = await mongodb.find_one('shopping',{'mall_id':data.mall_id,'shopping_id':data.shopping_id})
             mongodb_sql = await mongodb.find_one('commodity_msg',{'mall_id':data.mall_id,'shopping_id':data.shopping_id})
             commodity_name = mongodb_commodity_data.get('name', '未知商品')
             
-            if not data.remark is None:
+            if data.remark is None:
                 msg_content = f'商品 {commodity_name} 审核通过，审核备注：\n无'
             else:
                 msg_content = f'商品 {commodity_name} 审核通过，审核备注：\n{data.remark}'

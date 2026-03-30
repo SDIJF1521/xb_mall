@@ -11,6 +11,7 @@ router = APIRouter()
 @router.get('/commodity_comments')
 async def commodity_comments(
     shopping_id: int = Query(..., description='商品ID'),
+    mall_id: int = Query(..., description='店铺ID'),
     page: int = Query(1, ge=1, description='页码'),
     redis: RedisClient = Depends(get_redis),
     mongodb: MongoDBClient = Depends(get_mongodb_client),
@@ -20,18 +21,19 @@ async def commodity_comments(
     skip = (page - 1) * page_size
 
     cache = CacheService(redis)
-    cache_key = cache._make_key('commodity:comments', shopping_id, page)
+    cache_key = cache._make_key('commodity:comments', mall_id, shopping_id, page)
     cached = await cache.get(cache_key)
     if cached:
         return cached
 
+    query_filter = {'mall_id': mall_id, 'shopping_id': shopping_id}
     comments_raw = await mongodb.find_many(
         'commodity_comment',
-        {'shopping_id': shopping_id},
+        query_filter,
         limit=page_size,
         skip=skip,
     )
-    total_list = await mongodb.find_many('commodity_comment', {'shopping_id': shopping_id})
+    total_list = await mongodb.find_many('commodity_comment', query_filter)
 
     result = {
         'code': 200,

@@ -51,7 +51,10 @@ async def browsing_history(
         if shopping_id is None:
             return None
 
-        product = await mongodb.find_one('shopping', {'shopping_id': int(shopping_id)})
+        query = {'shopping_id': int(shopping_id)}
+        if mall_id is not None:
+            query['mall_id'] = int(mall_id)
+        product = await mongodb.find_one('shopping', query)
         if not product:
             return {
                 'shopping_id': shopping_id,

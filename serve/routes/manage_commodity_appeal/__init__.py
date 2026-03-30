@@ -151,7 +151,7 @@ async def manage_commodity_appeal_handle(data: Annotated[ManageCommodityAppealHa
                                    'UPDATE shopping SET audit = %s WHERE mall_id = %s AND shopping_id = %s',
                                    (3, mall_id, shopping_id))
             await mongodb.update_one('shopping',
-                                     {'shopping_id': shopping_id},
+                                     {'mall_id': mall_id, 'shopping_id': shopping_id},
                                      {'$set': {'audit': 3}})
 
             # 删除违规记录

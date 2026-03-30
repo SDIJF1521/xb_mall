@@ -27,7 +27,7 @@
     <div v-else-if="products.length > 0" class="products-grid">
       <div
         v-for="(product, index) in products"
-        :key="product.id"
+        :key="product.uid"
         class="product-card"
         @click="handleProductClick(product)"
         :style="{ animationDelay: `${index * 0.1}s` }"
@@ -67,7 +67,7 @@
               type="primary"
               size="default"
               @click.stop="handleAddToCart(product)"
-              :loading="cartLoading[product.id]"
+              :loading="cartLoading[product.uid]"
               class="add-to-cart-btn"
             >
               <el-icon><ShoppingCart /></el-icon>
@@ -77,7 +77,7 @@
               size="default"
               @click.stop="handleAddToWishlist(product)"
               :type="product.isWishlisted ? 'danger' : 'default'"
-              :loading="wishlistLoading[product.id]"
+              :loading="wishlistLoading[product.uid]"
               class="wishlist-btn"
               circle
             >
@@ -127,6 +127,7 @@ import axios from 'axios'
 interface Product {
   id: number
   mallId: number
+  uid: string
   name: string
   description: string
   price: number
@@ -149,7 +150,7 @@ const loading = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(12)
 const total = ref(0)
-const cartLoading = reactive<Record<number, boolean>>({})
+const cartLoading = reactive<Record<string, boolean>>({})
 
 const Axios = axios.create({
   baseURL: 'http://127.0.0.1:8000/api'
@@ -184,6 +185,7 @@ const fetchProducts = async (page: number = 1) => {
     products.value = (res.data.data as any[]).map((item) => ({
       id: item.shopping_id,
       mallId: item.mall_id,
+      uid: `${item.mall_id}_${item.shopping_id}`,
       name: item.name,
       description: item.info,
       price: item.price,
@@ -237,7 +239,7 @@ const handleAddToCart = async (product: Product) => {
     return
   }
   try {
-    cartLoading[product.id] = true
+    cartLoading[product.uid] = true
     const res = await Axios.post(
       '/shopping_cart_add',
       {
@@ -263,7 +265,7 @@ const handleAddToCart = async (product: Product) => {
       ElMessage.error('加入购物车失败')
     }
   } finally {
-    cartLoading[product.id] = false
+    cartLoading[product.uid] = false
   }
 }
 
@@ -292,7 +294,7 @@ const batchCheckFavorites = async () => {
   } catch { /* ignore */ }
 }
 
-const wishlistLoading = reactive<Record<number, boolean>>({})
+const wishlistLoading = reactive<Record<string, boolean>>({})
 
 const handleAddToWishlist = async (product: Product) => {
   const token = localStorage.getItem('access_token')
@@ -301,7 +303,7 @@ const handleAddToWishlist = async (product: Product) => {
     router.push('/register')
     return
   }
-  wishlistLoading[product.id] = true
+  wishlistLoading[product.uid] = true
   try {
     if (product.isWishlisted && product.favId) {
       const res = await Axios.delete('/favorite_remove', {
@@ -338,7 +340,7 @@ const handleAddToWishlist = async (product: Product) => {
   } catch {
     ElMessage.error('收藏操作失败')
   } finally {
-    wishlistLoading[product.id] = false
+    wishlistLoading[product.uid] = false
   }
 }
 

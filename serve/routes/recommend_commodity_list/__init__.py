@@ -17,8 +17,12 @@ router = APIRouter()
 
 
 async def _build_output_list(id_list: list, mongodb: MongoDBClient, redis: RedisClient) -> list:
-    """根据商品ID列表构建输出格式"""
-    mongo_data = [await mongodb.find_one('shopping', {'shopping_id': i}) for i in id_list]
+    """根据商品ID列表构建输出格式，id_list 元素为 (mall_id, shopping_id) 元组或纯 shopping_id"""
+    async def _find(item):
+        if isinstance(item, (tuple, list)):
+            return await mongodb.find_one('shopping', {'mall_id': item[0], 'shopping_id': item[1]})
+        return await mongodb.find_one('shopping', {'shopping_id': item})
+    mongo_data = [await _find(i) for i in id_list]
     mongo_data = [i for i in mongo_data if i]
     out_list = []
     for i in mongo_data:
@@ -51,14 +55,14 @@ async def recommend_commodity_list(
     async def execute():
         """随机推荐 (未登录或无历史时)"""
         commodity_id_list = await sql.execute_query(
-            'SELECT s.shopping_id '
+            'SELECT s.mall_id, s.shopping_id '
             'FROM shopping s '
             'JOIN store st ON s.mall_id = st.mall_id '
             'WHERE s.audit = 1 AND st.state = 1'
         )
         if not commodity_id_list:
             return {'code': 404, 'msg': '暂无商品', 'success': False, 'total': 0}
-        select_id_list = [i[0] for i in commodity_id_list]
+        select_id_list = [(i[0], i[1]) for i in commodity_id_list]
         total_count = len(select_id_list)
         offset = (page - 1) * page_size
         page_ids = select_id_list[offset:offset + page_size]

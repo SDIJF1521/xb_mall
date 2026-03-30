@@ -32,7 +32,7 @@ async def manage_commodity_violation_add(data: Annotated[ManageCommodityViolatio
                                'UPDATE shopping SET audit = %s WHERE mall_id = %s AND shopping_id = %s',
                                (4, data.mall_id, data.shopping_id))
         await mongodb.update_one('shopping',
-                                 {'shopping_id': data.shopping_id},
+                                 {'mall_id': data.mall_id, 'shopping_id': data.shopping_id},
                                  {'$set': {'audit': 4}})
 
         await mongodb.insert_one('commodity_violation', {
