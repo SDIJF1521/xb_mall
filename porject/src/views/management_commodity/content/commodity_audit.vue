@@ -13,7 +13,7 @@
         <el-empty description="暂无数据" />
     </div>
     <div v-else>
-        <el-card v-for="item in commodity_audit_list" :key="item.shopping_id" class="glow-card" @click="skip(item.mall_id,item.shopping_id)">
+        <el-card v-for="item in commodity_audit_list" :key="`${item.mall_id}_${item.shopping_id}`" class="glow-card" @click="skip(item.mall_id,item.shopping_id)">
             <el-descriptions title="商品信息" direction="vertical" border>
                 <el-descriptions-item label="商品名称">{{ item.name }}</el-descriptions-item>
                 <el-descriptions-item label="店铺id">{{ item.mall_id }}</el-descriptions-item>

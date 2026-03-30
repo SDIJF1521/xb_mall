@@ -73,11 +73,17 @@ class Record:
             pass
 
     async def init_indexes(self) -> bool:
-        """初始化记录集合索引，避免重复并提高查询性能。"""
+        """初始化记录集合索引，避免重复并提高查询性能。
+        会先尝试删除旧的 (user, shopping_id) 唯一索引，再创建正确的 (user, mall_id, shopping_id) 唯一索引。
+        """
         try:
+            try:
+                await self.mongodb.drop_index(self.COLLECTION_NAME, "user_1_shopping_id_1")
+            except Exception:
+                pass
             await self.mongodb.create_index(
                 self.COLLECTION_NAME,
-                [("user", 1), ("shopping_id", 1)],
+                [("user", 1), ("mall_id", 1), ("shopping_id", 1)],
                 unique=True,
             )
             await self.mongodb.create_index(
@@ -106,16 +112,16 @@ class Record:
         weight = self._ACTION_WEIGHT.get(action, 1.0)
         action_count_field = "browse_count" if action == "browse" else "buy_count"
 
-        query = {"user": user, "shopping_id": sid}
+        query = {"user": user, "mall_id": mid, "shopping_id": sid}
         update = {
             "$set": {
-                "mall_id": mid,
                 "commodity_id": sid,  # 兼容历史字段
                 "last_action": action,
                 "updated_at": now,
             },
             "$setOnInsert": {
                 "user": user,
+                "mall_id": mid,
                 "shopping_id": sid,
                 "created_at": now,
             },

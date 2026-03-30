@@ -28,7 +28,7 @@
     <div v-else>
       <div
         v-for="item in list"
-        :key="item.shopping_id"
+        :key="`${item.mall_id}_${item.shopping_id}`"
         class="history-item"
         :class="{ 'history-item--unavailable': !item.available }"
       >
@@ -62,7 +62,7 @@
           type="danger"
           link
           size="small"
-          :loading="deletingId === item.shopping_id"
+          :loading="deletingId === `${item.mall_id}_${item.shopping_id}`"
           @click.stop="deleteItem(item)"
         >
           <el-icon><Delete /></el-icon>
@@ -120,7 +120,7 @@ const page = ref(1)
 const pageSize = ref(10)
 const loading = ref(false)
 const clearing = ref(false)
-const deletingId = ref<number | null>(null)
+const deletingId = ref<string | null>(null)
 
 async function fetchList() {
   loading.value = true
@@ -140,10 +140,10 @@ async function fetchList() {
 }
 
 async function deleteItem(item: HistoryItem) {
-  deletingId.value = item.shopping_id
+  deletingId.value = `${item.mall_id}_${item.shopping_id}`
   try {
     const res = await Axios.delete('/browsing_history', {
-      params: { shopping_id: item.shopping_id },
+      params: { shopping_id: item.shopping_id, mall_id: item.mall_id },
     })
     if (res.data.success) {
       ElMessage.success('已删除')

@@ -163,6 +163,88 @@
       </div>
     </div>
 
+    <!-- 支付确认弹窗 -->
+    <el-dialog
+      v-model="payDialogVisible"
+      :show-close="false"
+      width="420px"
+      :close-on-click-modal="false"
+      class="pay-dialog"
+      align-center
+      destroy-on-close
+    >
+      <div class="pay-dialog__content" v-if="payOrderData">
+        <!-- 顶部图标 -->
+        <div class="pay-dialog__icon-wrap">
+          <svg class="pay-dialog__icon" viewBox="0 0 48 48" width="48" height="48" fill="none">
+            <rect x="4" y="12" width="40" height="28" rx="4" stroke="#409eff" stroke-width="2.5"/>
+            <path d="M4 20h40" stroke="#409eff" stroke-width="2.5"/>
+            <rect x="28" y="28" width="10" height="5" rx="1.5" fill="#409eff" opacity="0.25"/>
+          </svg>
+        </div>
+
+        <h3 class="pay-dialog__title">确认支付</h3>
+        <p class="pay-dialog__desc">请确认以下订单信息，点击支付后将跳转至支付宝完成付款</p>
+
+        <!-- 订单信息卡片 -->
+        <div class="pay-dialog__info-card">
+          <div class="pay-dialog__info-row">
+            <span class="pay-dialog__info-label">订单编号</span>
+            <span class="pay-dialog__info-value pay-dialog__info-value--mono">{{ payOrderData.order_no }}</span>
+          </div>
+          <div class="pay-dialog__info-row" v-for="(item, idx) in payOrderData.items" :key="idx">
+            <span class="pay-dialog__info-label">{{ item.product_name }}</span>
+            <span class="pay-dialog__info-value">×{{ item.quantity }}&ensp;¥{{ item.subtotal.toFixed(2) }}</span>
+          </div>
+          <div class="pay-dialog__divider"></div>
+          <div class="pay-dialog__info-row pay-dialog__info-row--total">
+            <span class="pay-dialog__info-label">应付金额</span>
+            <span class="pay-dialog__amount">¥{{ payOrderData.total_amount.toFixed(2) }}</span>
+          </div>
+        </div>
+
+        <!-- 支付方式 -->
+        <div class="pay-dialog__method">
+          <svg viewBox="0 0 40 40" width="28" height="28">
+            <rect width="40" height="40" rx="8" fill="#1677FF"/>
+            <path d="M28.5 22.2c-1.8-.7-3.3-1.5-4.5-2.2 1.2-2 2-4.2 2.3-6.5h2.2c.5 0 .8-.4.8-.8s-.4-.8-.8-.8H22V10c0-.5-.4-.8-.8-.8s-.8.4-.8.8v1.8h-6.9c-.5 0-.8.4-.8.8s.4.8.8.8h11c-.4 2-1 3.8-2 5.5-1.5-1-2.8-2.2-3.8-3.7-.3-.4-.8-.5-1.2-.2-.4.3-.5.8-.2 1.2 1.1 1.7 2.6 3.1 4.3 4.3-2 2.5-4.7 4.4-8 5.6-.4.2-.7.7-.5 1.1.1.3.4.5.8.5.1 0 .2 0 .3-.1 3.5-1.3 6.5-3.4 8.6-6.1 1.5.9 3.2 1.7 5.2 2.5.4.2.9 0 1.1-.5.2-.4 0-.9-.5-1.1z" fill="#fff"/>
+          </svg>
+          <div class="pay-dialog__method-info">
+            <span class="pay-dialog__method-name">支付宝支付</span>
+            <span class="pay-dialog__method-hint">安全快捷，支持花呗、余额、银行卡</span>
+          </div>
+          <svg class="pay-dialog__method-check" viewBox="0 0 20 20" width="18" height="18">
+            <circle cx="10" cy="10" r="9" fill="#409eff"/>
+            <path d="M6 10l3 3 5-5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+        </div>
+
+        <!-- 倒计时提示 -->
+        <div class="pay-dialog__tip" v-if="payOrderData._countdown > 0">
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" style="flex-shrink:0">
+            <path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 3a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 018 4zm0 7.5a.75.75 0 100-1.5.75.75 0 000 1.5z"/>
+          </svg>
+          <span>请在 <b>{{ formatCountdown(payOrderData._countdown) }}</b> 内完成支付，超时订单将自动关闭</span>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="pay-dialog__footer">
+          <button class="btn btn--ghost btn--lg" @click="payDialogVisible = false">取消</button>
+          <button
+            class="btn btn--pay btn--lg"
+            :disabled="payLoading === payOrderData?.order_no"
+            @click="executePay"
+          >
+            <svg v-if="payLoading !== payOrderData?.order_no" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" style="margin-right:6px">
+              <path d="M2 4a2 2 0 012-2h8a2 2 0 012 2v1H2V4zm0 3v5a2 2 0 002 2h8a2 2 0 002-2V7H2zm3 2h2a.5.5 0 010 1H5a.5.5 0 010-1z"/>
+            </svg>
+            {{ payLoading === payOrderData?.order_no ? '正在跳转...' : '立即支付 ¥' + (payOrderData?.total_amount?.toFixed(2) || '') }}
+          </button>
+        </div>
+      </template>
+    </el-dialog>
+
     <!-- 退款申请弹窗 -->
     <el-dialog v-model="refundDialogVisible" title="申请退款" width="440px" :close-on-click-modal="false">
       <div v-if="refundOrder" style="margin-bottom: 12px; font-size: 14px; color: var(--el-text-color-regular);">
@@ -225,6 +307,8 @@ export default {
         { label: '已关闭', value: 'closed' },
         { label: '已退款', value: 'refunded' },
       ],
+      payDialogVisible: false,
+      payOrderData: null,
       refundDialogVisible: false,
       refundOrder: null,
       refundReason: '',
@@ -352,15 +436,17 @@ export default {
       return `${m}:${s < 10 ? '0' + s : s}`
     },
 
-    async handlePay(order) {
-      try {
-        await ElMessageBox.confirm(
-          `订单金额 ¥${order.total_amount.toFixed(2)}，将跳转支付宝完成支付。`,
-          '确认支付',
-          { confirmButtonText: '前往支付', cancelButtonText: '取消', type: 'info' }
-        )
-      } catch { return }
+    handlePay(order) {
+      this.payOrderData = {
+        ...order,
+        _countdown: this.getCountdown(order),
+      }
+      this.payDialogVisible = true
+    },
 
+    async executePay() {
+      if (!this.payOrderData) return
+      const order = this.payOrderData
       this.payLoading = order.order_no
       try {
         const res = await axios.post(`${API}/order/pay`, {
@@ -370,6 +456,7 @@ export default {
         }, { headers: { 'access-token': this.getToken() } })
 
         if (res.data?.success && res.data.pay_form) {
+          this.payDialogVisible = false
           const div = document.createElement('div')
           div.innerHTML = res.data.pay_form
           document.body.appendChild(div)
@@ -1049,6 +1136,197 @@ export default {
   flex-shrink: 0;
 }
 
+/* ═══════════════════════ 支付确认弹窗 ═══════════════════════ */
+.pay-dialog :deep(.el-dialog) {
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.15);
+}
+
+.pay-dialog :deep(.el-dialog__header) {
+  display: none;
+}
+
+.pay-dialog :deep(.el-dialog__body) {
+  padding: 0;
+}
+
+.pay-dialog :deep(.el-dialog__footer) {
+  padding: 0;
+}
+
+.pay-dialog__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 36px 32px 0;
+}
+
+.pay-dialog__icon-wrap {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(64, 158, 255, 0.08), rgba(64, 158, 255, 0.16));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  animation: iconPulse 2s ease-in-out infinite;
+}
+
+@keyframes iconPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.pay-dialog__title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--vt-c-text-light-1, #303133);
+  margin: 0 0 8px;
+}
+
+.pay-dialog__desc {
+  font-size: 13px;
+  color: var(--vt-c-text-light-2, #909399);
+  margin: 0 0 24px;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.pay-dialog__info-card {
+  width: 100%;
+  background: var(--color-background-soft, #f8f9fb);
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pay-dialog__info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pay-dialog__info-label {
+  font-size: 13px;
+  color: var(--vt-c-text-light-2, #909399);
+  flex-shrink: 0;
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pay-dialog__info-value {
+  font-size: 13px;
+  color: var(--vt-c-text-light-1, #606266);
+  text-align: right;
+}
+
+.pay-dialog__info-value--mono {
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-size: 12px;
+  color: var(--vt-c-text-light-2, #909399);
+  letter-spacing: 0.3px;
+}
+
+.pay-dialog__divider {
+  height: 1px;
+  background: var(--color-border, #e4e7ed);
+  margin: 2px 0;
+}
+
+.pay-dialog__info-row--total .pay-dialog__info-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--vt-c-text-light-1, #303133);
+}
+
+.pay-dialog__amount {
+  font-size: 26px;
+  font-weight: 800;
+  color: #e74c3c;
+  letter-spacing: -0.5px;
+}
+
+.pay-dialog__method {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  border: 1.5px solid #409eff;
+  background: rgba(64, 158, 255, 0.04);
+}
+
+.pay-dialog__method-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pay-dialog__method-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--vt-c-text-light-1, #303133);
+}
+
+.pay-dialog__method-hint {
+  font-size: 11px;
+  color: var(--vt-c-text-light-2, #b0b3bb);
+}
+
+.pay-dialog__tip {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 16px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(230, 162, 60, 0.06);
+  color: #e6a23c;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.pay-dialog__footer {
+  display: flex;
+  gap: 12px;
+  padding: 20px 32px 28px;
+}
+
+.pay-dialog__footer .btn--lg {
+  flex: 1;
+  height: 46px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 12px;
+}
+
+.btn--pay {
+  color: #fff;
+  background: linear-gradient(135deg, #409eff 0%, #1677ff 100%);
+  border: none;
+  box-shadow: 0 4px 16px rgba(64, 158, 255, 0.35);
+  transition: all 0.25s ease;
+}
+
+.btn--pay:hover:not(:disabled) {
+  box-shadow: 0 6px 24px rgba(64, 158, 255, 0.5);
+  transform: translateY(-1px);
+}
+
+.btn--pay:active:not(:disabled) {
+  transform: translateY(0);
+}
+
 /* ═══════════════════════ 暗色模式 ═══════════════════════ */
 html.dark .orders-page__title {
   color: var(--vt-c-text-dark-1, #f0f0f0);
@@ -1171,5 +1449,34 @@ html.dark .pagination-info {
 
 html.dark .orders-page__pagination {
   border-color: var(--vt-c-divider-dark-2, #2c2c2c);
+}
+
+html.dark .pay-dialog__title {
+  color: var(--vt-c-text-dark-1, #f0f0f0);
+}
+
+html.dark .pay-dialog__info-card {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+html.dark .pay-dialog__info-row--total .pay-dialog__info-label {
+  color: var(--vt-c-text-dark-1, #f0f0f0);
+}
+
+html.dark .pay-dialog__method {
+  border-color: rgba(64, 158, 255, 0.5);
+  background: rgba(64, 158, 255, 0.08);
+}
+
+html.dark .pay-dialog__method-name {
+  color: var(--vt-c-text-dark-1, #f0f0f0);
+}
+
+html.dark .pay-dialog__divider {
+  background: var(--vt-c-divider-dark-2, #333);
+}
+
+html.dark .pay-dialog__tip {
+  background: rgba(230, 162, 60, 0.1);
 }
 </style>

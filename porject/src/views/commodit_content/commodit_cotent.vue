@@ -125,8 +125,15 @@
       v-model="couponDialogVisible"
       :title="isNonStackable ? '确认订单 - 选择优惠方式' : '确认订单 - 选择优惠券'"
       width="520px"
+      class="buy-confirm-dialog"
+      align-center
       destroy-on-close
     >
+      <div class="dialog-amount-hero">
+        <span class="dialog-amount-hero__label">当前订单金额</span>
+        <span class="dialog-amount-hero__value">¥{{ pendingOrderAmount.toFixed(2) }}</span>
+      </div>
+
       <!-- ① 不可叠加：让用户在"活动折扣"和"优惠券"中二选一 -->
       <template v-if="isNonStackable">
         <el-alert
@@ -242,8 +249,8 @@
       </div>
 
       <template #footer>
-        <el-button @click="couponDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="buyLoading" @click="confirmOrder">
+        <el-button class="dialog-footer-btn dialog-footer-btn--cancel" @click="couponDialogVisible = false">取消</el-button>
+        <el-button class="dialog-footer-btn dialog-footer-btn--confirm" type="primary" :loading="buyLoading" @click="confirmOrder">
           {{ confirmBtnLabel }}
         </el-button>
       </template>
@@ -888,8 +895,51 @@ onUnmounted(() => {
 }
 
 /* 优惠券选择弹窗 */
+.buy-confirm-dialog :deep(.el-dialog) {
+  border-radius: 18px;
+  overflow: hidden;
+}
+.buy-confirm-dialog :deep(.el-dialog__header) {
+  margin-right: 0;
+  padding: 18px 22px 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  background: linear-gradient(180deg, rgba(64, 158, 255, 0.08), rgba(64, 158, 255, 0.02));
+}
+.buy-confirm-dialog :deep(.el-dialog__title) {
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+.buy-confirm-dialog :deep(.el-dialog__body) {
+  padding: 16px 22px 12px;
+}
+.buy-confirm-dialog :deep(.el-dialog__footer) {
+  padding: 12px 22px 20px;
+}
+.dialog-amount-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(64, 158, 255, 0.12), rgba(103, 194, 58, 0.08));
+  border: 1px solid rgba(64, 158, 255, 0.2);
+}
+.dialog-amount-hero__label {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+.dialog-amount-hero__value {
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 800;
+  color: #f56c6c;
+}
 .order-summary {
   margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--el-fill-color-extra-light);
   font-size: 14px;
 }
 .coupon-select-list {
@@ -902,17 +952,19 @@ onUnmounted(() => {
 .coupon-select-item {
   display: flex;
   align-items: center;
-  border: 2px solid #ebeef5;
-  border-radius: 8px;
+  border: 1.5px solid #ebeef5;
+  border-radius: 10px;
   cursor: pointer;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, transform 0.18s ease, box-shadow 0.2s;
   overflow: hidden;
 }
 .coupon-select-item.active {
   border-color: #409eff;
+  box-shadow: 0 8px 18px rgba(64, 158, 255, 0.18);
 }
 .coupon-select-item:hover {
   border-color: #b3d8ff;
+  transform: translateY(-1px);
 }
 .cs-left {
   width: 80px;
@@ -943,12 +995,22 @@ onUnmounted(() => {
   display: flex;
   justify-content: flex-end;
   gap: 16px;
-  margin-top: 12px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--el-border-color-lighter);
   font-size: 14px;
 }
 .pay-total {
   color: #f56c6c;
   font-weight: bold;
   font-size: 16px;
+}
+.dialog-footer-btn {
+  min-width: 120px;
+  height: 38px;
+  border-radius: 10px;
+}
+.dialog-footer-btn--confirm {
+  box-shadow: 0 8px 18px rgba(64, 158, 255, 0.25);
 }
 </style>

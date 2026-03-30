@@ -14,6 +14,7 @@ router = APIRouter()
 @router.delete('/browsing_history')
 async def delete_browsing_history(
     shopping_id: int = Query(..., description='要删除的商品ID'),
+    mall_id: int = Query(..., description='店铺ID'),
     access_token: Annotated[str | None, Header()] = None,
     redis: RedisClient = Depends(get_redis),
     mongodb: MongoDBClient = Depends(get_mongodb_client),
@@ -32,7 +33,7 @@ async def delete_browsing_history(
 
     deleted = await mongodb.delete_one(
         Record.COLLECTION_NAME,
-        {'user': user, 'shopping_id': shopping_id},
+        {'user': user, 'mall_id': mall_id, 'shopping_id': shopping_id},
     )
     await recorder.clear_user_cache(user)
 
