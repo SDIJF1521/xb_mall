@@ -11,6 +11,24 @@
             <h2 class="page-title">订单管理中心</h2>
             <p class="page-subtitle">高效管理您的订单，掌握资金动态</p>
 
+            <!-- 店铺选择（主账号多店铺时显示） -->
+            <div v-if="isOwner && storeList.length > 1" class="om-store-selector">
+              <span class="om-store-label">当前店铺：</span>
+              <el-select
+                v-model="selectedMallId"
+                placeholder="选择店铺"
+                style="width: 240px"
+                @change="onStoreChange"
+              >
+                <el-option
+                  v-for="s in storeList"
+                  :key="s.id"
+                  :label="s.mall_name"
+                  :value="s.id"
+                />
+              </el-select>
+            </div>
+
             <!-- Tab 切换 -->
             <div class="om-tabs">
               <div
@@ -198,6 +216,53 @@ const getHeaders = () => {
   return token ? { 'Access-Token': token } : {}
 }
 
+const isOwner = ref(false)
+const storeList = ref<{ id: number; mall_name: string }[]>([])
+const selectedMallId = ref<number | null>(null)
+
+function decodeTokenPayload(token: string): Record<string, any> | null {
+  try {
+    const parts = token.split('.')
+    if (parts.length < 2) return null
+    const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+    return JSON.parse(atob(payload))
+  } catch {
+    return null
+  }
+}
+
+async function loadStoreList() {
+  const token = localStorage.getItem('buyer_access_token')
+  if (!token) return
+  const payload = decodeTokenPayload(token)
+  if (!payload || String(payload.station) !== '1') return
+  isOwner.value = true
+  try {
+    const form = new FormData()
+    form.append('token', token)
+    const res = await Axios.post('/get_mall_name', form)
+    if (res.data?.mall_name?.length) {
+      storeList.value = res.data.mall_name
+      selectedMallId.value = storeList.value[0].id
+    }
+  } catch (e) {
+    console.error('加载店铺列表失败', e)
+  }
+}
+
+function mallParam(): Record<string, any> {
+  const p: Record<string, any> = {}
+  if (isOwner.value && selectedMallId.value != null) {
+    p.mall_id = selectedMallId.value
+  }
+  return p
+}
+
+function onStoreChange() {
+  page.value = 1
+  fetchData()
+}
+
 interface Product { product_name: string; spec_name: string; price: number; quantity: number; subtotal: number }
 interface Escrow { amount: number; platform_commission: number; seller_amount: number; status: string; released_at: string | null }
 interface Order {
@@ -279,33 +344,41 @@ async function fetchData() {
   loading.value = true
   try {
     const tab = activeTab.value
+    const mp = mallParam()
     if (tab === 'orders' || tab === 'pending_ship') {
-      const params: Record<string, any> = { page: page.value, page_size: pageSize.value }
+      const params: Record<string, any> = { page: page.value, page_size: pageSize.value, ...mp }
       if (tab === 'pending_ship') params.status = 'paid'
       if (keyword.value) params.keyword = keyword.value
       const res = await Axios.get('/seller/order/list', { params, headers: getHeaders() })
       if (res.data?.success) {
         orders.value = res.data.data
         total.value = res.data.total
+      } else if (res.data?.msg) {
+        ElMessage.error(res.data.msg)
       }
     } else if (tab === 'refunds') {
-      const params: Record<string, any> = { page: page.value, page_size: pageSize.value }
+      const params: Record<string, any> = { page: page.value, page_size: pageSize.value, ...mp }
       if (keyword.value) params.keyword = keyword.value
       const res = await Axios.get('/seller/order/refund_list', { params, headers: getHeaders() })
       if (res.data?.success) {
         refunds.value = res.data.data
         total.value = res.data.total
+      } else if (res.data?.msg) {
+        ElMessage.error(res.data.msg)
       }
     } else if (tab === 'escrow') {
-      const params: Record<string, any> = { page: page.value, page_size: pageSize.value }
+      const params: Record<string, any> = { page: page.value, page_size: pageSize.value, ...mp }
       const res = await Axios.get('/seller/order/escrow_list', { params, headers: getHeaders() })
       if (res.data?.success) {
         escrowList.value = res.data.data
         total.value = res.data.total
+      } else if (res.data?.msg) {
+        ElMessage.error(res.data.msg)
       }
     }
   } catch (e) {
     console.error(e)
+    ElMessage.error('请求失败，请检查网络连接')
   } finally {
     loading.value = false
   }
@@ -322,7 +395,9 @@ async function submitReview() {
   if (!reviewRefund.value) return
   reviewLoading.value = true
   try {
-    const res = await Axios.post('/seller/order/refund_review', {
+    const mp = mallParam()
+    const url = '/seller/order/refund_review' + (mp.mall_id != null ? `?mall_id=${mp.mall_id}` : '')
+    const res = await Axios.post(url, {
       refund_no: reviewRefund.value.refund_no,
       action: reviewAction.value,
       remark: reviewRemark.value || null,
@@ -341,8 +416,9 @@ async function submitReview() {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   new BuyerTheme().initTheme()
+  await loadStoreList()
   fetchData()
 })
 </script>
@@ -405,6 +481,22 @@ onMounted(() => {
   font-size: 11px;
   min-width: 18px;
   text-align: center;
+}
+.om-store-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 10px 16px;
+  background: var(--el-bg-color);
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.om-store-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+  white-space: nowrap;
 }
 .om-search {
   display: flex;

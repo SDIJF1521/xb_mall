@@ -9,7 +9,7 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header
+from fastapi import APIRouter, Depends, Header, Query
 
 from services.verify_duter_token import VerifyDuterToken
 from services.refund import RefundService
@@ -24,33 +24,67 @@ logger = logging.getLogger(__name__)
 
 
 async def _verify_seller(token: str, redis: RedisClient, db) -> tuple:
-    """校验卖家 Token，返回 (ok, msg, token_payload_dict)"""
+    """校验卖家 Token，兼容主商户(station=1)和店铺用户(station=2)，返回 (ok, msg, token_payload_dict)"""
     verify = VerifyDuterToken(token, redis)
     token_data = await verify.token_data()
     if not token_data:
         return False, "Token 无效", None
-    sql_data = await execute_db_query(
-        db, "SELECT user FROM seller_sing WHERE user = %s", (token_data.get("user"),)
-    )
-    result = await verify.verify_token(sql_data=sql_data)
-    if not result[0]:
-        return False, "身份验证失败", None
+
+    station = token_data.get("station")
+
+    if station == "1":
+        sql_data = await execute_db_query(
+            db, "SELECT user FROM seller_sing WHERE user = %s", (token_data.get("user"),)
+        )
+        result = await verify.verify_token(sql_data=sql_data)
+        if not result[0]:
+            return False, "身份验证失败", None
+
+        raw_list = token_data.get("state_id_list", [])
+        state_id_list = [int(i) for i in raw_list if i]
+        if not state_id_list:
+            return False, "未找到店铺信息", None
+        token_data["_state_id_list"] = state_id_list
+        if token_data.get("mall_id") is None:
+            token_data["mall_id"] = state_id_list[0]
+
+    elif station == "2":
+        user = token_data.get("user")
+        mall_id = token_data.get("mall_id")
+        sql_data = await execute_db_query(
+            db, "SELECT user FROM store_user WHERE user = %s AND store_id = %s",
+            (user, mall_id),
+        )
+        result = await verify.verify_token(sql_data=sql_data)
+        if not result[0]:
+            return False, "身份验证失败", None
+    else:
+        return False, "未知的身份类型", None
+
     return True, "ok", token_data
 
 
-def _extract_mall_id(payload: dict) -> int | None:
+def _extract_mall_id(payload: dict, requested_mall_id: int | None = None) -> int | None:
     station = payload.get("station")
     if station == "2":
-        return payload.get("mall_id")
-    id_list = payload.get("state_id_list")
-    if id_list and isinstance(id_list, list) and len(id_list) > 0:
-        return id_list[0]
-    return None
+        mid = payload.get("mall_id")
+        return int(mid) if mid is not None else None
+
+    id_list = payload.get("_state_id_list") or payload.get("state_id_list")
+    if not id_list or not isinstance(id_list, list) or len(id_list) == 0:
+        return None
+    int_list = [int(i) for i in id_list if i]
+    if requested_mall_id is not None:
+        if requested_mall_id in int_list:
+            return requested_mall_id
+        return None
+    return int_list[0] if int_list else None
 
 
 @router.get("/seller/order/list")
 async def seller_order_list(
     q: SellerOrderListQuery = Depends(),
+    mall_id: int | None = Query(None, description="指定店铺ID（主账号多店铺时使用）"),
     access_token: str = Header(..., alias="Access-Token"),
     redis: RedisClient = Depends(get_redis),
     mongodb: MongoDBClient = Depends(get_mongodb_client),
@@ -59,7 +93,7 @@ async def seller_order_list(
     ok, msg, payload = await _verify_seller(access_token, redis, db)
     if not ok:
         return {"success": False, "msg": msg}
-    mall_id = _extract_mall_id(payload)
+    mall_id = _extract_mall_id(payload, mall_id)
     if not mall_id:
         return {"success": False, "msg": "无法确定所属店铺"}
     try:
@@ -75,6 +109,7 @@ async def seller_escrow_list(
     status: str | None = None,
     page: int = 1,
     page_size: int = 10,
+    mall_id: int | None = Query(None, description="指定店铺ID（主账号多店铺时使用）"),
     access_token: str = Header(..., alias="Access-Token"),
     redis: RedisClient = Depends(get_redis),
     mongodb: MongoDBClient = Depends(get_mongodb_client),
@@ -83,7 +118,7 @@ async def seller_escrow_list(
     ok, msg, payload = await _verify_seller(access_token, redis, db)
     if not ok:
         return {"success": False, "msg": msg}
-    mall_id = _extract_mall_id(payload)
+    mall_id = _extract_mall_id(payload, mall_id)
     if not mall_id:
         return {"success": False, "msg": "无法确定所属店铺"}
     try:
@@ -97,6 +132,7 @@ async def seller_escrow_list(
 @router.get("/seller/order/refund_list")
 async def seller_refund_list(
     q: RefundListQuery = Depends(),
+    mall_id: int | None = Query(None, description="指定店铺ID（主账号多店铺时使用）"),
     access_token: str = Header(..., alias="Access-Token"),
     redis: RedisClient = Depends(get_redis),
     mongodb: MongoDBClient = Depends(get_mongodb_client),
@@ -105,7 +141,7 @@ async def seller_refund_list(
     ok, msg, payload = await _verify_seller(access_token, redis, db)
     if not ok:
         return {"success": False, "msg": msg}
-    mall_id = _extract_mall_id(payload)
+    mall_id = _extract_mall_id(payload, mall_id)
     if not mall_id:
         return {"success": False, "msg": "无法确定所属店铺"}
     try:
@@ -119,6 +155,7 @@ async def seller_refund_list(
 @router.post("/seller/order/refund_review")
 async def seller_refund_review(
     body: SellerRefundReviewBody,
+    mall_id: int | None = Query(None, description="指定店铺ID（主账号多店铺时使用）"),
     access_token: str = Header(..., alias="Access-Token"),
     redis: RedisClient = Depends(get_redis),
     mongodb: MongoDBClient = Depends(get_mongodb_client),
@@ -127,7 +164,7 @@ async def seller_refund_review(
     ok, msg, payload = await _verify_seller(access_token, redis, db)
     if not ok:
         return {"success": False, "msg": msg}
-    mall_id = _extract_mall_id(payload)
+    mall_id = _extract_mall_id(payload, mall_id)
     if not mall_id:
         return {"success": False, "msg": "无法确定所属店铺"}
     try:
