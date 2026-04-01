@@ -180,19 +180,7 @@ const handleSelect = (index: string) => {
     } else if (index === '11') {
         router.push('/buyer_promotion_manage')
     } else if (index === '10') {
-        const token = localStorage.getItem('buyer_access_token')
-        if (token) {
-            try {
-                const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
-                const payload = JSON.parse(atob(b64))
-                const mallId = payload.station === '2' ? payload.mall_id : (payload.state_id_list?.[0] ?? null)
-                if (mallId) {
-                    router.push(`/buyer_ad_apply/${mallId}`)
-                    return
-                }
-            } catch { /* ignore */ }
-        }
-        router.push('/buyer_store_manage')
+        router.push('/buyer_ad_apply')
     }
 }
 

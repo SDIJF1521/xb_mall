@@ -342,7 +342,7 @@ const routes: Array<RouteRecordRaw> = [
   },
   // 商家端广告投放申请页
   {
-    path:'/buyer_ad_apply/:id',
+    path:'/buyer_ad_apply',
     name:'BuyerAdApply',
     component:BuyerAdApply
   },

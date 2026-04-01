@@ -11,6 +11,24 @@
             <h2 class="page-title">广告投放管理</h2>
             <p class="page-subtitle">向平台申请轮播图广告投放，提升商品曝光度</p>
 
+            <!-- 店铺选择（主账号多店铺时显示） -->
+            <div v-if="isOwner && storeList.length > 1" class="store-selector">
+              <span class="store-label">当前店铺：</span>
+              <el-select
+                v-model="selectedMallId"
+                placeholder="选择店铺"
+                style="width: 240px"
+                @change="onStoreChange"
+              >
+                <el-option
+                  v-for="s in storeList"
+                  :key="s.id"
+                  :label="s.mall_name"
+                  :value="s.id"
+                />
+              </el-select>
+            </div>
+
             <el-tabs v-model="activeTab" type="border-card" class="main-tabs">
               <!-- 发起申请 -->
               <el-tab-pane label="发起投放申请" name="create">
@@ -124,7 +142,6 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import { Plus, Refresh } from '@element-plus/icons-vue'
@@ -134,12 +151,57 @@ import BuyerTheme from '@/moon/buyer_theme'
 
 defineOptions({ name: 'BuyerAdApply' })
 
-const route = useRoute()
-const storeId = ref(Number(route.params.id) || 0)
 const token = ref(localStorage.getItem('buyer_access_token') || '')
 const API = axios.create({ baseURL: 'http://127.0.0.1:8000/api' })
 
 const activeTab = ref('create')
+
+// ─── 多店铺选择 ──────────────────────────────────────────────────────────────
+
+function decodeTokenPayload(t: string): Record<string, any> | null {
+  try {
+    const parts = t.split('.')
+    if (parts.length < 2) return null
+    const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+    return JSON.parse(atob(payload))
+  } catch {
+    return null
+  }
+}
+
+const isOwner = ref(false)
+const storeList = ref<{ id: number; mall_name: string }[]>([])
+const selectedMallId = ref<number | null>(null)
+
+async function loadStoreList() {
+  if (!token.value) return
+  const payload = decodeTokenPayload(token.value)
+  if (!payload) return
+
+  if (String(payload.station) === '1') {
+    isOwner.value = true
+    try {
+      const form = new FormData()
+      form.append('token', token.value)
+      const res = await API.post('/get_mall_name', form)
+      if (res.data?.mall_name?.length) {
+        storeList.value = res.data.mall_name
+        selectedMallId.value = storeList.value[0].id
+      }
+    } catch { /* ignore */ }
+  } else if (String(payload.station) === '2') {
+    selectedMallId.value = payload.mall_id ? Number(payload.mall_id) : null
+  }
+}
+
+function onStoreChange() {
+  form.value = { shopping_id: null, title: '', description: '', duration_days: 7 }
+  adFile.value = null
+  uploadRef.value?.clearFiles()
+  commodityOptions.value = []
+  loadCommodityOptions()
+  loadApplyList(1)
+}
 
 // ─── 发起申请 ─────────────────────────────────────────────────────────────
 
@@ -153,9 +215,10 @@ const commodityLoading = ref(false)
 const uploadRef = ref()
 
 async function loadCommodityOptions(query?: string) {
+  if (!selectedMallId.value) return
   commodityLoading.value = true
   try {
-    const params: Record<string, unknown> = { stroe_id: storeId.value, page: 1 }
+    const params: Record<string, unknown> = { stroe_id: selectedMallId.value, page: 1 }
     if (query && query.trim()) params.select = query.trim()
     const { data } = await API.get('/buyer_get_commoidt', {
       params,
@@ -177,13 +240,14 @@ function handleFileChange(file: any) { adFile.value = file.raw }
 function handleFileRemove() { adFile.value = null }
 
 async function submitApply() {
+  if (!selectedMallId.value) { ElMessage.warning('请先选择店铺'); return }
   if (!form.value.shopping_id) { ElMessage.warning('请选择商品'); return }
   if (!form.value.title.trim()) { ElMessage.warning('请输入广告标题'); return }
   submitLoading.value = true
   try {
     const fd = new FormData()
     fd.append('token', token.value)
-    fd.append('stroe_id', storeId.value.toString())
+    fd.append('stroe_id', selectedMallId.value.toString())
     fd.append('shopping_id', form.value.shopping_id.toString())
     fd.append('title', form.value.title.trim())
     fd.append('description', form.value.description)
@@ -225,10 +289,11 @@ const listStatusFilter = ref('')
 const listLoading = ref(false)
 
 async function loadApplyList(page: number) {
+  if (!selectedMallId.value) return
   listLoading.value = true
   listPage.value = page
   try {
-    const params: Record<string, unknown> = { stroe_id: storeId.value, page, page_size: listPageSize.value }
+    const params: Record<string, unknown> = { stroe_id: selectedMallId.value, page, page_size: listPageSize.value }
     if (listStatusFilter.value) params.status = listStatusFilter.value
     const { data } = await API.get('/buyer_ad_apply_list', {
       params,
@@ -248,14 +313,18 @@ async function loadApplyList(page: number) {
 function statusLabel(s: string) {
   return { pending: '待审核', approved: '已通过', rejected: '已驳回' }[s] || s
 }
-function statusTag(s: string) {
-  return ({ pending: 'warning', approved: 'success', rejected: 'danger' } as Record<string, string>)[s] || 'info'
+function statusTag(s: string): 'warning' | 'success' | 'danger' | 'info' {
+  const map: Record<string, 'warning' | 'success' | 'danger' | 'info'> = { pending: 'warning', approved: 'success', rejected: 'danger' }
+  return map[s] || 'info'
 }
 
-onMounted(() => {
+onMounted(async () => {
   new BuyerTheme().initTheme()
-  loadCommodityOptions()
-  loadApplyList(1)
+  await loadStoreList()
+  if (selectedMallId.value) {
+    loadCommodityOptions()
+    loadApplyList(1)
+  }
 })
 </script>
 
@@ -279,6 +348,24 @@ onMounted(() => {
   text-align: center;
   color: var(--el-text-color-secondary);
   margin-bottom: 24px;
+}
+
+.store-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 10px 16px;
+  background: var(--el-bg-color);
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.store-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+  white-space: nowrap;
 }
 
 .main-tabs {
