@@ -19,6 +19,14 @@ async def user_token(form_data: OAuth2PasswordRequestForm = Depends(), db:aiomys
     用户登录获取Token
     """
     try:
+        status_rows = await execute_db_query(
+            db,
+            "SELECT status FROM `user` WHERE user = %s",
+            (form_data.username,),
+        )
+        if status_rows and len(status_rows[0]) > 0 and status_rows[0][0] == 1:
+            return {'msg': '该账号已被冻结，请联系管理员', 'token': None}
+
         database_data = await execute_db_query(db,'select user,password FROM user WhERE user = %s',form_data.username)
         token = Token(form_data.username,form_data.password)
         return await token.make(database_data,redis_cli=redis_cli)

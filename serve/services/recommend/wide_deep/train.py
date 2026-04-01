@@ -125,18 +125,19 @@ def load_existing_artifacts(
     return model, config, user2idx, item2idx, type2idx
 
 # 构建Tensor数据集
-def build_tensor_dataset(samples: list[tuple[int, int, int, float, int]]) -> TensorDataset:
+def build_tensor_dataset(samples: list[tuple[int, int, int, float, int, float]]) -> TensorDataset:
     users = torch.LongTensor([sample[0] for sample in samples])
     items = torch.LongTensor([sample[1] for sample in samples])
     types = torch.LongTensor([sample[2] for sample in samples])
     prices = torch.FloatTensor([sample[3] for sample in samples])
     labels = torch.FloatTensor([sample[4] for sample in samples]).unsqueeze(1)
-    return TensorDataset(users, items, types, prices, labels)
+    weights = torch.FloatTensor([sample[5] for sample in samples]).unsqueeze(1)
+    return TensorDataset(users, items, types, prices, labels, weights)
 
-# 拟合模型
+# 拟合模型（支持样本级加权损失）
 def fit_model(
     model: WideDeepModel,
-    samples: list[tuple[int, int, int, float, int]],
+    samples: list[tuple[int, int, int, float, int, float]],
     epochs: int,
     batch_size: int,
     lr: float,
@@ -155,17 +156,18 @@ def fit_model(
     )
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-    criterion = nn.BCELoss()
+    criterion = nn.BCELoss(reduction="none")
     history: list[float] = []
 
     model.train()
     for ep in range(epochs):
         total_loss = 0.0
         batch_count = 0
-        for u, i, t, p, y in loader:
+        for u, i, t, p, y, w in loader:
             optimizer.zero_grad()
             pred = model(u, i, t, p)
-            loss = criterion(pred.unsqueeze(1), y)
+            per_sample_loss = criterion(pred.unsqueeze(1), y)
+            loss = (per_sample_loss * w).mean()
             loss.backward()
             optimizer.step()
             total_loss += loss.item()

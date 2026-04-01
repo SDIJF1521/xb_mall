@@ -136,6 +136,8 @@ onMounted(() => {
             selected.value = '4'; break;
         case '/buyer_cs_select':
             selected.value = '6'; break;
+        case '/buyer_comment_manage':
+            selected.value = '7'; break;
         case '/buyer_promotion_manage':
             selected.value = '11'; break;
         default:
@@ -171,6 +173,8 @@ const handleSelect = (index: string) => {
         } else {
             router.push('/buyer_cs_select')
         }
+    } else if (index === '7') {
+        router.push('/buyer_comment_manage')
     } else if (index === '9') {
         router.push('/buyer_set')
     } else if (index === '11') {

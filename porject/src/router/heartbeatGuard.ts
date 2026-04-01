@@ -42,6 +42,7 @@ const EXCLUDED_ROUTES = [
   "ManagementRefund", // 管理员端纠纷管理页
   "BuyerAdApply", // 买家端广告投放申请页
   "ManagementPromotion", // 管理员端营销管理页
+  'BuyerCommentManage', // 买家端评论管理页
 ];
 
 export function setupHeartbeatGuard(router: Router) {

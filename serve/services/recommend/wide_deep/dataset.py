@@ -179,21 +179,27 @@ def build_training_data(
     item2idx: Dict[int, int],
     negative_ratio: int = 4,
     favorites: List[dict] | None = None,
-    favorite_repeat: int = 3,
-) -> List[Tuple[int, int, int, int, float, int]]:
+    favorite_weight: float = 2.0,
+    purchase_weight: float = 3.0,
+) -> List[Tuple[int, int, int, float, int, float]]:
     """
-    构建 (user_idx, item_idx, type_idx, price_norm, label) 训练样本
-    正样本: 用户实际交互 + 收藏（收藏重复 favorite_repeat 次以提高权重）
-    负样本: 随机采样
+    构建 (user_idx, item_idx, type_idx, price_norm, label, sample_weight) 训练样本
+    正样本权重:
+      - 仅浏览: 1.0
+      - 有购买 (buy_count > 0): purchase_weight
+      - 有收藏: 在基础权重上额外 + favorite_weight
+    负样本权重: 1.0
     """
-    user_items: Dict[str, set] = defaultdict(set)
+    user_item_weights: Dict[str, Dict[int, float]] = defaultdict(dict)
     all_items = set(item_feats.keys())
 
     for r in user_records:
         u = r.get("user")
         sid = _get_shopping_id(r)
         if u and sid is not None and sid in item_feats:
-            user_items[u].add(sid)
+            buy_count = r.get("buy_count", 0) or 0
+            w = purchase_weight if buy_count > 0 else 1.0
+            user_item_weights[u][sid] = max(user_item_weights[u].get(sid, 0), w)
 
     user_fav_items: Dict[str, set] = defaultdict(set)
     if favorites:
@@ -202,22 +208,22 @@ def build_training_data(
             sid = fav.get("shopping_id")
             if u and sid is not None and int(sid) in item_feats:
                 user_fav_items[u].add(int(sid))
-                user_items[u].add(int(sid))
+                if int(sid) not in user_item_weights[u]:
+                    user_item_weights[u][int(sid)] = 1.0
 
-    samples = []
-    for u, items in user_items.items():
+    samples: List[Tuple[int, int, int, float, int, float]] = []
+    for u, items_dict in user_item_weights.items():
         uidx = user2idx.get(u, 0)
         fav_set = user_fav_items.get(u, set())
-        for iid in items:
+        for iid, base_w in items_dict.items():
             idx, tidx, pnorm = item_feats[iid]
-            repeat = favorite_repeat if iid in fav_set else 1
-            for _ in range(repeat):
-                samples.append((uidx, idx, tidx, pnorm, 1))
-        neg_pool = all_items - items
-        n_neg = min(len(items) * negative_ratio, len(neg_pool))
+            w = base_w + (favorite_weight if iid in fav_set else 0.0)
+            samples.append((uidx, idx, tidx, pnorm, 1, w))
+        neg_pool = all_items - set(items_dict.keys())
+        n_neg = min(len(items_dict) * negative_ratio, len(neg_pool))
         for iid in random.sample(list(neg_pool), n_neg):
             idx, tidx, pnorm = item_feats[iid]
-            samples.append((uidx, idx, tidx, pnorm, 0))
+            samples.append((uidx, idx, tidx, pnorm, 0, 1.0))
 
     random.shuffle(samples)
     return samples
@@ -229,14 +235,15 @@ def build_incremental_training_data(
     user2idx: Dict[str, int],
     negative_ratio: int = 4,
     favorites: List[dict] | None = None,
-    favorite_repeat: int = 3,
-) -> List[Tuple[int, int, int, float, int]]:
+    favorite_weight: float = 2.0,
+    purchase_weight: float = 3.0,
+) -> List[Tuple[int, int, int, float, int, float]]:
     """
     仅根据新增行为构建增量训练样本。
     只使用已存在词表内的 user/item，超出词表的情况应由外部触发全量重建。
-    收藏记录重复 favorite_repeat 次以增强权重。
+    正样本权重基于购买/收藏行为动态计算。
     """
-    user_items: Dict[str, set[int]] = defaultdict(set)
+    user_item_weights: Dict[str, Dict[int, float]] = defaultdict(dict)
     all_items = set(item_feats.keys())
 
     for record in user_records:
@@ -244,7 +251,9 @@ def build_incremental_training_data(
         sid = _get_shopping_id(record)
         if not user or user not in user2idx or sid is None or sid not in item_feats:
             continue
-        user_items[user].add(sid)
+        buy_count = record.get("buy_count", 0) or 0
+        w = purchase_weight if buy_count > 0 else 1.0
+        user_item_weights[user][sid] = max(user_item_weights[user].get(sid, 0), w)
 
     user_fav_items: Dict[str, set[int]] = defaultdict(set)
     if favorites:
@@ -254,25 +263,25 @@ def build_incremental_training_data(
             if not u or u not in user2idx or sid is None or int(sid) not in item_feats:
                 continue
             user_fav_items[u].add(int(sid))
-            user_items[u].add(int(sid))
+            if int(sid) not in user_item_weights[u]:
+                user_item_weights[u][int(sid)] = 1.0
 
-    samples: List[Tuple[int, int, int, float, int]] = []
-    for user, items in user_items.items():
+    samples: List[Tuple[int, int, int, float, int, float]] = []
+    for user, items_dict in user_item_weights.items():
         user_idx = user2idx.get(user, 0)
         fav_set = user_fav_items.get(user, set())
-        for item_id in items:
+        for item_id, base_w in items_dict.items():
             item_idx, type_idx, price_norm = item_feats[item_id]
-            repeat = favorite_repeat if item_id in fav_set else 1
-            for _ in range(repeat):
-                samples.append((user_idx, item_idx, type_idx, price_norm, 1))
+            w = base_w + (favorite_weight if item_id in fav_set else 0.0)
+            samples.append((user_idx, item_idx, type_idx, price_norm, 1, w))
 
-        neg_pool = list(all_items - items)
-        neg_count = min(len(items) * negative_ratio, len(neg_pool))
+        neg_pool = list(all_items - set(items_dict.keys()))
+        neg_count = min(len(items_dict) * negative_ratio, len(neg_pool))
         if neg_count <= 0:
             continue
         for item_id in random.sample(neg_pool, neg_count):
             item_idx, type_idx, price_norm = item_feats[item_id]
-            samples.append((user_idx, item_idx, type_idx, price_norm, 0))
+            samples.append((user_idx, item_idx, type_idx, price_norm, 0, 1.0))
 
     random.shuffle(samples)
     return samples

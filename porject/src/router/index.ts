@@ -47,6 +47,7 @@ import ManagementRefund from '@/views/management_refund/ManagementRefund.vue'
 import ManagementPromotion from '@/views/management_promotion/ManagementPromotion.vue'
 import BuyerAdApply from '@/views/buyer_ad_apply/BuyerAdApply.vue'
 import BuyerPromotionManage from '@/views/buyer_promotion_manage/BuyerPromotionManage.vue'
+import BuyerCommentManage from '@/views/buyer_comment_manage/BuyerCommentManage.vue'
 import CouponCenter from '@/views/coupon_center/CouponCenter.vue'
 import ActivityZone from '@/views/activity_zone/ActivityZone.vue'
 
@@ -344,6 +345,12 @@ const routes: Array<RouteRecordRaw> = [
     path:'/buyer_ad_apply/:id',
     name:'BuyerAdApply',
     component:BuyerAdApply
+  },
+  // 卖家端评论管理页
+  {
+    path: '/buyer_comment_manage',
+    name: 'BuyerCommentManage',
+    component: BuyerCommentManage
   },
   // C端领券中心
   {

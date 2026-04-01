@@ -20,6 +20,7 @@ router = APIRouter()
 async def buyer_commodity_appeal_status(stroe_id: int = Query(...),
                                         shopping_id: int = Query(...),
                                         access_token: str = Header(..., alias='access-token'),
+                                        db: Connection = Depends(get_db),
                                         redis: RedisClient = Depends(get_redis),
                                         mongodb: MongoDBClient = Depends(get_mongodb_client)):
     """商家端查询商品申诉状态"""
@@ -28,6 +29,31 @@ async def buyer_commodity_appeal_status(stroe_id: int = Query(...),
 
     if token_data is None:
         return {"code": 403, "msg": "无效的token", 'current': False}
+
+    if token_data.get('station') == '1':
+        sql_data = await execute_db_query(db, 'select user from seller_sing where user = %s',
+                                          (token_data.get('user'),))
+        verify_data = await verify_duter_token.verify_token(sql_data)
+        if not verify_data[0]:
+            return {"code": 403, "msg": "身份验证失败", 'current': False}
+        if stroe_id not in token_data.get('state_id_list', []):
+            return {"code": 403, "msg": "您没有权限查看该店铺", 'current': False}
+    elif token_data.get('station') == '2':
+        role_authority_service = RoleAuthorityService(role=token_data.get('role'),
+                                                     db=db, redis=redis,
+                                                     name=token_data.get('user'),
+                                                     mall_id=token_data.get('mall_id'))
+        role_authority = await role_authority_service.get_authority(token_data.get('mall_id'))
+        execute_code = await role_authority_service.authority_resolver(int(role_authority[0][0]))
+        sql_data = await execute_db_query(db, 'select user from store_user where user = %s and store_id = %s',
+                                          (token_data.get('user'), token_data.get('mall_id')))
+        verify_data = await verify_duter_token.verify_token(sql_data)
+        if not (execute_code[2] and verify_data[0]):
+            return {"code": 403, "msg": "您没有权限执行此操作", 'current': False}
+        if stroe_id != token_data.get('mall_id'):
+            return {"code": 403, "msg": "权限不足", 'current': False}
+    else:
+        return {"code": 403, "msg": "未知的身份类型", 'current': False}
 
     try:
         violation_info = await mongodb.find_one('commodity_violation', {
@@ -139,7 +165,7 @@ async def buyer_commodity_violation_appeal(data: Annotated[BuyerCommodityViolati
             sql_data = await execute_db_query(db, 'select user from store_user where user = %s and store_id = %s',
                                               (token_data.get('user'), token_data.get('mall_id')))
             verify_data = await verify_duter_token.verify_token(sql_data)
-            if verify_data[0]:
+            if execute_code[1] and verify_data[0]:
                 if data.stroe_id != token_data.get('mall_id'):
                     return {'code': 400, 'msg': '权限不足', 'current': False}
                 return await execute()

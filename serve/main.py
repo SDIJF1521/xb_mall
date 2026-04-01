@@ -130,6 +130,9 @@ from routes.management_mall_info import router as management_mall_info_router
 from routes.manage_merchant_freeze import router as manage_merchant_freeze_router
 from routes.manage_merchant_unfreeze import router as manage_merchant_unfreeze_router
 from routes.manage_merchant_delete import router as manage_merchant_delete_router
+from routes.manage_mall_user_list import router as manage_mall_user_list_router
+from routes.manage_mall_user_freeze import router as manage_mall_user_freeze_router
+from routes.manage_mall_user_reset_password import router as manage_mall_user_reset_password_router
 from routes.manage_get_commoidt_apply_list import router as manage_get_commoidt_apply_list_router
 from routes.manage_get_commoidt_apply import router as manage_get_commoidt_apply_router
 from routes.manage_commodity_rejectAudit import router as manage_commodity_rejectAudit_router
@@ -185,6 +188,7 @@ from routes.apply_seller_reject import router as apply_seller_reject_router
 from routes.address_show import router as address_show_router
 from routes.delete_token_time import router as delete_token_time_router
 from routes.cs import router as cs_router
+from routes.comment import router as comment_router
 from services.bloom_filter_manager import init_bloom_filter_manager
 from services.recommend import RecommendCommodity
 from services.recommend.trainer import RecommendTrainer
@@ -797,6 +801,11 @@ app.include_router(delete_token_time_router,prefix='/api')
 # 获取用户列表路由
 app.include_router(user_list_router,prefix='/api')
 
+# 平台端商城用户管理路由
+app.include_router(manage_mall_user_list_router, prefix='/api')
+app.include_router(manage_mall_user_freeze_router, prefix='/api')
+app.include_router(manage_mall_user_reset_password_router, prefix='/api')
+
 # 获取商家列表路由
 app.include_router(number_merchants_router,prefix='/api')
 
@@ -1066,3 +1075,6 @@ app.include_router(user_coupon_router, prefix='/api')
 
 # C端用户活动路由
 app.include_router(user_activity_router, prefix='/api')
+
+# 评论模块路由
+app.include_router(comment_router, prefix='/api')

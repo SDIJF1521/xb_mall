@@ -144,7 +144,29 @@ class OrderService:
 
         logger.info("确认支付到账: order=%s txn=%s trade=%s 抽成=%.2f 卖家=%.2f",
                      order_no, txn_no, trade_no, commission, seller_amt)
+
+        # 将购买行为写入推荐训练数据集
+        try:
+            await self._record_purchase_for_recommend(pay_user, o_id)
+        except Exception as exc:
+            logger.warning("记录购买行为失败(不影响支付): order=%s err=%s", order_no, exc)
+
         return True
+
+    async def _record_purchase_for_recommend(self, user: str, order_id: int) -> None:
+        """支付成功后，将订单中每件商品记录为购买行为，供推荐模型训练使用。"""
+        from services.record import Record
+
+        items = await self.db.execute_query(
+            "SELECT mall_id, shopping_id FROM order_items WHERE order_id = %s",
+            (order_id,),
+        )
+        if not items:
+            return
+
+        record_svc = Record(self.mongo, self.redis)
+        for mall_id, shopping_id in items:
+            await record_svc.buy_record(user, int(shopping_id), int(mall_id))
 
     # ════════════════════ 检查订单所有流水是否有已付款的 ════════════════════
 

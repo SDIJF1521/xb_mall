@@ -93,6 +93,15 @@
                     <span>平台抽成：¥{{ order.escrow.platform_commission.toFixed(2) }}</span>
                     <span>实收金额：<b>¥{{ order.escrow.seller_amount.toFixed(2) }}</b></span>
                   </div>
+                  <div v-if="order.status === 'received'" class="om-actions">
+                    <el-button
+                      type="primary"
+                      size="small"
+                      @click="openQuickComment(order)"
+                    >
+                      <el-icon><ChatDotRound /></el-icon> 快捷评论
+                    </el-button>
+                  </div>
                 </div>
               </div>
             </template>
@@ -191,6 +200,83 @@
                 </el-button>
               </template>
             </el-dialog>
+
+            <!-- 快捷评论弹窗 -->
+            <el-dialog v-model="commentVisible" title="订单评论" width="640px" destroy-on-close>
+              <div v-if="commentLoading" class="qc-loading">
+                <el-icon class="is-loading" :size="24"><Loading /></el-icon>
+                <span>加载中...</span>
+              </div>
+              <template v-else>
+                <div class="qc-order-info">
+                  <span>订单号：{{ commentOrderNo }}</span>
+                </div>
+                <el-empty v-if="orderComments.length === 0" description="该订单暂无评论" :image-size="80" />
+                <div v-for="c in orderComments" :key="c.id" class="qc-comment-card">
+                  <div class="qc-header">
+                    <div class="qc-user">
+                      <div class="qc-avatar" :style="{ background: avatarColor(c.username) }">
+                        {{ c.username?.charAt(0)?.toUpperCase() || 'U' }}
+                      </div>
+                      <div>
+                        <div class="qc-username">{{ c.username }}</div>
+                        <div class="qc-time">{{ formatCommentTime(c.created_at) }}</div>
+                      </div>
+                    </div>
+                    <el-rate :model-value="c.rating" disabled size="small" />
+                  </div>
+                  <p class="qc-content">{{ c.content }}</p>
+                  <div v-if="c.images?.length" class="qc-images">
+                    <el-image
+                      v-for="(img, idx) in c.images"
+                      :key="idx"
+                      :src="img"
+                      :preview-src-list="c.images"
+                      :initial-index="idx"
+                      fit="cover"
+                      class="qc-img"
+                      lazy
+                    />
+                  </div>
+                  <!-- 已有回复 -->
+                  <div v-if="c.seller_reply" class="qc-reply-box">
+                    <div class="qc-reply-header">
+                      <span class="qc-reply-tag">已回复</span>
+                      <span class="qc-reply-by">{{ c.seller_reply.replied_by }}</span>
+                      <span class="qc-reply-time">{{ formatCommentTime(c.seller_reply.replied_at) }}</span>
+                    </div>
+                    <p class="qc-reply-text">{{ c.seller_reply.content }}</p>
+                  </div>
+                  <!-- 回复操作 -->
+                  <div v-else class="qc-reply-action">
+                    <template v-if="replyingCommentId === c.id">
+                      <el-input
+                        v-model="quickReplyContent"
+                        type="textarea"
+                        :rows="3"
+                        placeholder="输入回复内容..."
+                        maxlength="500"
+                        show-word-limit
+                        resize="none"
+                      />
+                      <div class="qc-reply-btns">
+                        <el-button size="small" @click="cancelQuickReply">取消</el-button>
+                        <el-button
+                          type="primary"
+                          size="small"
+                          :loading="quickReplySubmitting"
+                          :disabled="!quickReplyContent.trim()"
+                          @click="submitQuickReply(c.id)"
+                        >发送回复</el-button>
+                      </div>
+                    </template>
+                    <el-button v-else type="primary" text size="small" @click="startQuickReply(c.id)">
+                      <el-icon><ChatDotRound /></el-icon> 回复
+                    </el-button>
+                  </div>
+                </div>
+              </template>
+            </el-dialog>
           </div>
         </el-main>
       </el-container>
@@ -203,7 +289,7 @@
 import { ref, onMounted, watch } from 'vue'
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Loading } from '@element-plus/icons-vue'
+import { Loading, ChatDotRound } from '@element-plus/icons-vue'
 import BuyerNavigation from '@/moon/buyer_navigation.vue'
 import BuyerHead from '@/moon/buyer_head.vue'
 import BuyerTheme from '@/moon/buyer_theme'
@@ -416,6 +502,123 @@ async function submitReview() {
   }
 }
 
+// ── 快捷评论 ──
+interface SellerReply { content: string; replied_at: string; replied_by: string }
+interface OrderComment {
+  id: string; shopping_id: number; order_no: string; username: string
+  rating: number; content: string; images: string[]; created_at: string
+  seller_reply: SellerReply | null
+}
+
+const commentVisible = ref(false)
+const commentLoading = ref(false)
+const commentOrderNo = ref('')
+const orderComments = ref<OrderComment[]>([])
+const replyingCommentId = ref<string | null>(null)
+const quickReplyContent = ref('')
+const quickReplySubmitting = ref(false)
+
+const AVATAR_COLORS = [
+  '#667eea','#764ba2','#f093fb','#4facfe','#43e97b',
+  '#f7971e','#fda085','#96fbc4','#a1c4fd','#fbc2eb',
+]
+const avatarColor = (name: string) => {
+  const idx = (name?.charCodeAt(0) ?? 0) % AVATAR_COLORS.length
+  return AVATAR_COLORS[idx]
+}
+
+const formatCommentTime = (s: string) => {
+  if (!s) return ''
+  const d = new Date(s)
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
+}
+
+async function openQuickComment(order: Order) {
+  commentOrderNo.value = order.order_no
+  commentVisible.value = true
+  commentLoading.value = true
+  orderComments.value = []
+  replyingCommentId.value = null
+  quickReplyContent.value = ''
+
+  try {
+    const mp = mallParam()
+    const params: Record<string, any> = { order_no: order.order_no, ...mp }
+    if (mp.mall_id == null) {
+      const token = localStorage.getItem('buyer_access_token')
+      if (token) {
+        const payload = decodeTokenPayload(token)
+        if (payload?.mall_id) params.mall_id = Number(payload.mall_id)
+      }
+    }
+    const res = await Axios.get('/comment/order_comments', { params, headers: getHeaders() })
+    if (res.data?.success) {
+      orderComments.value = res.data.data || []
+    } else {
+      ElMessage.error(res.data?.msg || '获取评论失败')
+    }
+  } catch {
+    ElMessage.error('请求失败，请检查网络')
+  } finally {
+    commentLoading.value = false
+  }
+}
+
+function startQuickReply(commentId: string) {
+  replyingCommentId.value = commentId
+  quickReplyContent.value = ''
+}
+
+function cancelQuickReply() {
+  replyingCommentId.value = null
+  quickReplyContent.value = ''
+}
+
+async function submitQuickReply(commentId: string) {
+  if (!quickReplyContent.value.trim()) return
+  quickReplySubmitting.value = true
+  try {
+    const mp = mallParam()
+    let mallId = mp.mall_id
+    if (mallId == null) {
+      const token = localStorage.getItem('buyer_access_token')
+      if (token) {
+        const payload = decodeTokenPayload(token)
+        if (payload?.mall_id) mallId = Number(payload.mall_id)
+      }
+    }
+    if (mallId == null) {
+      ElMessage.error('无法确定店铺信息')
+      return
+    }
+
+    const fd = new FormData()
+    fd.append('comment_id', commentId)
+    fd.append('reply_content', quickReplyContent.value.trim())
+    fd.append('mall_id', String(mallId))
+
+    const res = await Axios.post('/comment/seller_reply', fd, { headers: getHeaders() })
+    if (res.data?.success) {
+      ElMessage.success('回复成功')
+      cancelQuickReply()
+      const target = orderComments.value.find(c => c.id === commentId)
+      if (target) {
+        target.seller_reply = {
+          content: quickReplyContent.value.trim(),
+          replied_at: new Date().toISOString(),
+          replied_by: '卖家',
+        }
+      }
+    } else {
+      ElMessage.error(res.data?.msg || '回复失败')
+    }
+  } catch {
+    ElMessage.error('网络错误')
+  } finally {
+    quickReplySubmitting.value = false
+  }
+}
+
 onMounted(async () => {
   new BuyerTheme().initTheme()
   await loadStoreList()
@@ -604,6 +807,128 @@ onMounted(async () => {
   justify-content: center;
   padding: 20px 0;
 }
+/* ── 快捷评论弹窗 ── */
+.qc-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 40px 0;
+  color: var(--el-text-color-secondary);
+}
+.qc-order-info {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.qc-comment-card {
+  background: var(--el-fill-color-extra-light);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.qc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.qc-user {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.qc-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.qc-username {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.qc-time {
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
+  margin-top: 2px;
+}
+.qc-content {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--el-text-color-primary);
+  margin: 0 0 10px;
+  word-break: break-word;
+}
+.qc-images {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.qc-img {
+  width: 72px;
+  height: 72px;
+  border-radius: 6px;
+  cursor: pointer;
+  object-fit: cover;
+}
+.qc-reply-box {
+  padding: 10px 14px;
+  background: var(--el-bg-color);
+  border-radius: 8px;
+  border-left: 3px solid #667eea;
+}
+.qc-reply-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.qc-reply-tag {
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  background: #67c23a;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.qc-reply-by {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--el-text-color-regular);
+}
+.qc-reply-time {
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
+}
+.qc-reply-text {
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  margin: 0;
+  line-height: 1.6;
+}
+.qc-reply-action {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--el-border-color-extra-light);
+}
+.qc-reply-btns {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
 .footer-content {
   text-align: center;
   color: darkgray;

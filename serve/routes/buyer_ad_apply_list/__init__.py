@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Header, HTTPException
 
 from services.verify_duter_token import VerifyDuterToken
+from services.buyer_role_authority import RoleAuthorityService
 
 from data.sql_client import get_db, execute_db_query
 from data.redis_client import RedisClient, get_redis
@@ -22,12 +23,42 @@ async def buyer_ad_apply_list(
     try:
         verify = VerifyDuterToken(token, redis)
         token_data = await verify.token_data()
-        sql_data = await execute_db_query(
-            db, 'SELECT user FROM seller_sing WHERE user = %s', (token_data.get('user'),)
-        )
-        verify_val = await verify.verify_token(sql_data=sql_data)
-        if not verify_val[0]:
-            return {"current": False, "msg": "身份验证失败"}
+        if not token_data:
+            return {"current": False, "msg": "Token 无效"}
+
+        station = token_data.get('station')
+
+        if station == '1':
+            sql_data = await execute_db_query(
+                db, 'SELECT user FROM seller_sing WHERE user = %s', (token_data.get('user'),)
+            )
+            verify_val = await verify.verify_token(sql_data=sql_data)
+            if not verify_val[0]:
+                return {"current": False, "msg": "身份验证失败"}
+            if query.stroe_id not in token_data.get('state_id_list', []):
+                return {"current": False, "msg": "您没有权限查看该店铺"}
+        elif station == '2':
+            user = token_data.get('user')
+            mall_id = token_data.get('mall_id')
+            role_svc = RoleAuthorityService(
+                role=token_data.get('role'), db=db, redis=redis,
+                name=user, mall_id=mall_id,
+            )
+            role_authority = await role_svc.get_authority(mall_id)
+            if not role_authority:
+                return {"current": False, "msg": "未找到角色权限"}
+            execute_code = await role_svc.authority_resolver(int(role_authority[0][0]))
+            sql_data = await execute_db_query(
+                db, 'SELECT user FROM store_user WHERE user = %s AND store_id = %s',
+                (user, mall_id),
+            )
+            verify_val = await verify.verify_token(sql_data=sql_data)
+            if not (execute_code[2] and verify_val[0]):
+                return {"current": False, "msg": "您没有权限执行此操作"}
+            if query.stroe_id != token_data.get('mall_id'):
+                return {"current": False, "msg": "权限不足"}
+        else:
+            return {"current": False, "msg": "未知的身份类型"}
 
         where_clauses = ["a.mall_id = %s"]
         params = [query.stroe_id]

@@ -12,6 +12,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Header, Query
 
 from services.verify_duter_token import VerifyDuterToken
+from services.buyer_role_authority import RoleAuthorityService
 from services.refund import RefundService
 from data.data_mods import SellerRefundReviewBody, SellerOrderListQuery, RefundListQuery
 from data.sql_client import get_db, execute_db_query
@@ -23,8 +24,15 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-async def _verify_seller(token: str, redis: RedisClient, db) -> tuple:
-    """校验卖家 Token，兼容主商户(station=1)和店铺用户(station=2)，返回 (ok, msg, token_payload_dict)"""
+async def _verify_seller(
+    token: str, redis: RedisClient, db,
+    required_permissions: list[int] | None = None,
+) -> tuple:
+    """
+    校验卖家 Token，兼容主商户(station=1)和店铺用户(station=2)。
+    station=2 普通员工通过 RoleAuthorityService 检查操作权限码。
+    required_permissions: [0]=添加 [1]=写入 [2]=查询 [3]=删除 [4]=分配
+    """
     verify = VerifyDuterToken(token, redis)
     token_data = await verify.token_data()
     if not token_data:
@@ -51,6 +59,23 @@ async def _verify_seller(token: str, redis: RedisClient, db) -> tuple:
     elif station == "2":
         user = token_data.get("user")
         mall_id = token_data.get("mall_id")
+
+        role_svc = RoleAuthorityService(
+            role=token_data.get("role"), db=db, redis=redis,
+            name=user, mall_id=mall_id,
+        )
+        role_authority = await role_svc.get_authority(mall_id)
+        if not role_authority or not role_authority[0]:
+            return False, "无法获取权限信息", None
+        execute_code = await role_svc.authority_resolver(int(role_authority[0][0]))
+        if not execute_code:
+            return False, "权限解析失败", None
+
+        if required_permissions:
+            for perm_idx in required_permissions:
+                if perm_idx >= len(execute_code) or not execute_code[perm_idx]:
+                    return False, "权限不足", None
+
         sql_data = await execute_db_query(
             db, "SELECT user FROM store_user WHERE user = %s AND store_id = %s",
             (user, mall_id),
@@ -90,9 +115,9 @@ async def seller_order_list(
     mongodb: MongoDBClient = Depends(get_mongodb_client),
     db=Depends(get_db),
 ):
-    ok, msg, payload = await _verify_seller(access_token, redis, db)
+    ok, msg, payload = await _verify_seller(access_token, redis, db, required_permissions=[2])
     if not ok:
-        return {"success": False, "msg": msg}
+        return {"success": False, "code": 403 if msg == "权限不足" else 401, "msg": msg}
     mall_id = _extract_mall_id(payload, mall_id)
     if not mall_id:
         return {"success": False, "msg": "无法确定所属店铺"}
@@ -115,9 +140,9 @@ async def seller_escrow_list(
     mongodb: MongoDBClient = Depends(get_mongodb_client),
     db=Depends(get_db),
 ):
-    ok, msg, payload = await _verify_seller(access_token, redis, db)
+    ok, msg, payload = await _verify_seller(access_token, redis, db, required_permissions=[2])
     if not ok:
-        return {"success": False, "msg": msg}
+        return {"success": False, "code": 403 if msg == "权限不足" else 401, "msg": msg}
     mall_id = _extract_mall_id(payload, mall_id)
     if not mall_id:
         return {"success": False, "msg": "无法确定所属店铺"}
@@ -138,9 +163,9 @@ async def seller_refund_list(
     mongodb: MongoDBClient = Depends(get_mongodb_client),
     db=Depends(get_db),
 ):
-    ok, msg, payload = await _verify_seller(access_token, redis, db)
+    ok, msg, payload = await _verify_seller(access_token, redis, db, required_permissions=[2])
     if not ok:
-        return {"success": False, "msg": msg}
+        return {"success": False, "code": 403 if msg == "权限不足" else 401, "msg": msg}
     mall_id = _extract_mall_id(payload, mall_id)
     if not mall_id:
         return {"success": False, "msg": "无法确定所属店铺"}
@@ -161,9 +186,9 @@ async def seller_refund_review(
     mongodb: MongoDBClient = Depends(get_mongodb_client),
     db=Depends(get_db),
 ):
-    ok, msg, payload = await _verify_seller(access_token, redis, db)
+    ok, msg, payload = await _verify_seller(access_token, redis, db, required_permissions=[1])
     if not ok:
-        return {"success": False, "msg": msg}
+        return {"success": False, "code": 403 if msg == "权限不足" else 401, "msg": msg}
     mall_id = _extract_mall_id(payload, mall_id)
     if not mall_id:
         return {"success": False, "msg": "无法确定所属店铺"}

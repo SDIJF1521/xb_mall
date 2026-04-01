@@ -38,7 +38,7 @@ xb_mall/
 
 ### `serve/services` 目录约定
 
-- **每个业务模块一个子目录**，入口为 `services/<模块名>/__init__.py`（包形式），例如：`manage_login/`、`manage_rbac/`、`management_token_verify/`、`manage_token_issue/`、`manage_admin_guard/`、`manage_rbac_migrate/`、`order/`、`refund/`、`order_migrate/`、`promotion/`。
+- **每个业务模块一个子目录**，入口为 `services/<模块名>/__init__.py`（包形式），例如：`manage_login/`、`manage_rbac/`、`management_token_verify/`、`manage_token_issue/`、`manage_admin_guard/`、`manage_rbac_migrate/`、`order/`、`refund/`、`order_migrate/`、`promotion/`、`comment/`、`logistics/`。
 - **不要在 `services/` 根目录**直接放置与业务模块同名的单文件 `*.py`（避免与包名冲突、便于维护）。
 - 复杂子域可在模块下再分子目录（如 `recommend/wide_deep/`）。
 
@@ -171,7 +171,7 @@ flowchart TB
         D1[("MySQL\n用户/商家/商品/订单\n购物车/收藏/地址\n管理员/角色/广告/优惠券")]
         D2[("MongoDB\n商品详情/评论\n浏览记录/聊天消息\n违规/申诉")]
         D3[("Redis\nToken状态/在线状态\n缓存/布隆过滤器\n验证码")]
-        D4["文件存储\n头像/商品图片/广告图"]
+        D4["文件存储\n头像/商品图片/广告图/评论配图"]
         D5["日志 & 配置\nlog_config + .env"]
     end
 
@@ -246,12 +246,14 @@ flowchart TB
     subgraph Product["商品与店铺"]
         P1["点击商品"] --> P2["GET /api/commodity_content\n商品详情 — MongoDB"]
         P2 --> P3["已登录? 异步记录浏览行为\n写入MongoDB user_browse_record"]
-        P2 --> P4["GET /api/commodity_comments\n评论列表"]
+        P2 --> P4["GET /api/comment/list\n评论列表（分页+评分筛选）"]
         P2 --> P5["GET /api/favorite_check\n是否已收藏"]
         P2 --> P6["POST /api/shopping_cart_add\n添加购物车"]
         P2 --> P7["POST /api/favorite_add\n收藏商品/店铺"]
         P2 --> P8["打开客服悬浮球\nWebSocket连接"]
         P2 --> P12["GET /api/user_coupon/available\n商品关联优惠券\n显示领取状态"]
+        P2 --> P13["GET /api/comment/check\n是否可评价"]
+        P13 -->|可评| P14["POST /api/comment/create\n发布评价（星级+文本+图片）"]
         P9["访问店铺页"] --> P10["GET /api/store_info"]
         P10 --> P11["GET /api/store_commodity_list"]
     end
@@ -289,6 +291,7 @@ flowchart TB
         PC6["客服消息\ncs_user_sessions/history"]
         PC7["商家入驻\napply_seller"]
         PC8["我的订单\norder/list + 状态筛选\n确认收货/申请退款"]
+        PC9["我的评论\nGET /api/comment/user_list\nDELETE /api/comment/delete"]
     end
 
     subgraph Online["在线状态"]
@@ -375,6 +378,12 @@ flowchart TB
         SC3 --> SC4["MongoDB store_employee_chat\n入群推送80条历史"]
     end
 
+    subgraph CommentManage["评论管理"]
+        CMT1["GET /api/comment/seller_list\n店铺评论列表\n好评/中评/差评+已回复/未回复"]
+        CMT1 --> CMT2["POST /api/comment/seller_reply\n回复买家评论"]
+        CMT3["订单管理中快捷回复\nGET /api/comment/order_comments"]
+    end
+
     subgraph CustomerServiceSeller["客服管理"]
         CS1["WebSocket\n/ws/customer_service/mall_id\nclient_type=seller"]
         CS2["左侧会话列表 session_list"]
@@ -396,7 +405,7 @@ flowchart TB
     subgraph UserCenter["用户管理中心"]
         UC1["商家申请审核\nadmin.user.merchant\nget_apply_seller_list\napply_seller_consent/reject"]
         UC2["商家账号管理\nadmin.user.merchant\nmanage_merchant_freeze/unfreeze/delete"]
-        UC3["商城用户管理\nadmin.user.mall\nuser_list"]
+        UC3["商城用户管理\nadmin.user.mall\nmanage_mall_user_list\n冻结/解冻/重置密码"]
         UC4["后台账号管理\nadmin.user.platform\nmanage_platform_user_*"]
         UC5["角色与权限\nadmin.user.role\nmanage_role_save/list/delete\nmanage_permission_catalog"]
     end
@@ -518,7 +527,7 @@ flowchart TB
 ```mermaid
 flowchart TB
     subgraph MySQL["MySQL — 主数据"]
-        T1["user — C端用户"]
+        T1["user — C端用户\n含 status 冻结字段"]
         T2["seller_sing — 商家主账户"]
         T3["store_user — 店铺员工"]
         T4["mall_info — 店铺信息"]
@@ -550,8 +559,9 @@ flowchart TB
         M3["commodity_appeal — 申诉记录"]
         M4["store_employee_chat — 员工聊天"]
         M5["customer_service_messages — 客服消息"]
-        M6["商品详情/评论 文档"]
+        M6["商品详情 文档"]
         M7["seller_pay_config — 卖家支付宝配置"]
+        M8["commodity_comment — 商品评论\n含 seller_reply 子文档"]
     end
 
     subgraph Redis["Redis — 缓存与状态"]
@@ -564,6 +574,7 @@ flowchart TB
         R7["收藏列表缓存"]
         R8["布隆过滤器"]
         R9["在线状态"]
+        R10["评论列表缓存"]
     end
 ```
 
@@ -634,7 +645,9 @@ flowchart TB
 | **订单系统** | 下单、支付（支付宝）、超时关闭、确认收货、退款 | 乐观锁 + 幂等性 + 担保交易 |
 | **退款与纠纷** | 买家申请退款、卖家审核、平台仲裁、支付宝原路退款 | 多级审核流 + 支付宝 API |
 | **卖家仪表盘** | 数据卡片、订单状态分布、销售趋势、最近订单、营业报表导出 | ECharts + CSV 导出 |
-| **卖家订单管理** | 订单列表、资金明细、退款审核 | MySQL orders/escrow_account |
+| **卖家订单管理** | 订单列表、资金明细、退款审核、快捷评论回复 | MySQL orders/escrow_account |
+| **评论系统** | 商品评价（星级+文本+图片）、卖家回复、我的评论管理 | MongoDB commodity_comment + 图片上传 |
+| **商城用户管理** | 用户列表筛选、冻结/解冻、密码重置、冻结登录拦截 | MySQL user.status + Redis 联动 |
 | **平台纠纷管理** | 纠纷列表、退款详情、平台仲裁 | 权限码 `admin.refund` |
 | **平台 RBAC** | 后台账号、角色、权限、商城用户 | manage_user/role + 权限码 |
 | **广告投放** | 商家申请轮播图广告、平台审核、首页轮播展示 | MySQL ad_apply/ad_banner + Redis 缓存 |
@@ -675,6 +688,9 @@ flowchart TB
 - 📊 **卖家仪表盘** - 数据卡片（商品数/订单数/销售额/待处理退款）、饼图（订单状态分布）、折线图（销售趋势）、最近订单表格，支持按周/月/季/年筛选；营业报表一键导出 CSV
 - 📝 **卖家订单管理** - 订单列表（状态筛选 + 关键词搜索 + 分页）、资金明细（担保账户流水）、退款申请列表及审核（同意/拒绝）
 - 🛍️ **买家订单** - 个人中心「我的订单」页面，展示用户全部订单，支持状态筛选、确认收货、申请退款、查看物流
+- ⭐ **商品评价** - 确认收货后可对商品发表评价（1-5 星级 + 文字 + 最多 9 张图片），支持好评/中评/差评筛选、查看卖家回复；个人中心「我的评论」管理页，支持查看和删除自己的评价
+- 💬 **卖家评论管理** - 卖家端「评论管理中心」页面，按好评/中评/差评与已回复/未回复筛选，支持回复买家评论；订单管理中已收货订单支持快捷评论回复
+- 👥 **商城用户管理** - 平台管理端商城用户列表，支持关键词搜索、用户状态（正常/冻结）与商家身份筛选，支持冻结/解冻用户账号及重置用户密码
 - ⚖️ **平台纠纷管理** - 平台管理端纠纷列表、退款详情查看、平台仲裁处理（权限码 `admin.refund`）
 - 🎟️ **领券中心** - 用户端独立领券页面，展示所有可领优惠券，显示领取状态（可领取/已领取/已领完）
 - 🔥 **活动专区** - 用户端活动列表页，展示进行中的促销活动及参与商品
@@ -710,6 +726,21 @@ flowchart TB
 - 📦 **订单服务** - `POST /api/order/create` 创建订单（含库存扣减 + 乐观锁）、`GET /api/order/list` 买家订单列表、`POST /api/order/confirm` 确认收货、`POST /api/order/cancel` 取消订单、幂等号防重复提交；数据表 `orders` + `order_items`
 - 💳 **支付服务** - 支付宝网页支付 `POST /api/order/pay`、支付回调 `POST /api/order/alipay_notify`、担保账户 `escrow_account`、支付流水 `payment_transactions`；订单超时自动关闭 + 库存回滚
 - 🔄 **退款服务** - `POST /api/refund/create` 买家申请退款、`GET /api/refund/detail` 退款详情、`POST /api/seller/order/refund_review` 卖家审核退款、`POST /api/manage_refund/arbitrate` 平台仲裁；支付宝原路退款 + 担保资金释放
+- ⭐ **评论服务**（`services/comment/`）：
+  - `POST /api/comment/create`：发布评价（星级 + 文本 + 最多 9 张图片），仅确认收货订单可评，同一订单不可重复评价
+  - `GET /api/comment/list`：商品评论分页列表，支持按好评（≥4）/中评（=3）/差评（≤2）筛选，附带评论者头像，Redis 缓存
+  - `GET /api/comment/check`：检查当前用户是否可对指定商品发表评价
+  - `GET /api/comment/user_list`：用户自己的评论列表（分页）
+  - `DELETE /api/comment/delete`：删除自己的评论
+  - `GET /api/comment/seller_list`：卖家店铺评论列表，支持评分类型 + 回复状态筛选
+  - `POST /api/comment/seller_reply`：卖家回复评论
+  - `GET /api/comment/order_comments`：按订单号查询评论（卖家端快捷回复）
+  - 评论图片存储在 `./comment_img` 目录，MongoDB `commodity_comment` 集合
+- 👥 **商城用户管理服务**：
+  - `GET /api/manage_mall_user_list`：商城注册用户分页列表，支持关键词、状态（正常/冻结）、商家身份筛选（权限 `admin.user.mall`）
+  - `POST /api/manage_mall_user_freeze`：冻结/解冻用户账号，冻结时清除用户 Token，被冻结用户无法登录
+  - `POST /api/manage_mall_user_reset_password`：重置用户密码（需字母+数字，8-40 位），清除用户 Token
+  - 用户登录（`POST /api/token`）增加冻结检测，被冻结用户返回提示信息
 - 📊 **卖家仪表盘服务** - `GET /api/seller/dashboard/summary` 聚合仪表盘数据（卡片/饼图/趋势/最近订单）、`GET /api/seller/dashboard/export` 导出营业报表 CSV；支持 week/month/three_months/year 时间范围筛选
 - 🔑 **平台 RBAC 服务** - 见上文「平台用户管理（RBAC）」：`manage_sign_in` / `manage_admin_refresh` / `manage_session`、`manage_platform_user_*`、`manage_role_*`、`manage_permission_catalog`；实现位于 `services/manage_*` 包
 - 📢 **广告投放服务**：
@@ -885,7 +916,7 @@ uv run python -m services.recommend.wide_deep.train
 |------|--------|---------|
 | **商家申请合验** | `admin.user.merchant` | 商家入驻申请列表、跳转审核 |
 | **商家账号管理** | `admin.user.merchant` | 商家列表与详情（冻结/解冻/删除等） |
-| **商城用户管理** | `admin.user.mall` | 商城 C 端注册用户列表 |
+| **商城用户管理** | `admin.user.mall` | 商城 C 端注册用户列表、冻结/解冻、重置密码；冻结用户无法登录 |
 | **后台账号** | `admin.user.platform` | 后台账号列表、新增、删除、改密、分配角色 |
 | **角色与权限** | `admin.user.role` | 角色增删改、预定义权限勾选 + 自定义权限码（每行一个）；超级管理员角色 `*` 表示全部权限 |
 
@@ -945,6 +976,9 @@ uv run python -m services.recommend.wide_deep.train
 | 角色列表 | GET | `/api/manage_role_list` | 角色列表 |
 | 角色保存 | POST | `/api/manage_role_save` | 新增/编辑角色（含权限 JSON） |
 | 角色删除 | POST | `/api/manage_role_delete` | 删除角色 |
+| 商城用户列表 | GET | `/api/manage_mall_user_list` | C 端用户分页列表（关键词/状态/商家筛选） |
+| 冻结/解冻用户 | POST | `/api/manage_mall_user_freeze` | 冻结或解冻 C 端用户账号 |
+| 重置用户密码 | POST | `/api/manage_mall_user_reset_password` | 重置 C 端用户密码 |
 
 ### 数据库与启动
 
@@ -1237,6 +1271,61 @@ stateDiagram-v2
 
 > 迁移服务 `services/promotion_migrate/` 在应用启动时自动建立以上所有表。
 
+## ⭐ 评论系统
+
+平台内置完整的商品评价功能，买家确认收货后可对商品发表评价，卖家可在评论管理中心或订单管理中回复评论。
+
+### 评价规则
+
+- 仅当订单状态为**已确认收货**（`received`）时，买家才可对订单中的商品发表评价
+- 同一订单的同一商品不可重复评价（MongoDB `commodity_comment` 查重）
+- 评价内容包含：星级（1-5 星）、文字描述、最多 9 张图片
+- 评分分类：好评（≥4 星）、中评（=3 星）、差评（≤2 星）
+
+### 三端入口
+
+| 端 | 入口 | 功能 |
+|-----|------|------|
+| **用户端** | 商品详情页「用户评价」区 | 发布评价（星级+文字+图片）、浏览评论列表（好评/中评/差评筛选）、删除自己的评论 |
+| **用户端** | 个人中心「我的评论」 | 查看自己的所有评论、删除评论、查看卖家回复 |
+| **卖家端** | 评论管理中心 `/buyer_comment_manage` | 按好评/中评/差评和已回复/未回复筛选，回复买家评论，多店铺主账号支持切换店铺 |
+| **卖家端** | 订单管理中心（已收货订单） | 快捷查看订单评论、快捷回复 |
+
+### 评论流程
+
+```mermaid
+flowchart TB
+    O1["买家确认收货\norders.status = received"] --> C1["GET /api/comment/check\n检查是否可评价"]
+    C1 -->|可评价| C2["填写星级+文字+上传图片\n（最多9张）"]
+    C2 --> C3["POST /api/comment/create\n创建评论 → MongoDB"]
+    C3 --> C4["清除商品评论缓存\nRedis pattern 失效"]
+    C4 --> C5["商品详情页展示\nGET /api/comment/list\n好评/中评/差评筛选"]
+    C5 --> C6["卖家评论管理\nGET /api/comment/seller_list"]
+    C6 --> C7["POST /api/comment/seller_reply\n卖家回复评论"]
+    C7 --> C8["用户可查看卖家回复"]
+```
+
+### API 端点
+
+| 接口 | 方法 | 路径 | 说明 |
+|------|------|------|------|
+| 发布评价 | POST | `/api/comment/create` | 表单 + 图片上传（shopping_id, mall_id, rating, content, images） |
+| 评论列表 | GET | `/api/comment/list` | 商品评论分页列表，支持 rating_type 筛选 |
+| 可否评价 | GET | `/api/comment/check` | 检查当前用户是否可评指定商品 |
+| 用户评论 | GET | `/api/comment/user_list` | 当前用户的评论列表（分页） |
+| 删除评论 | DELETE | `/api/comment/delete` | 删除自己的评论 |
+| 卖家评论列表 | GET | `/api/comment/seller_list` | 店铺评论列表，支持 rating_type + reply_status 筛选 |
+| 卖家回复 | POST | `/api/comment/seller_reply` | 卖家回复买家评论 |
+| 订单评论 | GET | `/api/comment/order_comments` | 按订单号查询评论（卖家端） |
+
+### 数据存储
+
+| 类型 | 名称 | 说明 |
+|------|------|------|
+| MongoDB 集合 | `commodity_comment` | 评论主数据，含 rating、content、images、seller_reply 子文档 |
+| 本地目录 | `./comment_img` | 评论配图文件存储 |
+| Redis | 评论缓存 | 按 mall/shopping/page/rating 缓存评论列表，变更时 pattern 失效 |
+
 ## 🛍️ 订单与支付系统
 
 平台采用**担保交易**模式：买家支付后资金进入担保账户，确认收货后释放给卖家；支持支付宝网页支付，订单超时自动关闭并回滚库存。
@@ -1361,7 +1450,7 @@ stateDiagram-v2
 
 - **许可证**: GPLv3
 - **作者**: SDIJF1521
-- **版本**: 0.9.1
+- **版本**: 0.9.2
 
 ## 🤝贡献指南
 
