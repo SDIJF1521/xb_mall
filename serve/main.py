@@ -189,9 +189,10 @@ from routes.address_show import router as address_show_router
 from routes.delete_token_time import router as delete_token_time_router
 from routes.cs import router as cs_router
 from routes.comment import router as comment_router
-from services.bloom_filter_manager import init_bloom_filter_manager
 from services.recommend import RecommendCommodity
 from services.recommend.trainer import RecommendTrainer
+
+from routes.manage_logistics_config import router as manage_logistics_config_router
 
 redis_client = RedisClient()
 scheduler = AsyncIOScheduler()
@@ -1016,6 +1017,9 @@ app.include_router(buyer_commodity_violation_appeal_router, prefix='/api')
 
 # 平台端申诉管理路由
 app.include_router(manage_commodity_appeal_router, prefix='/api')
+
+# 平台端物流配置路由
+app.include_router(manage_logistics_config_router, prefix='/api')
 
 # 收藏功能路由
 app.include_router(favorite_add_router, prefix='/api')

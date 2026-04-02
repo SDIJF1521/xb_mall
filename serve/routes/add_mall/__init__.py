@@ -44,7 +44,8 @@ async def add_mall(data:Annotated[AddMallData,Form()],db:Connection=Depends(get_
             await cache.delete_pattern(f'mall_name:user:{data.user}')
             
             try:
-                sql_user_data = await execute_db_query(db,'select * from seller_sing where user = %s',(data.user))
+                print(token_data.get('user'))
+                sql_user_data = await execute_db_query(db,'select * from seller_sing where user = %s',(token_data.get('user')))
                 await execute_db_query(db,'update mall_info set mall_number = mall_number+1 where user = %s',(data.user))
                 if not sql_user_data:
                     await cache.delete_pattern(f'admin:mall:info:{data.user}')
@@ -63,11 +64,10 @@ async def add_mall(data:Annotated[AddMallData,Form()],db:Connection=Depends(get_
                 expire_minutes = 7
                 expire = datetime.utcnow() + timedelta(days=expire_minutes)
                 expire_timestamp = int(expire.timestamp())
-                
                 payload = {
-                    'user': sql_user_data[0][0],
+                    'user': token_data.get('user'),
                     'station': '1',
-                    'role': -1, 
+                    'role': token_data.get('role'), 
                     "state": state[0][0],
                     'state_id_list': mall_id_list,
                     'exp': str(expire_timestamp)

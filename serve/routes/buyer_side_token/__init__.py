@@ -41,6 +41,7 @@ async def  DuyerSideToken(data: Annotated[SellerSignIn,Form()], db: Connection =
             if sql_data and state[0][0] == 1:
                 mall_id = await execute_db_query(db,'select mall_id from store where user = %s',(data.user))
                 mall_id_list = [i[0]for i in mall_id]
+                print(sql_data)
                 payload = {
                         'user': sql_data[0][0],
                         'station':data.station,

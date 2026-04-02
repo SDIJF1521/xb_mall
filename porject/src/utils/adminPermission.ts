@@ -15,6 +15,7 @@ export const MANAGE_HOME_ANY = [
   'admin.refund',
   'admin.system_settings',
   'admin.pay_config',
+  'admin.logistics_config',
 ] as const;
 
 export function setAdminPermissions(perms: string[]) {

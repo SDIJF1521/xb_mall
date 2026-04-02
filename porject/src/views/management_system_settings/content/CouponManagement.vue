@@ -27,7 +27,7 @@
         <el-table-column prop="name" label="名称" min-width="140" show-overflow-tooltip />
         <el-table-column label="类型" width="100" align="center">
           <template #default="{ row }">
-            <el-tag size="small" :type="typeTag(row.coupon_type)">{{ typeLabel(row.coupon_type) }}</el-tag>
+            <el-tag size="small" :type="typeTag(row.coupon_type) as 'danger' | 'warning' | 'success' | 'info' | 'primary'">{{ typeLabel(row.coupon_type) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="发布方" width="80" align="center">
@@ -64,7 +64,7 @@
         </el-table-column>
         <el-table-column label="状态" width="90" align="center">
           <template #default="{ row }">
-            <el-tag size="small" :type="statusTag(row.status)">{{ statusLabel(row.status) }}</el-tag>
+            <el-tag size="small" :type="statusTag(row.status) as 'danger' | 'warning' | 'success' | 'info' | 'primary'">{{ statusLabel(row.status) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="200" align="center" fixed="right">
@@ -163,7 +163,7 @@
           <el-descriptions-item label="每人限领">{{ detail.per_user_limit }}张</el-descriptions-item>
           <el-descriptions-item label="有效期" :span="2">{{ detail.start_time?.slice(0, 16) }} 至 {{ detail.end_time?.slice(0, 16) }}</el-descriptions-item>
           <el-descriptions-item label="状态">
-            <el-tag :type="statusTag(detail.status)" size="small">{{ statusLabel(detail.status) }}</el-tag>
+            <el-tag :type="statusTag(detail.status) as 'danger' | 'warning' | 'success' | 'info' | 'primary'" size="small">{{ statusLabel(detail.status) }}</el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="平台范围">{{ scopeLabel(detail.platform_scope) }}</el-descriptions-item>
           <el-descriptions-item v-if="detail.description" label="说明" :span="2">{{ detail.description }}</el-descriptions-item>

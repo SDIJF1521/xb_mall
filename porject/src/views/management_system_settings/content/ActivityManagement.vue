@@ -33,7 +33,7 @@
         <el-table-column prop="name" label="活动名称" min-width="150" show-overflow-tooltip />
         <el-table-column label="类型" width="90" align="center">
           <template #default="{ row }">
-            <el-tag size="small" :type="actTypeTag(row.activity_type)">{{ actTypeLabel(row.activity_type) }}</el-tag>
+            <el-tag size="small" :type="actTypeTag(row.activity_type) as 'danger' | 'warning' | 'success' | 'info' | 'primary'">{{ actTypeLabel(row.activity_type) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="发起方" width="80" align="center">
@@ -58,7 +58,7 @@
         </el-table-column>
         <el-table-column label="状态" width="90" align="center">
           <template #default="{ row }">
-            <el-tag size="small" :type="statusTag(row.status)">{{ statusLabel(row.status) }}</el-tag>
+            <el-tag size="small" :type="statusTag(row.status) as 'danger' | 'warning' | 'success' | 'info' | 'primary'">{{ statusLabel(row.status) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="220" align="center" fixed="right">
@@ -165,7 +165,7 @@
           <el-descriptions-item label="发起方">{{ detail.issuer_type === 'platform' ? '平台' : '商家' }}</el-descriptions-item>
           <el-descriptions-item label="活动时间" :span="2">{{ detail.start_time?.slice(0, 16) }} 至 {{ detail.end_time?.slice(0, 16) }}</el-descriptions-item>
           <el-descriptions-item label="状态">
-            <el-tag :type="statusTag(detail.status)" size="small">{{ statusLabel(detail.status) }}</el-tag>
+            <el-tag :type="statusTag(detail.status) as 'danger' | 'warning' | 'success' | 'info' | 'primary'" size="small">{{ statusLabel(detail.status) }}</el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="商家参与">{{ detail.platform_scope === 'all' ? '全商城' : '自选加入' }}</el-descriptions-item>
           <el-descriptions-item label="规则" :span="2">
@@ -267,8 +267,8 @@ function statusTag(s: string) {
   return { draft: 'info', active: 'success', paused: 'warning', ended: 'danger' }[s] || 'info'
 }
 
-function onTypeChange(type: string) {
-  form.value.rules = defaultRules(type)
+function onTypeChange(type: string | any) {
+  form.value.rules = defaultRules(type || 'flash_sale')
 }
 
 async function loadList(p: number) {

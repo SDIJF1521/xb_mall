@@ -1,5 +1,5 @@
 from typing import Optional,List,Tuple
-from fastapi import File, UploadFile, Query
+from fastapi import File, Form, UploadFile, Query
 from pydantic import BaseModel,EmailStr
 from datetime import time
 
@@ -951,3 +951,9 @@ class MerchantJoinActivityBody(BaseModel):
 class MerchantLeaveActivityBody(BaseModel):
     activity_id: int = Field(..., description="活动ID")
     shopping_ids: Optional[List[int]] = Field(None, description="要移除的商品ID列表（空=全部移除）")
+
+class ManageLogisticsConfig(BaseModel):
+    token:str
+    user_code:str
+    production_environment:bool
+    verification_code:str

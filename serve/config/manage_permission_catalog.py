@@ -14,4 +14,5 @@ PERMISSION_CATALOG = [
     {"code": "admin.refund", "name": "纠纷管理", "category": "运营"},
     {"code": "admin.system_settings", "name": "系统设置", "category": "设置"},
     {"code": "admin.pay_config", "name": "支付配置", "category": "设置"},
+    {"code": "admin.logistics_config", "name": "物流配置", "category": "设置"},
 ]

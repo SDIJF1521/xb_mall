@@ -29,7 +29,7 @@ async def get_apply_seller_user(data:Annotated[GetApplySellerUser,Form()],db:aio
         if cached_data:
             return cached_data
         
-        result = await execute_db_query(db,'select * from shop_apply where name=%s',data.name)
+        result = await execute_db_query(db,'select * from shop_apply where user=%s',data.name)
         if result:
             result_data = {'current':True,'apply_list':[list(i) for i in result]}
         else:

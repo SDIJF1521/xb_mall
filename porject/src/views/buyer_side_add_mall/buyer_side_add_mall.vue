@@ -84,6 +84,8 @@ import { onMounted, reactive, ref } from 'vue';
 import type { UploadProps, UploadUserFile } from 'element-plus'
 import { ElMessage, ElStep } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
+import { jwtDecode } from 'jwt-decode'
+import type { JwtPayload } from 'jwt-decode'
 
 // 定义表单数据类型
 interface RuleForm {
@@ -142,11 +144,14 @@ const rules = reactive<FormRules<RuleForm>>({
     ]
 
 })
-
+const token = localStorage.getItem('buyer_access_token')
+const decoded = jwtDecode(token || '') as JwtPayload & {
+  user?: string
+}
 // 下拉选项
 const optiins = [{
     label: '默认',
-    value: '小白',
+    value: decoded.user || '',
 }]
 
 // 弹窗内容
@@ -158,7 +163,11 @@ const handleClose = (done: () => void) => {
 };
 
 onMounted(()=>{
+    const token = localStorage.getItem('buyer_access_token')
     document.documentElement.classList.add('dark')
+    const decoded = jwtDecode(token || '') as JwtPayload & {
+     user?: string
+}
 })
 
 // 定义后端API地址
