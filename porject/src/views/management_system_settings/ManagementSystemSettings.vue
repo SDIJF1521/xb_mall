@@ -77,6 +77,7 @@ import AdSetting from './content/AdSetting.vue'
 import PaymentConfig from './content/PaymentConfig.vue'
 import CouponManagement from './content/CouponManagement.vue'
 import ActivityManagement from './content/ActivityManagement.vue'
+import LogisticsServiceConfig from './content/LogisticsServiceConfig.vue'
 
 const MallBasicConfig = { template: '<div><h3>商城基础配置</h3><p>这里是商城的基础配置内容</p></div>' }
 const MallLogisticsConfig = { template: '<div><h3>物流配置</h3><p>这里是物流配置内容</p></div>' }
@@ -107,7 +108,7 @@ function handleMenuSelect(index: string) {
       currentView.value = PaymentConfig
       break
     case '1-3':
-      currentView.value = MallLogisticsConfig
+      currentView.value = LogisticsServiceConfig
       break
     case '1-4':
       currentView.value = MallMemberLevel

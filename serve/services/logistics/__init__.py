@@ -27,17 +27,33 @@ class LogisticsService:
         self.production = 'https://bspgw.sf-express.com/std/service'
         # 顺丰接口服务代码
         self.service_code = 'EXP_RECE_CREATE_ORDER'
+        self.cache = CacheService(redis)
 
     # 定义物流配置方法
     async def config(self, user_code: str, code: str, production_environment: bool):
-        config_data = await self.mongo.find_one('LogisticsServiceConfig')
+        config_data = await self.mongo.find_one('LogisticsServiceConfig',{'user_code':user_code})
         if config_data:
-            await self.mongo.update_one('LogisticsServiceConfig',{'user_code':user_code,'production_environment':production_environment,'code':code})
+            await self.mongo.update_one('LogisticsServiceConfig',{'user_code':user_code},{'$set': {'production_environment':production_environment,'code':code}})
+            await self.cache.delete_pattern(f"logistics_config")
             return {'code': 200, 'msg': '更新成功', 'success': True}
         else:
+            await self.mongo.delete_many('LogisticsServiceConfig',{})  # 确保只有一条配置
             await self.mongo.insert_one('LogisticsServiceConfig',{'user_code':user_code,'production_environment':production_environment,'code':code})   
+            await self.cache.delete_pattern(f"logistics_config")
             return {'code': 200, 'msg': '配置已创建', 'success': True}
 
+    # 定义获取物流配置方法
+    async def get_config(self):
+        config_data = await self.cache.get(f"logistics_config")
+        if config_data:
+            return {'code': 200, 'msg': '获取成功', 'success': True, 'data': config_data}
+        else:
+            mongo_config = await self.mongo.find_one('LogisticsServiceConfig',{})
+            if not mongo_config:
+                return {'code': 404, 'msg': '配置不存在', 'success': False}
+            await self.cache.set("logistics_config", mongo_config, expire=3600)  # 缓存1小时
+            return {'code': 200, 'msg': '获取成功', 'success': True, 'data': mongo_config}
+        
     # 定义物流下单方法
     async def place_an_order(
         self,

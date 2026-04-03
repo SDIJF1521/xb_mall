@@ -148,6 +148,7 @@ from routes.manage_commodity_violation_remove import router as manage_commodity_
 from routes.manage_commodity_statistics import router as manage_commodity_statistics_router
 from routes.buyer_commodity_violation_appeal import router as buyer_commodity_violation_appeal_router
 from routes.manage_commodity_appeal import router as manage_commodity_appeal_router
+from routes.manage_logistics_config_select import router as manage_logistics_config_select_router
 from routes.favorite_add import router as favorite_add_router
 from routes.favorite_remove import router as favorite_remove_router
 from routes.favorite_list import router as favorite_list_router
@@ -1082,3 +1083,6 @@ app.include_router(user_activity_router, prefix='/api')
 
 # 评论模块路由
 app.include_router(comment_router, prefix='/api')
+
+# 平台端物流配置选择路由
+app.include_router(manage_logistics_config_select_router, prefix='/api')
