@@ -2,7 +2,7 @@
   <el-container class="login-container">
     <el-header class="header-content">
       <div class="logo-container">
-        <span class="logo-text">xb商城</span>
+        <span class="logo-text">{{ platformInfo.platform_name }}</span>
         <span class="admin-text">管理后台</span>
       </div>
     </el-header>
@@ -58,7 +58,7 @@
         </el-form>
       </el-card>
     </el-main>
-    <el-footer class="footer-content">版权所有 ©[xb商城]，保留所有权利。</el-footer>
+    <el-footer class="footer-content">{{ platformInfo.copyright_text }}<template v-if="platformInfo.icp_number"> | {{ platformInfo.icp_number }}</template></el-footer>
   </el-container>
 </template>
 
@@ -68,6 +68,9 @@ import VerifyCode from './content/VerifyCode.vue';
 import { ElMessage } from 'element-plus';
 import axios, { Axios } from 'axios';
 import router from '@/router';
+import { usePlatformConfig } from '@/utils/platformConfig'
+
+const { platformInfo } = usePlatformConfig()
 
 defineOptions({
   name: 'ManagementLogin',

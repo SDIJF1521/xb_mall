@@ -71,7 +71,6 @@
   import BuyerTheme from '@/moon/buyer_theme';
   import axios from 'axios';
   import { Document, Location, Phone, Clock, Setting, Picture } from '@element-plus/icons-vue';
-
   defineOptions({
     name:'BuyerStoreManage',
   })

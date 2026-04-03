@@ -38,7 +38,7 @@
                 </el-main>
             </el-container>
         </el-container>
-        <el-footer class="footer-content">版权所有 © [xb商城]，保留所有权利。</el-footer>
+        <el-footer class="footer-content">版权所有 ©[xb商城]，保留所有权利。</el-footer>
     </el-container>
 </template>
 
@@ -51,7 +51,6 @@ import Sale from './content/sale.vue'
 import RecentOrders from './content/recent_orders.vue'
 import BuyerHead from '@/moon/buyer_head.vue'
 import BuyerTheme from '@/moon/buyer_theme'
-
 defineOptions({
     name: 'BuyerSideIdex',
     components: { BuyerNavigation, DataDisplay, Sale, RecentOrders, BuyerHead },

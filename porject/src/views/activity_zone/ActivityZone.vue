@@ -118,7 +118,7 @@
           </div>
         </el-dialog>
       </el-main>
-      <el-footer class="footer-content">版权所有 © [xb商城]，保留所有权利。</el-footer>
+      <el-footer class="footer-content">版权所有 ©[xb商城]，保留所有权利。</el-footer>
     </el-container>
   </div>
 </template>
@@ -129,7 +129,6 @@ import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { Loading } from '@element-plus/icons-vue'
 import AppNavigation from '@/moon/navigation.vue'
-
 const router = useRouter()
 const Axios = axios.create({ baseURL: 'http://127.0.0.1:8000/api' })
 

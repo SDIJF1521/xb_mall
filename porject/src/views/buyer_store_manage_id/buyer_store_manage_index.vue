@@ -203,7 +203,6 @@ import {
   Check,
   Refresh
 } from '@element-plus/icons-vue';
-
 defineOptions({
   name:'BuyerStoreManageIndex',
 })

@@ -140,6 +140,8 @@ onMounted(() => {
             selected.value = '7'; break;
         case '/buyer_promotion_manage':
             selected.value = '11'; break;
+        case '/buyer_logistics_manage':
+            selected.value = '8'; break;
         default:
             if (route.path.startsWith('/buyer_customer_service')) {
                 selected.value = '6';
@@ -147,6 +149,8 @@ onMounted(() => {
                 selected.value = '10';
             } else if (route.path.startsWith('/buyer_promotion_manage')) {
                 selected.value = '11';
+            } else if (route.path.startsWith('/buyer_logistics_manage')) {
+                selected.value = '8';
             }
             break;
         case '/buyer_set':
@@ -181,6 +185,8 @@ const handleSelect = (index: string) => {
         router.push('/buyer_promotion_manage')
     } else if (index === '10') {
         router.push('/buyer_ad_apply')
+    } else if (index === '8') {
+        router.push('/buyer_logistics_manage')
     }
 }
 

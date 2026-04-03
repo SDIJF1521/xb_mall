@@ -39,3 +39,23 @@ async def manage_logistics_config(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@router.post('/manage_logistics_config/verify')
+async def manage_logistics_config_verify(
+        token: str = Form(...),
+        db: Connection = Depends(get_db_pool),
+        redis: RedisClient = Depends(get_redis),
+        mongo: MongoDBClient = Depends(get_mongodb_client),
+):
+    try:
+        ok, msg, _ = await verify_admin_with_permission(
+            db, redis, token, required="admin.logistics_config"
+        )
+        if not ok:
+            return {"current": False, "msg": msg}
+
+        logistics = LogisticsService(db_pool, mongo, redis)
+        return await logistics.verify_connection()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+

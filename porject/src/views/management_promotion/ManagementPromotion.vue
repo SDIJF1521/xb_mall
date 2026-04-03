@@ -18,13 +18,16 @@
         <component :is="currentView" />
       </el-main>
     </el-container>
-    <el-footer class="footer-content">版权所有 © [xb商城]，保留所有权利。</el-footer>
+    <el-footer class="footer-content">{{ platformInfo.copyright_text }}</el-footer>
   </el-container>
 </template>
 
 <script setup lang="ts">
 import { shallowRef, type Component } from 'vue'
 import ManagementNavigation from '@/moon/management_navigation.vue'
+import { usePlatformConfig } from '@/utils/platformConfig'
+
+const { platformInfo } = usePlatformConfig()
 import { Ticket, Lightning } from '@element-plus/icons-vue'
 import CouponManagement from '@/views/management_system_settings/content/CouponManagement.vue'
 import ActivityManagement from '@/views/management_system_settings/content/ActivityManagement.vue'

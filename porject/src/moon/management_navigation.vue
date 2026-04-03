@@ -2,7 +2,7 @@
   <div class="management-navigation">
     <div class="brand">
       <img src="@/assets/logo.jpg" alt="logo" class="brand-logo" />
-      <h2 :class="titleColor">xb商城后台</h2>
+      <h2 :class="titleColor">{{ platformInfo.platform_name }}后台</h2>
     </div>
 
     <el-menu
@@ -36,6 +36,7 @@ import { onMounted, ref, watch, computed } from 'vue';
 import router from '@/router';
 import { useRoute } from 'vue-router';
 import { Sunny, Moon } from '@element-plus/icons-vue'
+import { usePlatformConfig } from '@/utils/platformConfig'
 import {
   hasAdminPermission,
   hasAnyAdminPermission,
@@ -57,6 +58,8 @@ const pUser = computed(() =>
 );
 const pPromotion = computed(() => hasAdminPermission('admin.promotion'));
 const pRefund = computed(() => hasAdminPermission('admin.refund'));
+
+const { platformInfo } = usePlatformConfig()
 
 const activeIndex = ref('')
 

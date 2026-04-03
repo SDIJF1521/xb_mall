@@ -124,7 +124,6 @@ import { Headset, Shop, Phone, Location, Document, Clock } from '@element-plus/i
 import BuyerTheme from '@/moon/buyer_theme'
 import BuyerNavigation from '@/moon/buyer_navigation.vue'
 import BuyerHead from '@/moon/buyer_head.vue'
-
 interface StoreItem {
   id?: number
   img?: string

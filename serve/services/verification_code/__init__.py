@@ -2,38 +2,43 @@ import asyncio
 import random
 import time
 import smtplib
+import logging
 from email.mime.text import MIMEText
 from email.header import Header
 from email.utils import formataddr
 from typing import Tuple, Optional
-from data.redis_client import RedisClient  # 假设两个文件在同一目录
+from data.redis_client import RedisClient
+
+logger = logging.getLogger(__name__)
 
 
 class VerificationCode:
-    def __init__(self, redis_url: str = "redis://localhost", db: int = 0, 
-                 expiry: int = 300, cooldown: int = 60, email_config: dict = None):
-        """
-        初始化验证码系统（支持异步邮件发送和Redis缓存）
-        
-        Args:
-            redis_url: Redis连接URL
-            db: Redis数据库编号
-            expiry: 验证码过期时间（秒），默认5分钟
-            cooldown: 验证码生成冷却时间（秒），默认1分钟
-            email_config: 邮箱配置，包含sender_email, sender_password等
-        """
+    def __init__(self, redis_url: str = "redis://localhost", db: int = 0,
+                 expiry: int = 300, cooldown: int = 60,
+                 email_config: dict = None, mongo=None):
         self.expiry = expiry
         self.cooldown = cooldown
         self.redis_client = RedisClient(redis_url, db)
-        
-        # 默认邮箱配置（建议通过环境变量或配置文件加载）
-        self.email_config = email_config or {
-            "sender_email": "3574747175@qq.com",
-            "sender_password": "dusbvohhfaiucifi",
-            "smtp_server": "smtp.qq.com",
-            "smtp_port": 465,
-            "use_ssl": True
-        }
+        self.mongo = mongo
+        self._fallback_email_config = email_config or {}
+
+    async def _load_email_config(self) -> dict:
+        """从 MongoDB 动态加载邮件配置，不存在则回退到初始化配置。"""
+        if self.mongo:
+            try:
+                doc = await self.mongo.find_one("EmailServiceConfig", {})
+                if doc:
+                    return {
+                        "sender_email": doc.get("sender_email", ""),
+                        "sender_password": doc.get("sender_password", ""),
+                        "smtp_server": doc.get("smtp_server", ""),
+                        "smtp_port": int(doc.get("smtp_port", 465)),
+                        "use_ssl": doc.get("use_ssl", True),
+                        "sender_name": doc.get("sender_name", "系统通知"),
+                    }
+            except Exception as e:
+                logger.warning("从 MongoDB 加载邮件配置失败，使用回退配置: %s", e)
+        return self._fallback_email_config
 
     async def connect(self) -> None:
         """异步连接到Redis服务器"""
@@ -109,41 +114,34 @@ class VerificationCode:
         return await self.redis_client.get_ttl(user_id)
     
     async def send_email(self, receiver_email: str, code: str) -> bool:
-        """
-        异步发送验证码邮件
-        """
+        """异步发送验证码邮件，每次发送前从 MongoDB 加载最新配置。"""
         try:
-            # 通过线程池执行同步邮件发送，避免阻塞事件循环
-            return await asyncio.to_thread(
-                self._send_email_sync,
-                receiver_email,
-                code
-            )
+            cfg = await self._load_email_config()
+            if not cfg.get("sender_email") or not cfg.get("smtp_server"):
+                logger.error("邮件配置不完整，无法发送")
+                return False
+            return await asyncio.to_thread(self._send_email_sync, receiver_email, code, cfg)
         except smtplib.SMTPAuthenticationError:
-            print("错误：邮箱登录失败，请检查邮箱地址和授权码是否正确")
+            logger.error("邮箱登录失败，请检查邮箱地址和授权码")
             return False
         except smtplib.SMTPServerDisconnected:
-            print("错误：SMTP服务器断开连接，请检查网络连接")
+            logger.error("SMTP 服务器断开连接，请检查网络")
             return False
         except smtplib.SMTPException as e:
-            print(f"SMTP通信错误：{str(e)}")
+            logger.error("SMTP 通信错误：%s", e)
             return False
         except Exception as e:
-            print(f"发送邮件未知错误：{str(e)}")
+            logger.error("发送邮件未知错误：%s", e)
             return False
 
-    def _send_email_sync(self, receiver_email: str, code: str) -> bool:
-        """
-        同步发送邮件的核心逻辑
-        """
-        # 从配置中获取邮箱信息
-        sender_email = self.email_config.get("sender_email")
-        sender_password = self.email_config.get("sender_password")
-        smtp_server = self.email_config.get("smtp_server")
-        smtp_port = self.email_config.get("smtp_port")
-        use_ssl = self.email_config.get("use_ssl", True)
-        
-        # 构造HTML格式邮件内容
+    def _send_email_sync(self, receiver_email: str, code: str, cfg: dict) -> bool:
+        sender_email = cfg.get("sender_email")
+        sender_password = cfg.get("sender_password")
+        smtp_server = cfg.get("smtp_server")
+        smtp_port = cfg.get("smtp_port", 465)
+        use_ssl = cfg.get("use_ssl", True)
+        sender_name = cfg.get("sender_name", "系统通知")
+
         subject = "【系统通知】验证码"
         content = f"""
         <html>
@@ -157,65 +155,83 @@ class VerificationCode:
         </html>
         """
         message = MIMEText(content, 'html', 'utf-8')
-        
-        # 设置邮件头信息
-        message['From'] = formataddr(("系统通知", sender_email))
-        receiver_name = receiver_email.split('@')[0]
-        message['To'] = formataddr((receiver_name, receiver_email))
+        message['From'] = formataddr((sender_name, sender_email))
+        message['To'] = formataddr((receiver_email.split('@')[0], receiver_email))
         message['Subject'] = Header(subject, 'utf-8')
-        
-        # 连接SMTP服务器并发送邮件
+
         server = None
         try:
-            print(f"正在连接SMTP服务器：{smtp_server}:{smtp_port}")
+            logger.info("连接 SMTP 服务器：%s:%s", smtp_server, smtp_port)
             if use_ssl:
                 server = smtplib.SMTP_SSL(smtp_server, smtp_port)
             else:
                 server = smtplib.SMTP(smtp_server, smtp_port)
-                server.starttls()  # 启用TLS加密
-                
-            server.set_debuglevel(0)  # 生产环境关闭调试日志
-            
-            print("正在登录邮箱...")
+                server.starttls()
+            server.set_debuglevel(0)
             server.login(sender_email, sender_password)
-            
-            print(f"正在发送邮件到 {receiver_email}...")
             server.sendmail(sender_email, receiver_email, message.as_string())
-            
             server.quit()
-            print("邮件发送成功！")
+            logger.info("邮件发送成功 -> %s", receiver_email)
             return True
-            
         except smtplib.SMTPAuthenticationError:
-            # 邮箱账号或授权码错误
-            raise smtplib.SMTPAuthenticationError("邮箱登录失败，请检查邮箱地址和授权码")
+            raise
         except smtplib.SMTPServerDisconnected:
-            # 服务器连接断开
-            raise smtplib.SMTPServerDisconnected("SMTP服务器连接断开，请检查网络")
-        except smtplib.SMTPException as e:
-            # 其他SMTP协议错误
-            raise smtplib.SMTPException(f"SMTP协议错误：{str(e)}")
+            raise
+        except smtplib.SMTPException:
+            raise
         finally:
-            # 确保关闭连接
             if server:
                 try:
                     server.quit()
-                except:
+                except Exception:
+                    pass
+
+    async def verify_smtp_connection(self) -> dict:
+        """测试 SMTP 连通性，不实际发送邮件。"""
+        cfg = await self._load_email_config()
+        if not cfg.get("sender_email") or not cfg.get("smtp_server"):
+            return {"success": False, "msg": "邮件配置不完整，请先填写完整配置"}
+        try:
+            result = await asyncio.to_thread(self._verify_smtp_sync, cfg)
+            return result
+        except Exception as e:
+            return {"success": False, "msg": f"连接失败：{str(e)}"}
+
+    @staticmethod
+    def _verify_smtp_sync(cfg: dict) -> dict:
+        smtp_server = cfg.get("smtp_server")
+        smtp_port = cfg.get("smtp_port", 465)
+        use_ssl = cfg.get("use_ssl", True)
+        sender_email = cfg.get("sender_email")
+        sender_password = cfg.get("sender_password")
+        server = None
+        try:
+            if use_ssl:
+                server = smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=10)
+            else:
+                server = smtplib.SMTP(smtp_server, smtp_port, timeout=10)
+                server.starttls()
+            server.login(sender_email, sender_password)
+            server.quit()
+            return {"success": True, "msg": f"SMTP 连接成功（{smtp_server}:{smtp_port}）"}
+        except smtplib.SMTPAuthenticationError:
+            return {"success": False, "msg": "认证失败：邮箱地址或授权码不正确"}
+        except smtplib.SMTPServerDisconnected:
+            return {"success": False, "msg": f"无法连接到 {smtp_server}:{smtp_port}，请检查服务器地址和端口"}
+        except smtplib.SMTPException as e:
+            return {"success": False, "msg": f"SMTP 协议错误：{str(e)}"}
+        except OSError as e:
+            return {"success": False, "msg": f"网络错误：{str(e)}"}
+        finally:
+            if server:
+                try:
+                    server.quit()
+                except Exception:
                     pass
 
     async def send_verification_email(self, user_id: str, email: str) -> Tuple[bool, int]:
-        """
-        完整的验证码发送流程：
-        1. 生成验证码并存储到Redis
-        2. 检查冷却时间
-        3. 异步发送邮件
-        4. 返回操作结果和剩余时间
-        """
         success, code, remaining = await self.send_code(user_id)
-        
         if not success:
             return False, remaining
-            
-        # 异步发送邮件并返回结果
         email_success = await self.send_email(email, code)
         return email_success, 0

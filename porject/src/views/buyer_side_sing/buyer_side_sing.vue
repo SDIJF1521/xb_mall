@@ -92,8 +92,6 @@ import { User, Lock, Star, Right } from '@element-plus/icons-vue'
 import {ElMessage} from 'element-plus'
 import axios from 'axios';
 import router from '@/router'
-
-
 const Axios = axios.create({
     baseURL: 'http://127.0.0.1:8000/api',
     timeout: 10000

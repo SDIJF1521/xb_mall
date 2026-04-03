@@ -181,7 +181,6 @@ import { Loading, ChatDotRound } from '@element-plus/icons-vue'
 import BuyerNavigation from '@/moon/buyer_navigation.vue'
 import BuyerHead from '@/moon/buyer_head.vue'
 import BuyerTheme from '@/moon/buyer_theme'
-
 defineOptions({ name: 'BuyerCommentManage' })
 
 const Axios = axios.create({ baseURL: 'http://127.0.0.1:8000/api' })

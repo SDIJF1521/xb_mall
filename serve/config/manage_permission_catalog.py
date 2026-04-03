@@ -15,4 +15,5 @@ PERMISSION_CATALOG = [
     {"code": "admin.system_settings", "name": "系统设置", "category": "设置"},
     {"code": "admin.pay_config", "name": "支付配置", "category": "设置"},
     {"code": "admin.logistics_config", "name": "物流配置", "category": "设置"},
+    {"code": "admin.email_config", "name": "邮件配置", "category": "设置"},
 ]

@@ -97,7 +97,6 @@ import BuyerHead from '@/moon/buyer_head.vue'
 import BuyerNavigation from '@/moon/buyer_navigation.vue'
 import { useBuyerManagementSelectStore } from '@/moon/buyer_management_select';
 import { Plus, Setting, Grid, Histogram, Goods, Management, Collection, TrendCharts, Promotion, PictureFilled } from '@element-plus/icons-vue'
-
 defineOptions({
     name:'BuyerCommodityManagement',
     components:{

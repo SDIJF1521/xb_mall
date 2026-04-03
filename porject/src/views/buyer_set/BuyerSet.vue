@@ -50,7 +50,6 @@ import BuyerNavigation from '@/moon/buyer_navigation.vue'
 import BuyerTheme from '@/moon/buyer_theme'
 import SetList from '@/views/buyer_set/content/SetList.vue'
 import BuyerPayConfig from '@/views/buyer_set/content/BuyerPayConfig.vue'
-
 defineOptions({ name: 'BuyerSet' })
 
 const activeIndex = ref('1')

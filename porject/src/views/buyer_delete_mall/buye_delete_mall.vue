@@ -47,7 +47,6 @@ import BuyerTheme from '@/moon/buyer_theme';
 import axios from 'axios';
 import dayjs from 'dayjs'; // 已导入，直接使用
 import { ElMessage } from 'element-plus'; // 引入 Element Plus 的消息提示组件
-
 // 定义组件名称
 defineOptions({
     name: 'BuyerDeleteMall'

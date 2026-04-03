@@ -75,7 +75,7 @@
                 <el-col :span="7"><div class="grid-content ep-bg-purple" /></el-col>
             </el-row>
         </el-main>
-        <el-footer class="footer-content">版权所有 © [xb商城]，保留所有权利。</el-footer>
+        <el-footer class="footer-content">版权所有 ©[xb商城]，保留所有权利。</el-footer>
     </el-container>
 </template>
 <script lang="ts" setup>
@@ -86,7 +86,6 @@ import { ElMessage, ElStep } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { jwtDecode } from 'jwt-decode'
 import type { JwtPayload } from 'jwt-decode'
-
 // 定义表单数据类型
 interface RuleForm {
     mall_name: string;

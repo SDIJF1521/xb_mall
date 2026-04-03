@@ -957,3 +957,43 @@ class ManageLogisticsConfig(BaseModel):
     user_code:str
     production_environment:bool
     verification_code:str
+
+
+# ── 物流模块相关数据模型 ──────────────────────────────────────────────────
+
+class SellerShipOrderBody(BaseModel):
+    order_no: str = Field(..., description="订单号")
+    sender_name: str = Field(..., max_length=64, description="发件人姓名")
+    sender_phone: str = Field(..., max_length=20, description="发件人电话")
+    sender_address: str = Field(..., max_length=512, description="发件人地址")
+    sender_post_code: str = Field(default="000000", max_length=10, description="发件人邮编")
+
+class LogisticsListQuery:
+    def __init__(
+        self,
+        keyword: Optional[str] = Query(None, description="搜索关键词（订单号/运单号）"),
+        page: int = Query(1, ge=1, description="页码"),
+        page_size: int = Query(10, ge=1, le=50, description="每页条数"),
+    ):
+        self.keyword = keyword
+        self.page = page
+        self.page_size = page_size
+
+class LogisticsDetailQuery:
+    def __init__(
+        self,
+        order_no: str = Query(..., description="订单号"),
+    ):
+        self.order_no = order_no
+
+
+# ── 邮件配置相关数据模型 ──────────────────────────────────────────────────
+
+class ManageEmailConfig(BaseModel):
+    token: str
+    sender_email: str = Field(..., description="发件邮箱地址")
+    sender_password: str = Field(..., description="SMTP 授权码")
+    smtp_server: str = Field(..., description="SMTP 服务器地址")
+    smtp_port: int = Field(default=465, description="SMTP 端口")
+    use_ssl: bool = Field(default=True, description="是否使用 SSL")
+    sender_name: str = Field(default="系统通知", description="发件人显示名称")

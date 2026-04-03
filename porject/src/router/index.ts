@@ -48,6 +48,7 @@ import ManagementPromotion from '@/views/management_promotion/ManagementPromotio
 import BuyerAdApply from '@/views/buyer_ad_apply/BuyerAdApply.vue'
 import BuyerPromotionManage from '@/views/buyer_promotion_manage/BuyerPromotionManage.vue'
 import BuyerCommentManage from '@/views/buyer_comment_manage/BuyerCommentManage.vue'
+import BuyerLogisticsManage from '@/views/buyer_logistics_manage/BuyerLogisticsManage.vue'
 import CouponCenter from '@/views/coupon_center/CouponCenter.vue'
 import ActivityZone from '@/views/activity_zone/ActivityZone.vue'
 
@@ -351,6 +352,12 @@ const routes: Array<RouteRecordRaw> = [
     path: '/buyer_comment_manage',
     name: 'BuyerCommentManage',
     component: BuyerCommentManage
+  },
+  // 卖家端物流管理页
+  {
+    path: '/buyer_logistics_manage',
+    name: 'BuyerLogisticsManage',
+    component: BuyerLogisticsManage
   },
   // C端领券中心
   {

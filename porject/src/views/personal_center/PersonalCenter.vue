@@ -69,7 +69,7 @@
               </transition>
           </el-row>
       </el-main>
-      <el-footer class="footer-content">版权所有 © [xb商城]，保留所有权利。</el-footer>
+      <el-footer class="footer-content">版权所有 ©[xb商城]，保留所有权利。</el-footer>
     </el-container>
   </div>
 </template>
@@ -86,7 +86,6 @@ import BrowsingHistory from './content/browsing_history.vue'
 import CenterCsMessages from './content/center_cs_messages.vue'
 import CenterOrders from './content/center_orders.vue'
 import CenterCoupons from './content/center_coupons.vue'
-
 export default {
   name: 'Center',
   data() {
@@ -110,7 +109,7 @@ export default {
     BrowsingHistory,
     CenterCsMessages,
     CenterOrders,
-    CenterCoupons
+    CenterCoupons,
   },
   setup() {
     const url = 'http://127.0.0.1:8000/api';

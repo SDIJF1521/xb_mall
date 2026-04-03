@@ -79,7 +79,6 @@ import BuyerTheme from '@/moon/buyer_theme'
 import BuyerCouponManage from './content/BuyerCouponManage.vue'
 import BuyerActivityManage from './content/BuyerActivityManage.vue'
 import BuyerJoinActivity from './content/BuyerJoinActivity.vue'
-
 defineOptions({ name: 'BuyerPromotionManage' })
 
 const API = axios.create({ baseURL: 'http://127.0.0.1:8000/api' })

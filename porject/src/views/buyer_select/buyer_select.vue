@@ -80,7 +80,6 @@ import { useBuyerManagementSelectStore } from '@/moon/buyer_management_select'
 import { Search, Refresh, Document, Location, Phone, Clock, Shop, Check } from '@element-plus/icons-vue'
 import BuyerTheme from '@/moon/buyer_theme'
 import router from '@/router'
-
 defineOptions({
   name: 'BuyerSelect',
 })

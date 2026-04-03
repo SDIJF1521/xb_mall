@@ -216,11 +216,18 @@ async function submitConfig() {
 async function verifyConfig() {
   verifying.value = true
   try {
-    // 模拟验证
-    setTimeout(() => {
-      ElMessage.success('验证通过')
-      verifying.value = false
-    }, 1000)
+    const fd = new FormData()
+    fd.append('token', token)
+    const res = await API.post('/manage_logistics_config/verify', fd, { headers: hdr() })
+    if (res.status === 200) {
+      if (res.data.success) {
+        ElMessage.success(res.data.msg || '连通性验证通过')
+      } else {
+        ElMessage.error(res.data.msg || '连通性验证失败')
+      }
+    } else {
+      ElMessage.error('验证请求失败')
+    }
   } catch {
     ElMessage.error('验证请求失败')
   } finally {

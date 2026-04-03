@@ -149,6 +149,8 @@ from routes.manage_commodity_statistics import router as manage_commodity_statis
 from routes.buyer_commodity_violation_appeal import router as buyer_commodity_violation_appeal_router
 from routes.manage_commodity_appeal import router as manage_commodity_appeal_router
 from routes.manage_logistics_config_select import router as manage_logistics_config_select_router
+from routes.seller_logistics import router as seller_logistics_router
+from routes.order_logistics import router as order_logistics_router
 from routes.favorite_add import router as favorite_add_router
 from routes.favorite_remove import router as favorite_remove_router
 from routes.favorite_list import router as favorite_list_router
@@ -194,6 +196,9 @@ from services.recommend import RecommendCommodity
 from services.recommend.trainer import RecommendTrainer
 
 from routes.manage_logistics_config import router as manage_logistics_config_router
+from routes.manage_email_config import router as manage_email_config_router
+from routes.manage_platform_config import router as manage_platform_config_router
+from routes.manage_system_health import router as manage_system_health_router
 
 redis_client = RedisClient()
 scheduler = AsyncIOScheduler()
@@ -436,6 +441,10 @@ async def lifespan(app: FastAPI):
         bloom_filter_manager = init_bloom_filter_manager(redis_client)
         logger.info("布隆过滤器管理器已初始化")
 
+        from services.logistics_migrate import run_logistics_migration
+        await run_logistics_migration(db_pool)
+        logger.info("物流模块表结构已检查")
+
         # 启动时立即执行一次布隆过滤器重建，加载数据库中已有的数据
         # 避免启动后 1 小时内过滤器为空、防穿透功能失效
         logger.info("正在执行启动时布隆过滤器初始化重建...")
@@ -589,14 +598,6 @@ class FastAPIIndicatorMiddleware(BaseHTTPMiddleware):
         response.headers["Server"] = "FastAPI/0.115.0"  # 替换为你的FastAPI版本
         return response
 app.add_middleware(FastAPIIndicatorMiddleware)
-# 邮箱配置
-email_config = {
-    "sender_email": "3574747175@qq.com",
-    "sender_password": "dusbvohhfaiucifi",
-    "smtp_server": "smtp.qq.com",
-    "smtp_port": 465,
-    "use_ssl": True
-}
 
 
 # 日志中间件
@@ -679,9 +680,9 @@ async def log_middleware(request: Request, call_next):
 
 # 创建全局验证码实例（使用配置文件中的Redis配置）
 verifier = VerificationCode(
-    redis_url=redis_settings.REDIS_URL, 
+    redis_url=redis_settings.REDIS_URL,
     db=redis_settings.REDIS_DB,
-    email_config=email_config
+    mongo=mongodb_client,
 )
 fastapi_cdn_host.patch_docs(app)
 
@@ -1022,6 +1023,15 @@ app.include_router(manage_commodity_appeal_router, prefix='/api')
 # 平台端物流配置路由
 app.include_router(manage_logistics_config_router, prefix='/api')
 
+# 平台端邮件配置路由
+app.include_router(manage_email_config_router, prefix='/api')
+
+# 平台基础配置路由
+app.include_router(manage_platform_config_router, prefix='/api')
+
+# 系统健康检查路由
+app.include_router(manage_system_health_router, prefix='/api')
+
 # 收藏功能路由
 app.include_router(favorite_add_router, prefix='/api')
 app.include_router(favorite_remove_router, prefix='/api')
@@ -1086,3 +1096,9 @@ app.include_router(comment_router, prefix='/api')
 
 # 平台端物流配置选择路由
 app.include_router(manage_logistics_config_select_router, prefix='/api')
+
+# 卖家端物流管理路由（发货 + 物流列表/详情）
+app.include_router(seller_logistics_router, prefix='/api')
+
+# 用户端物流查询路由
+app.include_router(order_logistics_router, prefix='/api')

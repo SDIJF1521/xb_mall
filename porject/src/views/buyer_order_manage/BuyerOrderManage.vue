@@ -93,6 +93,16 @@
                     <span>平台抽成：¥{{ order.escrow.platform_commission.toFixed(2) }}</span>
                     <span>实收金额：<b>¥{{ order.escrow.seller_amount.toFixed(2) }}</b></span>
                   </div>
+                  <div v-if="order.status === 'paid'" class="om-actions">
+                    <el-button type="success" size="small" @click="openShipDialog(order)">
+                      <el-icon><Van /></el-icon> 发货
+                    </el-button>
+                  </div>
+                  <div v-if="order.status === 'shipped'" class="om-actions">
+                    <el-button type="primary" size="small" plain @click="viewLogistics(order)">
+                      <el-icon><Location /></el-icon> 查看物流
+                    </el-button>
+                  </div>
                   <div v-if="order.status === 'received'" class="om-actions">
                     <el-button
                       type="primary"
@@ -201,6 +211,78 @@
               </template>
             </el-dialog>
 
+            <!-- 发货弹窗 -->
+            <el-dialog v-model="shipVisible" title="订单发货" width="520px" destroy-on-close>
+              <el-form ref="shipFormRef" :model="shipForm" :rules="shipRules" label-width="100px" label-position="right">
+                <el-form-item label="订单号">
+                  <span style="font-family: monospace; color: var(--el-text-color-secondary);">{{ shipOrderNo }}</span>
+                </el-form-item>
+                <el-form-item label="收货人">
+                  <span>{{ shipReceiverInfo }}</span>
+                </el-form-item>
+                <el-form-item label="发件人姓名" prop="sender_name">
+                  <el-input v-model="shipForm.sender_name" placeholder="请输入发件人姓名" maxlength="64" />
+                </el-form-item>
+                <el-form-item label="发件人电话" prop="sender_phone">
+                  <el-input v-model="shipForm.sender_phone" placeholder="请输入发件人电话" maxlength="20" />
+                </el-form-item>
+                <el-form-item label="发货地址" prop="sender_address">
+                  <el-input v-model="shipForm.sender_address" type="textarea" :rows="2" placeholder="请输入发货地址" maxlength="512" />
+                </el-form-item>
+                <el-form-item label="邮编">
+                  <el-input v-model="shipForm.sender_post_code" placeholder="000000" maxlength="10" />
+                </el-form-item>
+              </el-form>
+              <template #footer>
+                <el-button @click="shipVisible = false">取消</el-button>
+                <el-button type="success" :loading="shipLoading" @click="submitShip">确认发货</el-button>
+              </template>
+            </el-dialog>
+
+            <!-- 物流详情弹窗 -->
+            <el-dialog v-model="logisticsVisible" title="物流详情" width="600px" destroy-on-close>
+              <div v-if="logisticsLoading" style="text-align: center; padding: 40px;">
+                <el-icon class="is-loading" :size="28"><Loading /></el-icon>
+                <p style="color: var(--el-text-color-secondary); margin-top: 8px;">加载中...</p>
+              </div>
+              <template v-else-if="logisticsData">
+                <div class="logistics-info-card">
+                  <div class="logistics-info-row">
+                    <span class="logistics-label">快递公司</span>
+                    <span class="logistics-value">{{ logisticsData.express_company }}</span>
+                  </div>
+                  <div class="logistics-info-row">
+                    <span class="logistics-label">运单号</span>
+                    <span class="logistics-value" style="font-family: monospace;">{{ logisticsData.tracking_number }}</span>
+                  </div>
+                  <div class="logistics-info-row">
+                    <span class="logistics-label">发货时间</span>
+                    <span class="logistics-value">{{ logisticsData.created_at }}</span>
+                  </div>
+                  <div class="logistics-info-row">
+                    <span class="logistics-label">发件人</span>
+                    <span class="logistics-value">{{ logisticsData.sender_name }} {{ logisticsData.sender_phone }}</span>
+                  </div>
+                </div>
+                <div v-if="logisticsData.routes && logisticsData.routes.routeResps" class="logistics-timeline">
+                  <h4 style="margin: 16px 0 12px; font-size: 14px; font-weight: 600;">物流轨迹</h4>
+                  <el-timeline>
+                    <el-timeline-item
+                      v-for="(route, idx) in logisticsData.routes.routeResps[0]?.routes || []"
+                      :key="idx"
+                      :timestamp="route.acceptTime"
+                      placement="top"
+                      :type="idx === 0 ? 'primary' : 'info'"
+                    >
+                      {{ route.remark }}
+                    </el-timeline-item>
+                  </el-timeline>
+                </div>
+                <el-empty v-else description="暂无物流轨迹信息" :image-size="60" />
+              </template>
+              <el-empty v-else description="暂无物流信息" :image-size="80" />
+            </el-dialog>
+
             <!-- 快捷评论弹窗 -->
             <el-dialog v-model="commentVisible" title="订单评论" width="640px" destroy-on-close>
               <div v-if="commentLoading" class="qc-loading">
@@ -289,7 +371,8 @@
 import { ref, onMounted, watch } from 'vue'
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Loading, ChatDotRound } from '@element-plus/icons-vue'
+import { Loading, ChatDotRound, Van, Location } from '@element-plus/icons-vue'
+import type { FormInstance, FormRules } from 'element-plus'
 import BuyerNavigation from '@/moon/buyer_navigation.vue'
 import BuyerHead from '@/moon/buyer_head.vue'
 import BuyerTheme from '@/moon/buyer_theme'
@@ -499,6 +582,83 @@ async function submitReview() {
     ElMessage.error('操作失败')
   } finally {
     reviewLoading.value = false
+  }
+}
+
+// ── 发货 ──
+const shipVisible = ref(false)
+const shipLoading = ref(false)
+const shipOrderNo = ref('')
+const shipReceiverInfo = ref('')
+const shipFormRef = ref<FormInstance>()
+const shipForm = ref({
+  sender_name: '',
+  sender_phone: '',
+  sender_address: '',
+  sender_post_code: '000000',
+})
+const shipRules: FormRules = {
+  sender_name: [{ required: true, message: '请输入发件人姓名', trigger: 'blur' }],
+  sender_phone: [{ required: true, message: '请输入发件人电话', trigger: 'blur' }],
+  sender_address: [{ required: true, message: '请输入发货地址', trigger: 'blur' }],
+}
+
+function openShipDialog(order: Order) {
+  shipOrderNo.value = order.order_no
+  shipReceiverInfo.value = `${order.receiver_name || '-'} ${order.receiver_phone || ''}`
+  shipForm.value = { sender_name: '', sender_phone: '', sender_address: '', sender_post_code: '000000' }
+  shipVisible.value = true
+}
+
+async function submitShip() {
+  const valid = await shipFormRef.value?.validate().catch(() => false)
+  if (!valid) return
+  shipLoading.value = true
+  try {
+    const mp = mallParam()
+    const url = '/seller/order/ship' + (mp.mall_id != null ? `?mall_id=${mp.mall_id}` : '')
+    const res = await Axios.post(url, {
+      order_no: shipOrderNo.value,
+      ...shipForm.value,
+    }, { headers: getHeaders() })
+    if (res.data?.success) {
+      ElMessage.success(res.data.msg || '发货成功')
+      shipVisible.value = false
+      fetchData()
+    } else {
+      ElMessage.error(res.data?.msg || '发货失败')
+    }
+  } catch {
+    ElMessage.error('发货请求失败')
+  } finally {
+    shipLoading.value = false
+  }
+}
+
+// ── 物流查看 ──
+const logisticsVisible = ref(false)
+const logisticsLoading = ref(false)
+const logisticsData = ref<any>(null)
+
+async function viewLogistics(order: Order) {
+  logisticsVisible.value = true
+  logisticsLoading.value = true
+  logisticsData.value = null
+  try {
+    const mp = mallParam()
+    const res = await Axios.get('/seller/logistics/detail', {
+      params: { order_no: order.order_no, ...mp },
+      headers: getHeaders(),
+    })
+    if (res.data?.success) {
+      logisticsData.value = res.data.data
+    } else {
+      ElMessage.warning(res.data?.msg || '暂无物流信息')
+    }
+  } catch {
+    ElMessage.error('查询物流信息失败')
+  } finally {
+    logisticsLoading.value = false
   }
 }
 
@@ -929,6 +1089,29 @@ onMounted(async () => {
   margin-top: 8px;
 }
 
+.logistics-info-card {
+  background: var(--el-fill-color-extra-light);
+  border-radius: 10px;
+  padding: 16px;
+}
+.logistics-info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 13px;
+}
+.logistics-label {
+  color: var(--el-text-color-secondary);
+  flex-shrink: 0;
+  min-width: 80px;
+}
+.logistics-value {
+  color: var(--el-text-color-primary);
+  text-align: right;
+}
+.logistics-timeline {
+  margin-top: 8px;
+}
 .footer-content {
   text-align: center;
   color: darkgray;

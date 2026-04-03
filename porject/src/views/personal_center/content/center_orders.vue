@@ -126,6 +126,9 @@
             <!-- 已支付 / 已发货 -->
             <template v-if="order.status === 'paid' || order.status === 'shipped'">
               <span class="order-card__escrow-tag">担保中</span>
+              <button v-if="order.status === 'shipped'" class="btn btn--info" @click="viewOrderLogistics(order)">
+                查看物流
+              </button>
               <button class="btn btn--success" @click="handleConfirm(order)" :disabled="confirmLoading === order.order_no">
                 确认收货
               </button>
@@ -147,6 +150,7 @@
             <!-- 已收货 -->
             <template v-if="order.status === 'received'">
               <span class="order-card__done-tag">交易完成</span>
+              <button class="btn btn--info" @click="viewOrderLogistics(order)">查看物流</button>
             </template>
 
             <!-- 已关闭 -->
@@ -268,6 +272,88 @@
       </template>
     </el-dialog>
 
+    <!-- 物流信息弹窗 -->
+    <el-dialog v-model="logisticsDialogVisible" title="物流详情" width="620px" destroy-on-close class="logistics-dialog">
+      <div v-if="logisticsLoading" style="text-align: center; padding: 40px 0;">
+        <div class="skeleton-card" style="padding: 20px;">
+          <div class="skeleton-line w60"></div>
+          <div class="skeleton-line w90"></div>
+          <div class="skeleton-line w40"></div>
+        </div>
+      </div>
+      <template v-else-if="logisticsInfo">
+        <!-- 顶部：物流进度条 -->
+        <div class="logi-progress">
+          <div class="logi-progress__steps">
+            <div v-for="(step, si) in logisticsSteps" :key="si"
+                 class="logi-step"
+                 :class="{ 'is-active': si <= logisticsProgressIndex, 'is-current': si === logisticsProgressIndex }">
+              <div class="logi-step__dot">
+                <span class="logi-step__icon">{{ step.icon }}</span>
+              </div>
+              <span class="logi-step__label">{{ step.label }}</span>
+            </div>
+            <div class="logi-progress__bar">
+              <div class="logi-progress__bar-fill" :style="{ width: logisticsProgressPercent + '%' }"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 最新状态高亮 -->
+        <div v-if="latestRoute" class="logi-latest">
+          <div class="logi-latest__icon">📍</div>
+          <div class="logi-latest__content">
+            <div class="logi-latest__text">{{ latestRoute.remark }}</div>
+            <div class="logi-latest__time">{{ latestRoute.acceptTime }}</div>
+            <div v-if="latestRoute.acceptAddress" class="logi-latest__addr">{{ latestRoute.acceptAddress }}</div>
+          </div>
+        </div>
+
+        <!-- 基本信息卡片 -->
+        <div class="logi-info-card">
+          <div class="logi-info-row">
+            <span class="logi-info-label">快递公司</span>
+            <span class="logi-info-val">{{ logisticsInfo.express_company }}</span>
+          </div>
+          <div class="logi-info-row">
+            <span class="logi-info-label">运单号</span>
+            <span class="logi-info-val logi-info-val--mono">{{ logisticsInfo.tracking_number }}</span>
+          </div>
+          <div class="logi-info-row">
+            <span class="logi-info-label">发货时间</span>
+            <span class="logi-info-val">{{ logisticsInfo.created_at }}</span>
+          </div>
+          <div class="logi-info-row">
+            <span class="logi-info-label">发件人</span>
+            <span class="logi-info-val">{{ logisticsInfo.sender_name }}</span>
+          </div>
+        </div>
+
+        <!-- 物流轨迹时间线 -->
+        <div v-if="parsedRoutes.length > 0" class="logi-timeline-section">
+          <h4 class="logi-timeline-title">配送轨迹</h4>
+          <div class="logi-timeline">
+            <div v-for="(route, idx) in parsedRoutes" :key="idx"
+                 class="logi-timeline-item" :class="{ 'is-first': idx === 0 }">
+              <div class="logi-timeline-dot" :class="{ 'is-active': idx === 0 }">
+                <span v-if="idx === 0" class="logi-timeline-pulse"></span>
+              </div>
+              <div class="logi-timeline-line" v-if="idx < parsedRoutes.length - 1"></div>
+              <div class="logi-timeline-body">
+                <div class="logi-timeline-remark">{{ route.remark }}</div>
+                <div class="logi-timeline-meta">
+                  <span class="logi-timeline-time">{{ route.acceptTime }}</span>
+                  <span v-if="route.acceptAddress" class="logi-timeline-addr">{{ route.acceptAddress }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <el-empty v-else description="暂无配送轨迹，包裹可能尚未揽收" :image-size="60" />
+      </template>
+      <el-empty v-else description="暂无物流信息" :image-size="80" />
+    </el-dialog>
+
     <!-- 分页 -->
     <div class="orders-page__pagination" v-if="total > 0">
       <div class="pagination-info">
@@ -327,6 +413,9 @@ export default {
       refundLoading: '',
       now: Date.now(),
       timer: null,
+      logisticsDialogVisible: false,
+      logisticsLoading: false,
+      logisticsInfo: null,
     }
   },
   mounted() {
@@ -349,6 +438,38 @@ export default {
   },
   beforeUnmount() {
     if (this.timer) clearInterval(this.timer)
+  },
+  computed: {
+    logisticsSteps() {
+      return [
+        { label: '已揽收', icon: '📦' },
+        { label: '运输中', icon: '🚚' },
+        { label: '派送中', icon: '🛵' },
+        { label: '已签收', icon: '✅' },
+      ]
+    },
+    parsedRoutes() {
+      if (!this.logisticsInfo?.routes?.routeResps?.[0]?.routes) return []
+      return this.logisticsInfo.routes.routeResps[0].routes
+    },
+    latestRoute() {
+      return this.parsedRoutes.length > 0 ? this.parsedRoutes[0] : null
+    },
+    logisticsProgressIndex() {
+      if (!this.parsedRoutes.length) return -1
+      const latest = this.parsedRoutes[0]
+      const opCode = latest.opCode || ''
+      const remark = latest.remark || ''
+      if (['80', '8000'].includes(opCode) || /已签收|签收/.test(remark)) return 3
+      if (['44', '204'].includes(opCode) || /派送|派件|正在派/.test(remark)) return 2
+      if (['30', '31', '36', '50', '51'].includes(opCode) || /到达|离开|运输|在途|发往/.test(remark)) return 1
+      if (['50'].includes(opCode) || /已揽收|已收取|揽件/.test(remark)) return 0
+      return this.parsedRoutes.length > 2 ? 1 : 0
+    },
+    logisticsProgressPercent() {
+      if (this.logisticsProgressIndex < 0) return 0
+      return (this.logisticsProgressIndex / 3) * 100
+    },
   },
   methods: {
     getToken() {
@@ -577,6 +698,25 @@ export default {
           ElMessage.info('暂无退款记录')
         }
       } catch { ElMessage.error('查询失败') }
+    },
+
+    async viewOrderLogistics(order) {
+      this.logisticsDialogVisible = true
+      this.logisticsLoading = true
+      this.logisticsInfo = null
+      try {
+        const res = await axios.get(`${API}/order/logistics`, {
+          params: { order_no: order.order_no },
+          headers: { 'access-token': this.getToken() },
+        })
+        if (res.data?.success) {
+          this.logisticsInfo = res.data.data
+        }
+      } catch (e) {
+        console.error('查询物流失败', e)
+      } finally {
+        this.logisticsLoading = false
+      }
     },
 
     async handleDispute(refundNo) {
@@ -1119,6 +1259,44 @@ export default {
   background: #e6a23c;
 }
 
+.btn--info {
+  color: #409eff;
+  background: transparent;
+  border: 1px solid #409eff;
+}
+
+.btn--info:hover:not(:disabled) {
+  color: #fff;
+  background: #409eff;
+}
+
+.logistics-detail-card {
+  background: var(--color-background-soft, #f8f9fb);
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.logistics-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logistics-detail-label {
+  font-size: 13px;
+  color: var(--vt-c-text-light-2, #909399);
+  flex-shrink: 0;
+}
+
+.logistics-detail-val {
+  font-size: 13px;
+  color: var(--vt-c-text-light-1, #303133);
+  text-align: right;
+}
+
 /* ─── 分页 ─── */
 .orders-page__pagination {
   display: flex;
@@ -1478,5 +1656,261 @@ html.dark .pay-dialog__divider {
 
 html.dark .pay-dialog__tip {
   background: rgba(230, 162, 60, 0.1);
+}
+
+/* ═══════════════════ 物流弹窗 ═══════════════════ */
+.logi-progress {
+  margin-bottom: 20px;
+}
+.logi-progress__steps {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  position: relative;
+  padding: 0 10px;
+}
+.logi-progress__bar {
+  position: absolute;
+  top: 16px;
+  left: 30px;
+  right: 30px;
+  height: 3px;
+  background: #e4e7ed;
+  border-radius: 2px;
+  z-index: 0;
+}
+.logi-progress__bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #409eff, #67c23a);
+  border-radius: 2px;
+  transition: width 0.6s ease;
+}
+.logi-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 1;
+  min-width: 56px;
+}
+.logi-step__dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #e4e7ed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+  font-size: 14px;
+}
+.logi-step.is-active .logi-step__dot {
+  background: linear-gradient(135deg, #409eff, #67c23a);
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.3);
+}
+.logi-step.is-current .logi-step__dot {
+  box-shadow: 0 2px 12px rgba(64, 158, 255, 0.5);
+  transform: scale(1.15);
+}
+.logi-step__icon {
+  font-size: 14px;
+}
+.logi-step__label {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #909399;
+  white-space: nowrap;
+}
+.logi-step.is-active .logi-step__label {
+  color: #303133;
+  font-weight: 500;
+}
+
+.logi-latest {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #ecf5ff, #f0f9eb);
+  border-radius: 10px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(64, 158, 255, 0.15);
+}
+.logi-latest__icon {
+  font-size: 22px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.logi-latest__content {
+  flex: 1;
+  min-width: 0;
+}
+.logi-latest__text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+  line-height: 1.5;
+}
+.logi-latest__time {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 4px;
+}
+.logi-latest__addr {
+  font-size: 12px;
+  color: #606266;
+  margin-top: 2px;
+}
+
+.logi-info-card {
+  background: #f5f7fa;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+.logi-info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 0;
+  font-size: 13px;
+}
+.logi-info-label {
+  color: #909399;
+  flex-shrink: 0;
+}
+.logi-info-val {
+  color: #303133;
+  text-align: right;
+}
+.logi-info-val--mono {
+  font-family: 'SF Mono', 'Consolas', monospace;
+  letter-spacing: 0.5px;
+}
+
+.logi-timeline-section {
+  margin-top: 8px;
+}
+.logi-timeline-title {
+  margin: 0 0 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+}
+.logi-timeline {
+  position: relative;
+  padding-left: 20px;
+}
+.logi-timeline-item {
+  position: relative;
+  padding-bottom: 20px;
+  padding-left: 20px;
+  min-height: 40px;
+}
+.logi-timeline-item:last-child {
+  padding-bottom: 0;
+}
+.logi-timeline-dot {
+  position: absolute;
+  left: -6px;
+  top: 4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #dcdfe6;
+  z-index: 1;
+}
+.logi-timeline-dot.is-active {
+  background: #409eff;
+  box-shadow: 0 0 0 4px rgba(64, 158, 255, 0.15);
+}
+.logi-timeline-pulse {
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(64, 158, 255, 0.2);
+  animation: logi-pulse 2s infinite;
+}
+@keyframes logi-pulse {
+  0% { transform: scale(1); opacity: 0.6; }
+  70% { transform: scale(1.6); opacity: 0; }
+  100% { transform: scale(1); opacity: 0; }
+}
+.logi-timeline-line {
+  position: absolute;
+  left: -1px;
+  top: 18px;
+  bottom: 0;
+  width: 2px;
+  background: #e4e7ed;
+}
+.logi-timeline-body {
+  min-height: 20px;
+}
+.logi-timeline-remark {
+  font-size: 13px;
+  color: #303133;
+  line-height: 1.5;
+}
+.logi-timeline-item.is-first .logi-timeline-remark {
+  font-weight: 600;
+  color: #409eff;
+}
+.logi-timeline-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 3px;
+}
+.logi-timeline-time {
+  font-size: 12px;
+  color: #909399;
+}
+.logi-timeline-addr {
+  font-size: 12px;
+  color: #606266;
+  background: #f0f2f5;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+/* 暗色主题适配 */
+html.dark .logi-latest {
+  background: linear-gradient(135deg, rgba(64, 158, 255, 0.08), rgba(103, 194, 58, 0.06));
+  border-color: rgba(64, 158, 255, 0.2);
+}
+html.dark .logi-latest__text {
+  color: #e0e0e0;
+}
+html.dark .logi-latest__addr {
+  color: #b0b0b0;
+}
+html.dark .logi-info-card {
+  background: rgba(255, 255, 255, 0.04);
+}
+html.dark .logi-info-val {
+  color: #e0e0e0;
+}
+html.dark .logi-timeline-remark {
+  color: #e0e0e0;
+}
+html.dark .logi-timeline-item.is-first .logi-timeline-remark {
+  color: #79bbff;
+}
+html.dark .logi-timeline-addr {
+  background: rgba(255, 255, 255, 0.06);
+  color: #b0b0b0;
+}
+html.dark .logi-step__label {
+  color: #909399;
+}
+html.dark .logi-step.is-active .logi-step__label {
+  color: #e0e0e0;
+}
+html.dark .logi-timeline-title {
+  color: #e0e0e0;
+}
+html.dark .logi-progress__bar {
+  background: #363637;
 }
 </style>

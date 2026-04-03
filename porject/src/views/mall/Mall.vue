@@ -62,7 +62,6 @@ import AppNavigation from '@/moon/navigation.vue'
 import HeadSearch from '@/views/mall/content/head_search.vue'
 import NullPage from '@/views/mall/content/nall_page.vue'
 import MallGoods from '@/views/mall/content/mall_goods.vue'
-
 defineOptions({ name: 'Mall' })
 
 interface GoodsItem {

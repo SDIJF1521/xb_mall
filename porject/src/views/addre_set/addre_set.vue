@@ -121,7 +121,7 @@
         </el-drawer>
       </el-main>
       <el-button type="primary" @click="add_addre">添加地址</el-button>
-      <el-footer class="footer-content">版权所有 © [xb商城]，保留所有权利。</el-footer>
+      <el-footer class="footer-content">版权所有 ©[xb商城]，保留所有权利。</el-footer>
     </el-container>
 
 </template>

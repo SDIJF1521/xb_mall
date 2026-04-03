@@ -47,7 +47,7 @@
           </div>
         </div>
       </el-main>
-      <el-footer class="footer-content">版权所有 © [xb商城]，保留所有权利。</el-footer>
+      <el-footer class="footer-content">版权所有 ©[xb商城]，保留所有权利。</el-footer>
     </el-container>
 
 </template>
@@ -66,7 +66,7 @@ const Axios = axios.create({
 
 defineOptions({name:'AuditApplySeller',
   components:{
-    ManagementNavigation
+    ManagementNavigation,
   }
 })
 const apply_seller_data = ref(['***','***','***','123456','***'])

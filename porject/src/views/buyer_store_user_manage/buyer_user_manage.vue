@@ -69,7 +69,6 @@ import BuyerHead from '@/moon/buyer_head.vue'
 import BuyerTheme from '@/moon/buyer_theme';
 import { useBuyerManagementSelectStore } from '@/moon/buyer_management_select';
 import { User, UserFilled, Avatar, Key, TrendCharts, DataAnalysis } from '@element-plus/icons-vue';
-
 defineOptions({
     name: "BuyerUserManage",
     components:{

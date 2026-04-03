@@ -5,6 +5,7 @@
       <el-aside width="250px" class="system-settings-aside">
         <el-menu
           :default-active="activeIndex"
+          :default-openeds="defaultOpeneds"
           class="system-settings-menu"
           @select="handleMenuSelect"
         >
@@ -45,8 +46,6 @@
             </template>
             <el-menu-item index="4-1">系统参数</el-menu-item>
             <el-menu-item index="4-2">邮件配置</el-menu-item>
-            <el-menu-item index="4-3">短信配置</el-menu-item>
-            <el-menu-item index="4-4">安全设置</el-menu-item>
           </el-sub-menu>
         </el-menu>
       </el-aside>
@@ -58,19 +57,19 @@
       </el-main>
     </el-container>
 
-  <el-footer class="footer-content">版权所有 © [xb商城]，保留所有权利。</el-footer>
+  <el-footer class="footer-content">{{ platformInfo.copyright_text }}<template v-if="platformInfo.icp_number"> | {{ platformInfo.icp_number }}</template></el-footer>
 </el-container>
 </template>
 
 <script setup lang="ts">
-import { ref, shallowRef, type Component } from 'vue'
+import { ref, computed, shallowRef, onMounted, type Component } from 'vue'
 import ManagementNavigation from '@/moon/management_navigation.vue'
+import { usePlatformConfig } from '@/utils/platformConfig'
 import {
   Shop,
   Lightning,
   Picture,
   Setting,
-  Key
 } from '@element-plus/icons-vue'
 
 import AdSetting from './content/AdSetting.vue'
@@ -78,75 +77,58 @@ import PaymentConfig from './content/PaymentConfig.vue'
 import CouponManagement from './content/CouponManagement.vue'
 import ActivityManagement from './content/ActivityManagement.vue'
 import LogisticsServiceConfig from './content/LogisticsServiceConfig.vue'
+import EmailServiceConfig from './content/EmailServiceConfig.vue'
+import MallBasicConfig from './content/MallBasicConfig.vue'
+import SystemParameters from './content/SystemParameters.vue'
 
-const MallBasicConfig = { template: '<div><h3>商城基础配置</h3><p>这里是商城的基础配置内容</p></div>' }
-const MallLogisticsConfig = { template: '<div><h3>物流配置</h3><p>这里是物流配置内容</p></div>' }
 const MallMemberLevel = { template: '<div><h3>会员等级</h3><p>这里是会员等级配置内容</p></div>' }
-const SystemParameters = { template: '<div><h3>系统参数</h3><p>这里是系统参数配置内容</p></div>' }
-const EmailConfig = { template: '<div><h3>邮件配置</h3><p>这里是邮件配置内容</p></div>' }
-const SmsConfig = { template: '<div><h3>短信配置</h3><p>这里是短信配置内容</p></div>' }
-const SecuritySetting = { template: '<div><h3>安全设置</h3><p>这里是安全设置内容</p></div>' }
 const PermissionManagement = { template: '<div><h3>权限管理</h3><p>这里是权限管理内容</p></div>' }
 
 defineOptions({
   name: 'ManagementSystemSettings',
 })
 
-const activeIndex = ref('1-1')
+const { platformInfo } = usePlatformConfig()
+
+const STORAGE_KEY = 'admin_settings_active_menu'
+
+const activeIndex = ref(sessionStorage.getItem(STORAGE_KEY) || '1-1')
 const currentView = shallowRef<Component>(MallBasicConfig)
+
+const defaultOpeneds = computed(() => {
+  const idx = activeIndex.value
+  if (idx.includes('-')) return [idx.split('-')[0]]
+  return []
+})
+
+const viewMap: Record<string, Component> = {
+  '1-1': MallBasicConfig,
+  '1-2': PaymentConfig,
+  '1-3': LogisticsServiceConfig,
+  '1-4': MallMemberLevel,
+  '2-1': CouponManagement,
+  '2-2': ActivityManagement,
+  '2-3': ActivityManagement,
+  '2-4': ActivityManagement,
+  '3': AdSetting,
+  '4-1': SystemParameters,
+  '4-2': EmailServiceConfig,
+  '5': PermissionManagement,
+}
+
+function applyView(index: string) {
+  currentView.value = viewMap[index] || MallBasicConfig
+}
 
 function handleMenuSelect(index: string) {
   activeIndex.value = index
-
-  // 根据选中的菜单项切换对应的内容组件
-  switch(index) {
-    // 商城设置相关
-    case '1-1':
-      currentView.value = MallBasicConfig
-      break
-    case '1-2':
-      currentView.value = PaymentConfig
-      break
-    case '1-3':
-      currentView.value = LogisticsServiceConfig
-      break
-    case '1-4':
-      currentView.value = MallMemberLevel
-      break
-    // 活动设置相关
-    case '2-1':
-      currentView.value = CouponManagement
-      break
-    case '2-2':
-    case '2-3':
-    case '2-4':
-      currentView.value = ActivityManagement
-      break
-    // 广告设置
-    case '3':
-      currentView.value = AdSetting
-      break
-    // 系统设置相关
-    case '4-1':
-      currentView.value = SystemParameters
-      break
-    case '4-2':
-      currentView.value = EmailConfig
-      break
-    case '4-3':
-      currentView.value = SmsConfig
-      break
-    case '4-4':
-      currentView.value = SecuritySetting
-      break
-    // 权限管理
-    case '5':
-      currentView.value = PermissionManagement
-      break
-    default:
-      currentView.value = MallBasicConfig
-  }
+  sessionStorage.setItem(STORAGE_KEY, index)
+  applyView(index)
 }
+
+onMounted(() => {
+  applyView(activeIndex.value)
+})
 </script>
 
 <style lang="scss" scoped>
