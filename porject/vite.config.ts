@@ -17,6 +17,7 @@ export default defineConfig({
   },
   build:{
     rollupOptions:{
+       external: [/^echarts\/types\/src\/util\//],
        input:{
         index:resolve(__dirname,'index.html'),
        }

@@ -174,8 +174,6 @@ import {
   WarningFilled
 } from '@element-plus/icons-vue'
 import axios from 'axios'
-import { log } from 'echarts/types/src/util/log.js'
-import { id } from 'element-plus/es/locales.mjs'
 
 defineOptions({
   name: 'CommodityClassify'
@@ -323,7 +321,7 @@ const handleSubmit = async () => {
             // 保存当前表单数据，避免异步操作时值被重置
             const currentName = formData.value.name
             const currentClassifyId = currentClassify.value.id
-            
+
             setTimeout(async ()=>{
               try{
                 const FromData = new FormData()
@@ -355,7 +353,7 @@ const handleSubmit = async () => {
           } else {
             submitLoading.value = false
           }
-          
+
         } else {
           // 添加分类
           try{

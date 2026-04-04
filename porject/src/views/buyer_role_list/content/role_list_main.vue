@@ -24,7 +24,7 @@
     style="height: 80%;"
     @selection-change="handleSelectionChange"
     row-key="role_id"
-    :row-class-name="({row}: {row: Role}) => row.id === null ? 'disabled-row' : ''"
+    :row-class-name="(row: any) => row.row.id === null ? 'disabled-row' : ''"
   >
     <el-table-column type="selection" width="55" :selectable="(row: Role) => row.id !== null" />
     <el-table-column prop="role_id" label="ID" ></el-table-column>

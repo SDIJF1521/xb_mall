@@ -58,7 +58,6 @@ import { ref, onMounted } from 'vue'
 import axios from "axios";
 import { ElMessage } from 'element-plus';
 import router  from "@/router";
-import { asc } from "echarts/types/src/util/number.js";
 
 const Axios = axios.create({
   baseURL: 'http://127.0.0.1:8000/api',
