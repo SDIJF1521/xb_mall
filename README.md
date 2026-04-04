@@ -112,7 +112,7 @@ pip install -e .
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-后端默认地址：`http://127.0.0.1:8000`  
+后端默认地址：`http://127.0.0.1:8000`
 接口文档：`http://127.0.0.1:8000/docs`
 
 ### 3) 前端安装与启动（Vue3 + Vite）
@@ -622,40 +622,42 @@ flowchart TB
 
 <div align="center">
 
-| 功能模块           | 功能描述                       | 技术实现           |
-| ------------------ | ------------------------------ | ------------------ |
-| **用户管理** | 用户注册、登录、密码重置       | JWT Token 认证     |
-| **商家管理** | 商家入驻申请、审核、状态管理   | 审核流程自动化     |
-| **商品管理** | 商品上架、下架、编辑、库存管理 | 多数据库支持       |
-| **店铺管理** | 店铺创建、编辑、个性化设置     | 自定义店铺配置     |
-| **权限管理** | 用户角色分配、权限控制         | RBAC 权限模型      |
-| **数据统计** | 用户增长、销售数据、商家统计   | ECharts 图表展示   |
-| **实时监控** | 用户在线状态、系统健康度       | WebSocket 实时通信 |
-| **浏览历史** | 商品浏览记录、历史分页、删除清空 | MongoDB + Redis 缓存 |
-| **智能推荐** | 基于用户行为的商品推荐         | Wide & Deep + 增量训练 |
-| **购物车**   | 添加、列表、修改数量、删除、清空、结算 | MySQL + 分页 + 模糊搜索 |
-| **收藏夹**   | 收藏商品/店铺、列表分页与搜索、取消收藏 | MySQL `user_favorites` + Redis 缓存失效 |
-| **员工聊天** | 店铺内员工实时群聊、消息持久化、历史记录回溯 | WebSocket + MongoDB |
-| **在线客服** | 用户悬浮聊天窗口、商品卡片发送、卖家多会话管理 | WebSocket + MongoDB |
-| **平台商品管理** | 商品列表、状态筛选、店铺筛选、搜索 | 多状态流转 + 分页 |
-| **平台分类管理** | 平台级分类增删改查 | MySQL + 分页搜索 |
-| **商品统计** | 商品总量、各状态分布、店铺分布、分类分布、近 7 天趋势 | ECharts 可视化 |
-| **违规管理** | 商品违规标记、取消违规、违规列表 | 违规通知 + 状态流转 |
-| **申诉系统** | 商家违规申诉提交、平台审核通过/驳回 | 完整申诉工作流 |
-| **订单系统** | 下单、支付（支付宝）、超时关闭、确认收货、退款 | 乐观锁 + 幂等性 + 担保交易 |
-| **退款与纠纷** | 买家申请退款、卖家审核、平台仲裁、支付宝原路退款 | 多级审核流 + 支付宝 API |
-| **卖家仪表盘** | 数据卡片、订单状态分布、销售趋势、最近订单、营业报表导出 | ECharts + CSV 导出 |
-| **卖家订单管理** | 订单列表、资金明细、退款审核、快捷评论回复 | MySQL orders/escrow_account |
-| **评论系统** | 商品评价（星级+文本+图片）、卖家回复、我的评论管理 | MongoDB commodity_comment + 图片上传 |
-| **商城用户管理** | 用户列表筛选、冻结/解冻、密码重置、冻结登录拦截 | MySQL user.status + Redis 联动 |
-| **平台纠纷管理** | 纠纷列表、退款详情、平台仲裁 | 权限码 `admin.refund` |
-| **平台 RBAC** | 后台账号、角色、权限、商城用户 | manage_user/role + 权限码 |
-| **广告投放** | 商家申请轮播图广告、平台审核、首页轮播展示 | MySQL ad_apply/ad_banner + Redis 缓存 |
-| **营销系统（优惠券）** | 平台/商家创建优惠券，用户领取使用，领券中心，商品详情页领券 | 策略模式 + 工厂模式 |
-|| **营销系统（活动）** | 秒杀/满减/折扣/拼团活动，商家加入平台活动，活动专区 | 策略模式 + 工厂模式 |
-|| **平台营销管理** | 平台创建/管理优惠券与活动，状态控制 | 权限码 `admin.promotion` |
-|| **商家营销管理** | 商家创建店铺优惠券与活动，加入平台活动，指定商品 | 支持多店铺店主选择 |
-|| **平台系统设置** | 广告设置、轮播图管理、申请审核 | 权限码 `admin.system_settings` |
+| 功能模块                     | 功能描述                                                    | 技术实现                                            |
+| ---------------------------- | ----------------------------------------------------------- | --------------------------------------------------- |
+| **用户管理**           | 用户注册、登录、密码重置                                    | JWT Token 认证                                      |
+| **商家管理**           | 商家入驻申请、审核、状态管理                                | 审核流程自动化                                      |
+| **商品管理**           | 商品上架、下架、编辑、库存管理                              | 多数据库支持                                        |
+| **店铺管理**           | 店铺创建、编辑、个性化设置                                  | 自定义店铺配置                                      |
+| **权限管理**           | 用户角色分配、权限控制                                      | RBAC 权限模型                                       |
+| **数据统计**           | 用户增长、销售数据、商家统计                                | ECharts 图表展示                                    |
+| **实时监控**           | 用户在线状态、系统健康度                                    | WebSocket 实时通信                                  |
+| **浏览历史**           | 商品浏览记录、历史分页、删除清空                            | MongoDB + Redis 缓存                                |
+| **智能推荐**           | 基于用户行为的商品推荐                                      | Wide & Deep + 增量训练                              |
+| **购物车**             | 添加、列表、修改数量、删除、清空、结算                      | MySQL + 分页 + 模糊搜索                             |
+| **收藏夹**             | 收藏商品/店铺、列表分页与搜索、取消收藏                     | MySQL `user_favorites` + Redis 缓存失效           |
+| **员工聊天**           | 店铺内员工实时群聊、消息持久化、历史记录回溯                | WebSocket + MongoDB                                 |
+| **在线客服**           | 用户悬浮聊天窗口、商品卡片发送、卖家多会话管理              | WebSocket + MongoDB                                 |
+| **平台商品管理**       | 商品列表、状态筛选、店铺筛选、搜索                          | 多状态流转 + 分页                                   |
+| **平台分类管理**       | 平台级分类增删改查                                          | MySQL + 分页搜索                                    |
+| **商品统计**           | 商品总量、各状态分布、店铺分布、分类分布、近 7 天趋势       | ECharts 可视化                                      |
+| **违规管理**           | 商品违规标记、取消违规、违规列表                            | 违规通知 + 状态流转                                 |
+| **申诉系统**           | 商家违规申诉提交、平台审核通过/驳回                         | 完整申诉工作流                                      |
+| **订单系统**           | 下单、支付（支付宝）、超时关闭、确认收货、退款              | 乐观锁 + 幂等性 + 担保交易                          |
+| **退款与纠纷**         | 买家申请退款、卖家审核、平台仲裁、支付宝原路退款            | 多级审核流 + 支付宝 API                             |
+| **物流服务**           | 顺丰物流对接、发货下单、物流轨迹查询                        | 顺丰 API + MongoDB 存储                             |
+| **卖家仪表盘**         | 数据卡片、订单状态分布、销售趋势、最近订单、营业报表导出    | ECharts + CSV 导出                                  |
+| **卖家订单管理**       | 订单列表、资金明细、退款审核、快捷评论回复                  | MySQL orders/escrow_account                         |
+| **评论系统**           | 商品评价（星级+文本+图片）、卖家回复、我的评论管理          | MongoDB commodity_comment + 图片上传                |
+| **商城用户管理**       | 用户列表筛选、冻结/解冻、密码重置、冻结登录拦截             | MySQL user.status + Redis 联动                      |
+| **平台纠纷管理**       | 纠纷列表、退款详情、平台仲裁                                | 权限码 `admin.refund`                             |
+| **平台物流配置**       | 顺丰物流密钥配置、连通性验证                                | 权限码 `admin.logistics_config`                   |
+| **平台 RBAC**          | 后台账号、角色、权限、商城用户                              | manage_user/role + 权限码                           |
+| **广告投放**           | 商家申请轮播图广告、平台审核、首页轮播展示                  | MySQL ad_apply/ad_banner + Redis 缓存               |
+| **营销系统（优惠券）** | 平台/商家创建优惠券，用户领取使用，领券中心，商品详情页领券 | 策略模式 + 工厂模式                                 |
+|                              | **营销系统（活动）**                                  | 秒杀/满减/折扣/拼团活动，商家加入平台活动，活动专区 |
+|                              | **平台营销管理**                                      | 平台创建/管理优惠券与活动，状态控制                 |
+|                              | **商家营销管理**                                      | 商家创建店铺优惠券与活动，加入平台活动，指定商品    |
+|                              | **平台系统设置**                                      | 广告设置、轮播图管理、申请审核                      |
 
 </div>
 
@@ -687,11 +689,14 @@ flowchart TB
 - 🖼️ **平台系统设置** - 管理端新增「系统设置」页（路由 `/management_system_settings`），目前已实现「广告设置」子页：轮播图管理（启停、排序、删除）、广告申请审核（通过/驳回并填写驳回原因）
 - 📊 **卖家仪表盘** - 数据卡片（商品数/订单数/销售额/待处理退款）、饼图（订单状态分布）、折线图（销售趋势）、最近订单表格，支持按周/月/季/年筛选；营业报表一键导出 CSV
 - 📝 **卖家订单管理** - 订单列表（状态筛选 + 关键词搜索 + 分页）、资金明细（担保账户流水）、退款申请列表及审核（同意/拒绝）
+- 🚚 **卖家物流管理** - 卖家可对订单进行发货操作、物流列表查询、物流详情（含轨迹）查看
 - 🛍️ **买家订单** - 个人中心「我的订单」页面，展示用户全部订单，支持状态筛选、确认收货、申请退款、查看物流
+- 🚚 **物流查询** - 用户可在订单详情页查看物流轨迹（顺丰），实时追踪包裹运输状态
 - ⭐ **商品评价** - 确认收货后可对商品发表评价（1-5 星级 + 文字 + 最多 9 张图片），支持好评/中评/差评筛选、查看卖家回复；个人中心「我的评论」管理页，支持查看和删除自己的评价
 - 💬 **卖家评论管理** - 卖家端「评论管理中心」页面，按好评/中评/差评与已回复/未回复筛选，支持回复买家评论；订单管理中已收货订单支持快捷评论回复
 - 👥 **商城用户管理** - 平台管理端商城用户列表，支持关键词搜索、用户状态（正常/冻结）与商家身份筛选，支持冻结/解冻用户账号及重置用户密码
 - ⚖️ **平台纠纷管理** - 平台管理端纠纷列表、退款详情查看、平台仲裁处理（权限码 `admin.refund`）
+- 🚚 **平台物流配置** - 平台管理端可配置顺丰物流密钥（客户编码、校验码），支持沙箱/生产环境切换，可进行连通性验证测试（权限码 `admin.logistics_config`）
 - 🎟️ **领券中心** - 用户端独立领券页面，展示所有可领优惠券，显示领取状态（可领取/已领取/已领完）
 - 🔥 **活动专区** - 用户端活动列表页，展示进行中的促销活动及参与商品
 - 🏷️ **商品详情领券** - 商品详情页内嵌可用优惠券条，用户可直接领取店铺/商品关联优惠券
@@ -726,6 +731,7 @@ flowchart TB
 - 📦 **订单服务** - `POST /api/order/create` 创建订单（含库存扣减 + 乐观锁）、`GET /api/order/list` 买家订单列表、`POST /api/order/confirm` 确认收货、`POST /api/order/cancel` 取消订单、幂等号防重复提交；数据表 `orders` + `order_items`
 - 💳 **支付服务** - 支付宝网页支付 `POST /api/order/pay`、支付回调 `POST /api/order/alipay_notify`、担保账户 `escrow_account`、支付流水 `payment_transactions`；订单超时自动关闭 + 库存回滚
 - 🔄 **退款服务** - `POST /api/refund/create` 买家申请退款、`GET /api/refund/detail` 退款详情、`POST /api/seller/order/refund_review` 卖家审核退款、`POST /api/manage_refund/arbitrate` 平台仲裁；支付宝原路退款 + 担保资金释放
+- 🚚 **物流服务** - `POST /api/seller/order/ship` 卖家发货（调用顺丰下单接口）、`GET /api/seller/logistics/list` 物流列表查询、`GET /api/seller/logistics/detail` 物流详情（含运输轨迹）、`GET /api/order/logistics` 用户端物流查询；采用顺丰 API，支持沙箱/生产环境切换，配置存储于 MongoDB `LogisticsServiceConfig` 集合
 - ⭐ **评论服务**（`services/comment/`）：
   - `POST /api/comment/create`：发布评价（星级 + 文本 + 最多 9 张图片），仅确认收货订单可评，同一订单不可重复评价
   - `GET /api/comment/list`：商品评论分页列表，支持按好评（≥4）/中评（=3）/差评（≤2）筛选，附带评论者头像，Redis 缓存
@@ -849,25 +855,25 @@ uv run python -m services.recommend.wide_deep.train
 
 ### 子模块概览
 
-| 模块 | 页面 | 功能描述 |
-|------|------|---------|
-| **商品审核** | `commodity_audit.vue` | 审核商家提交的新商品，支持通过/驳回 |
-| **商品列表** | `commodity_list.vue` | 全平台商品列表，支持状态筛选（在售/下架/审核中/违规/店铺关闭/已驳回）、店铺筛选、搜索 |
-| **商品分类** | `commodity_classify.vue` | 平台级商品分类的增删改查 |
-| **违规商品** | `commodity_violation.vue` | 查看违规商品列表、标记违规、取消违规 |
-| **申诉审核** | `commodity_appeal.vue` | 审核商家提交的违规申诉，支持通过/驳回 |
-| **商品统计** | `commodity_statistics.vue` | 商品数据可视化看板：总量、各状态分布、店铺分布、分类分布、近 7 天趋势 |
+| 模块               | 页面                         | 功能描述                                                                              |
+| ------------------ | ---------------------------- | ------------------------------------------------------------------------------------- |
+| **商品审核** | `commodity_audit.vue`      | 审核商家提交的新商品，支持通过/驳回                                                   |
+| **商品列表** | `commodity_list.vue`       | 全平台商品列表，支持状态筛选（在售/下架/审核中/违规/店铺关闭/已驳回）、店铺筛选、搜索 |
+| **商品分类** | `commodity_classify.vue`   | 平台级商品分类的增删改查                                                              |
+| **违规商品** | `commodity_violation.vue`  | 查看违规商品列表、标记违规、取消违规                                                  |
+| **申诉审核** | `commodity_appeal.vue`     | 审核商家提交的违规申诉，支持通过/驳回                                                 |
+| **商品统计** | `commodity_statistics.vue` | 商品数据可视化看板：总量、各状态分布、店铺分布、分类分布、近 7 天趋势                 |
 
 ### API 端点
 
-| 接口 | 方法 | 路径 | 说明 |
-|------|------|------|------|
-| 商品列表 | GET | `/api/manage_commodity_list` | 分页、搜索、状态/店铺筛选 |
-| 商品统计 | GET | `/api/manage_commodity_statistics` | 统计总量、分布、趋势 |
-| 分类列表 | GET | `/api/manage_commodity_classify_list` | 分页搜索 |
-| 添加分类 | POST | `/api/manage_commodity_classify_add` | 新增平台级分类 |
-| 编辑分类 | POST | `/api/manage_commodity_classify_edit` | 修改分类名称 |
-| 删除分类 | POST | `/api/manage_commodity_classify_delete` | 删除分类 |
+| 接口     | 方法 | 路径                                      | 说明                      |
+| -------- | ---- | ----------------------------------------- | ------------------------- |
+| 商品列表 | GET  | `/api/manage_commodity_list`            | 分页、搜索、状态/店铺筛选 |
+| 商品统计 | GET  | `/api/manage_commodity_statistics`      | 统计总量、分布、趋势      |
+| 分类列表 | GET  | `/api/manage_commodity_classify_list`   | 分页搜索                  |
+| 添加分类 | POST | `/api/manage_commodity_classify_add`    | 新增平台级分类            |
+| 编辑分类 | POST | `/api/manage_commodity_classify_edit`   | 修改分类名称              |
+| 删除分类 | POST | `/api/manage_commodity_classify_delete` | 删除分类                  |
 
 ## 🚫 违规与申诉系统
 
@@ -888,15 +894,15 @@ uv run python -m services.recommend.wide_deep.train
 
 ### API 端点
 
-| 接口 | 方法 | 路径 | 说明 |
-|------|------|------|------|
-| 标记违规 | POST | `/api/manage_commodity_violation_add` | 平台标记商品违规 |
-| 违规列表 | GET | `/api/manage_commodity_violation_list` | 分页搜索违规商品 |
-| 取消违规 | POST | `/api/manage_commodity_violation_remove` | 恢复商品为下架状态 |
-| 申诉列表 | GET | `/api/manage_commodity_appeal_list` | 平台查看申诉（按状态筛选） |
-| 处理申诉 | POST | `/api/manage_commodity_appeal_handle` | 通过或驳回申诉 |
-| 提交申诉 | POST | `/api/buyer_commodity_violation_appeal` | 商家提交违规申诉 |
-| 申诉状态 | GET | `/api/buyer_commodity_appeal_status` | 商家查询申诉状态 |
+| 接口     | 方法 | 路径                                       | 说明                       |
+| -------- | ---- | ------------------------------------------ | -------------------------- |
+| 标记违规 | POST | `/api/manage_commodity_violation_add`    | 平台标记商品违规           |
+| 违规列表 | GET  | `/api/manage_commodity_violation_list`   | 分页搜索违规商品           |
+| 取消违规 | POST | `/api/manage_commodity_violation_remove` | 恢复商品为下架状态         |
+| 申诉列表 | GET  | `/api/manage_commodity_appeal_list`      | 平台查看申诉（按状态筛选） |
+| 处理申诉 | POST | `/api/manage_commodity_appeal_handle`    | 通过或驳回申诉             |
+| 提交申诉 | POST | `/api/buyer_commodity_violation_appeal`  | 商家提交违规申诉           |
+| 申诉状态 | GET  | `/api/buyer_commodity_appeal_status`     | 商家查询申诉状态           |
 
 ## 📌 平台用户管理（RBAC）
 
@@ -912,73 +918,73 @@ uv run python -m services.recommend.wide_deep.train
 
 ### 子模块概览
 
-| 模块 | 权限码 | 功能描述 |
-|------|--------|---------|
-| **商家申请合验** | `admin.user.merchant` | 商家入驻申请列表、跳转审核 |
-| **商家账号管理** | `admin.user.merchant` | 商家列表与详情（冻结/解冻/删除等） |
-| **商城用户管理** | `admin.user.mall` | 商城 C 端注册用户列表、冻结/解冻、重置密码；冻结用户无法登录 |
-| **后台账号** | `admin.user.platform` | 后台账号列表、新增、删除、改密、分配角色 |
-| **角色与权限** | `admin.user.role` | 角色增删改、预定义权限勾选 + 自定义权限码（每行一个）；超级管理员角色 `*` 表示全部权限 |
+| 模块                   | 权限码                  | 功能描述                                                                                 |
+| ---------------------- | ----------------------- | ---------------------------------------------------------------------------------------- |
+| **商家申请合验** | `admin.user.merchant` | 商家入驻申请列表、跳转审核                                                               |
+| **商家账号管理** | `admin.user.merchant` | 商家列表与详情（冻结/解冻/删除等）                                                       |
+| **商城用户管理** | `admin.user.mall`     | 商城 C 端注册用户列表、冻结/解冻、重置密码；冻结用户无法登录                             |
+| **后台账号**     | `admin.user.platform` | 后台账号列表、新增、删除、改密、分配角色                                                 |
+| **角色与权限**   | `admin.user.role`     | 角色增删改、预定义权限勾选 + 自定义权限码（每行一个）；超级管理员角色 `*` 表示全部权限 |
 
 ### 账号规则（与管理员登录页一致）
 
-- **用户名**：长度 3～20 字符。  
-- **密码**：长度 6～20 字符。  
+- **用户名**：长度 3～20 字符。
+- **密码**：长度 6～20 字符。
 - 前后端校验见 `data_mods` 中 `ManagePlatformUserAdd` / `ManagePlatformUserPassword` 与前端 `user_management` 表单。
 
 ### 权限目录
 
 预定义权限码位于 `serve/config/manage_permission_catalog.py`：
 
-| 权限码 | 名称 | 分类 |
-|--------|------|------|
-| `admin.dashboard` | 仪表盘 | 概览 |
-| `admin.commodity` | 商品管理 | 商品 |
+| 权限码                    | 名称               | 分类 |
+| ------------------------- | ------------------ | ---- |
+| `admin.dashboard`       | 仪表盘             | 概览 |
+| `admin.commodity`       | 商品管理           | 商品 |
 | `admin.commodity_apply` | 商品审核（申请页） | 商品 |
-| `admin.user.merchant` | 商家与申请 | 用户 |
-| `admin.user.mall` | 商城用户列表 | 用户 |
-| `admin.user.platform` | 后台账号管理 | 用户 |
-| `admin.user.role` | 角色与权限配置 | 用户 |
-| `admin.audit_seller` | 商家申请审核页 | 审核 |
-| `admin.business` | 商家详情 | 商家 |
-| `admin.promotion` | 营销管理 | 运营 |
-| `admin.refund` | 纠纷管理 | 运营 |
-| `admin.system_settings` | 系统设置 | 设置 |
-| `admin.pay_config` | 支付配置 | 设置 |
+| `admin.user.merchant`   | 商家与申请         | 用户 |
+| `admin.user.mall`       | 商城用户列表       | 用户 |
+| `admin.user.platform`   | 后台账号管理       | 用户 |
+| `admin.user.role`       | 角色与权限配置     | 用户 |
+| `admin.audit_seller`    | 商家申请审核页     | 审核 |
+| `admin.business`        | 商家详情           | 商家 |
+| `admin.promotion`       | 营销管理           | 运营 |
+| `admin.refund`          | 纠纷管理           | 运营 |
+| `admin.system_settings` | 系统设置           | 设置 |
+| `admin.pay_config`      | 支付配置           | 设置 |
 
 角色表 `manage_role.permissions` 为 JSON 数组；可包含 `*`（超级管理员全部权限）或上述任意字符串，**自定义权限码**也可写入（角色编辑里文本框逐行添加）。
 
 ### 相关服务模块（`serve/services/`）
 
-| 模块 | 说明 |
-|------|------|
-| `manage_login/` | 管理员登录校验 |
-| `manage_token_issue/` | 签发 access / refresh Token |
-| `management_token_verify/` | 平台 JWT 与 Redis 校验 |
-| `manage_rbac/` | 解析角色权限、权限匹配 |
-| `manage_admin_guard/` | 路由层「登录 + 权限码」校验 |
-| `manage_rbac_migrate/` | 启动时建表/迁移（`manage_role`、`manage_user.role_id`） |
+| 模块                         | 说明                                                        |
+| ---------------------------- | ----------------------------------------------------------- |
+| `manage_login/`            | 管理员登录校验                                              |
+| `manage_token_issue/`      | 签发 access / refresh Token                                 |
+| `management_token_verify/` | 平台 JWT 与 Redis 校验                                      |
+| `manage_rbac/`             | 解析角色权限、权限匹配                                      |
+| `manage_admin_guard/`      | 路由层「登录 + 权限码」校验                                 |
+| `manage_rbac_migrate/`     | 启动时建表/迁移（`manage_role`、`manage_user.role_id`） |
 
 ### API 端点
 
-| 接口 | 方法 | 路径 | 说明 |
-|------|------|------|------|
-| 管理员登录 | POST | `/api/manage_sign_in` | 返回双 Token 与权限信息 |
-| Token 验证 | POST | `/api/management_verify` | 表单 `token` |
-| Token 刷新 | POST | `/api/manage_admin_refresh` | JSON：`refresh_token` |
-| 会话信息 | GET | `/api/manage_session` | 当前用户与权限 |
-| 平台用户列表 | GET | `/api/manage_platform_user_list` | 后台账号列表（含角色） |
-| 添加平台用户 | POST | `/api/manage_platform_user_add` | 新增后台管理员 |
-| 删除平台用户 | POST | `/api/manage_platform_user_delete` | 删除后台账号 |
-| 重置密码 | POST | `/api/manage_platform_user_password` | 重置指定用户密码 |
-| 分配角色 | POST | `/api/manage_platform_user_role` | 为用户绑定角色 |
-| 权限目录 | GET | `/api/manage_permission_catalog` | 获取可配置的权限码列表 |
-| 角色列表 | GET | `/api/manage_role_list` | 角色列表 |
-| 角色保存 | POST | `/api/manage_role_save` | 新增/编辑角色（含权限 JSON） |
-| 角色删除 | POST | `/api/manage_role_delete` | 删除角色 |
-| 商城用户列表 | GET | `/api/manage_mall_user_list` | C 端用户分页列表（关键词/状态/商家筛选） |
-| 冻结/解冻用户 | POST | `/api/manage_mall_user_freeze` | 冻结或解冻 C 端用户账号 |
-| 重置用户密码 | POST | `/api/manage_mall_user_reset_password` | 重置 C 端用户密码 |
+| 接口          | 方法 | 路径                                     | 说明                                     |
+| ------------- | ---- | ---------------------------------------- | ---------------------------------------- |
+| 管理员登录    | POST | `/api/manage_sign_in`                  | 返回双 Token 与权限信息                  |
+| Token 验证    | POST | `/api/management_verify`               | 表单 `token`                           |
+| Token 刷新    | POST | `/api/manage_admin_refresh`            | JSON：`refresh_token`                  |
+| 会话信息      | GET  | `/api/manage_session`                  | 当前用户与权限                           |
+| 平台用户列表  | GET  | `/api/manage_platform_user_list`       | 后台账号列表（含角色）                   |
+| 添加平台用户  | POST | `/api/manage_platform_user_add`        | 新增后台管理员                           |
+| 删除平台用户  | POST | `/api/manage_platform_user_delete`     | 删除后台账号                             |
+| 重置密码      | POST | `/api/manage_platform_user_password`   | 重置指定用户密码                         |
+| 分配角色      | POST | `/api/manage_platform_user_role`       | 为用户绑定角色                           |
+| 权限目录      | GET  | `/api/manage_permission_catalog`       | 获取可配置的权限码列表                   |
+| 角色列表      | GET  | `/api/manage_role_list`                | 角色列表                                 |
+| 角色保存      | POST | `/api/manage_role_save`                | 新增/编辑角色（含权限 JSON）             |
+| 角色删除      | POST | `/api/manage_role_delete`              | 删除角色                                 |
+| 商城用户列表  | GET  | `/api/manage_mall_user_list`           | C 端用户分页列表（关键词/状态/商家筛选） |
+| 冻结/解冻用户 | POST | `/api/manage_mall_user_freeze`         | 冻结或解冻 C 端用户账号                  |
+| 重置用户密码  | POST | `/api/manage_mall_user_reset_password` | 重置 C 端用户密码                        |
 
 ### 数据库与启动
 
@@ -1012,12 +1018,12 @@ services/store_chat_auth/__init__.py     # 鉴权服务（复用 VerifyDuterToke
 
 ### 消息协议
 
-| 方向 | 消息类型 | 结构 |
-|---|---|---|
-| 服务端 → 客户端 | `history` | `{ "type": "history", "data": [...] }` |
-| 服务端 → 客户端 | `chat` | `{ "type": "chat", "username": "...", "content": "...", "created_at": "..." }` |
-| 服务端 → 客户端 | `system` | `{ "type": "system", "content": "...", "online_users": [...], "created_at": "..." }` |
-| 客户端 → 服务端 | `chat` | `{ "type": "chat", "content": "..." }` |
+| 方向             | 消息类型    | 结构                                                                                   |
+| ---------------- | ----------- | -------------------------------------------------------------------------------------- |
+| 服务端 → 客户端 | `history` | `{ "type": "history", "data": [...] }`                                               |
+| 服务端 → 客户端 | `chat`    | `{ "type": "chat", "username": "...", "content": "...", "created_at": "..." }`       |
+| 服务端 → 客户端 | `system`  | `{ "type": "system", "content": "...", "online_users": [...], "created_at": "..." }` |
+| 客户端 → 服务端 | `chat`    | `{ "type": "chat", "content": "..." }`                                               |
 
 ### 持久化
 
@@ -1063,27 +1069,27 @@ services/customer_service_auth/__init__.py     # 鉴权服务（用户端 / 卖�
 
 ### 鉴权流程
 
-| 身份 | Token 类型 | 校验内容 |
-|---|---|---|
-| 用户（`client_type=user`） | 普通用户 JWT（`JWT_USER_SECRET_KEY`） | 解析 payload，获取用户名，无需绑定店铺 |
-| 主商户（`station=1`） | 商户端 JWT（`JWT_SELLER_SECRET_KEY`） | 校验 `state_id_list` 包含目标 `mall_id` |
-| 店铺员工（`station=2`） | 商户端 JWT（`JWT_SELLER_SECRET_KEY`） | 校验 token 绑定的 `mall_id` 一致 |
+| 身份                         | Token 类型                              | 校验内容                                    |
+| ---------------------------- | --------------------------------------- | ------------------------------------------- |
+| 用户（`client_type=user`） | 普通用户 JWT（`JWT_USER_SECRET_KEY`） | 解析 payload，获取用户名，无需绑定店铺      |
+| 主商户（`station=1`）      | 商户端 JWT（`JWT_SELLER_SECRET_KEY`） | 校验 `state_id_list` 包含目标 `mall_id` |
+| 店铺员工（`station=2`）    | 商户端 JWT（`JWT_SELLER_SECRET_KEY`） | 校验 token 绑定的 `mall_id` 一致          |
 
 鉴权失败时以 WebSocket 关闭码 `4001` 断开连接。
 
 ### 消息协议
 
-| 方向 | 消息类型 | 结构 |
-|---|---|---|
-| 服务端 → 用户端 | `history` | `{ "type": "history", "data": [...] }` |
-| 服务端 → 用户端 | `chat` | `{ "type": "chat", "sender_type": "seller", "content": "...", ... }` |
-| 服务端 → 用户端 | `system` | `{ "type": "system", "content": "...", "created_at": "..." }` |
-| 服务端 → 卖家端 | `session_list` | `{ "type": "session_list", "data": [{session_id, online, last_message, last_time}] }` |
-| 服务端 → 卖家端 | `history` | `{ "type": "history", "session_id": "...", "data": [...] }` |
-| 服务端 → 卖家端 | `chat` | `{ "type": "chat", "session_id": "...", "sender_type": "user"\|"seller", ... }` |
-| 用户端 → 服务端 | `chat` | `{ "type": "chat", "content": "...", "message_type": "text"\|"product_card", "product_info"?: {...} }` |
-| 卖家端 → 服务端 | `chat` | `{ "type": "chat", "content": "...", "message_type": "text"\|"refund_link", "target_session": "username", "refund_info"?: { "order_no": "..." } }` |
-| 卖家端 → 服务端 | `fetch_history` | `{ "type": "fetch_history", "session_id": "username" }` |
+| 方向             | 消息类型          | 结构                                                                                                                                                |
+| ---------------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 服务端 → 用户端 | `history`       | `{ "type": "history", "data": [...] }`                                                                                                            |
+| 服务端 → 用户端 | `chat`          | `{ "type": "chat", "sender_type": "seller", "content": "...", ... }`                                                                              |
+| 服务端 → 用户端 | `system`        | `{ "type": "system", "content": "...", "created_at": "..." }`                                                                                     |
+| 服务端 → 卖家端 | `session_list`  | `{ "type": "session_list", "data": [{session_id, online, last_message, last_time}] }`                                                             |
+| 服务端 → 卖家端 | `history`       | `{ "type": "history", "session_id": "...", "data": [...] }`                                                                                       |
+| 服务端 → 卖家端 | `chat`          | `{ "type": "chat", "session_id": "...", "sender_type": "user"\|"seller", ... }`                                                                    |
+| 用户端 → 服务端 | `chat`          | `{ "type": "chat", "content": "...", "message_type": "text"\|"product_card", "product_info"?: {...} }`                                             |
+| 卖家端 → 服务端 | `chat`          | `{ "type": "chat", "content": "...", "message_type": "text"\|"refund_link", "target_session": "username", "refund_info"?: { "order_no": "..." } }` |
+| 卖家端 → 服务端 | `fetch_history` | `{ "type": "fetch_history", "session_id": "username" }`                                                                                           |
 
 > **退款快捷链接**：卖家可在客服聊天中发送 `refund_link` 类型消息，附带 `refund_info.order_no`；用户端收到后展示退款卡片，点击跳转至个人中心订单页发起退款。
 
@@ -1093,14 +1099,14 @@ services/customer_service_auth/__init__.py     # 鉴权服务（用户端 / 卖�
 
 ### HTTP 接口
 
-| 接口 | 方法 | 路径 | 说明 |
-|------|------|------|------|
-| 用户会话列表 | GET | `/api/cs_user_sessions` | 用户端获取所有客服会话（按店铺分组） |
-| 消息历史 | GET | `/api/cs_user_history` | 用户端获取与某店铺的消息历史（分页） |
-| 未读消息数 | GET | `/api/cs_unread_count` | 获取未读数（role=user/seller，mall_id 可选） |
-| 卖家未读总数 | GET | `/api/cs_seller_total_unread` | 卖家端所有有权限店铺的未读总和（导航徽章） |
-| 各店铺未读数 | GET | `/api/cs_seller_store_unreads` | 卖家端每个店铺的未读数（店铺选择页徽章） |
-| 标记已读 | POST | `/api/cs_mark_read` | 标记已读（role=user/seller，seller 需传 session_id） |
+| 接口         | 方法 | 路径                             | 说明                                                 |
+| ------------ | ---- | -------------------------------- | ---------------------------------------------------- |
+| 用户会话列表 | GET  | `/api/cs_user_sessions`        | 用户端获取所有客服会话（按店铺分组）                 |
+| 消息历史     | GET  | `/api/cs_user_history`         | 用户端获取与某店铺的消息历史（分页）                 |
+| 未读消息数   | GET  | `/api/cs_unread_count`         | 获取未读数（role=user/seller，mall_id 可选）         |
+| 卖家未读总数 | GET  | `/api/cs_seller_total_unread`  | 卖家端所有有权限店铺的未读总和（导航徽章）           |
+| 各店铺未读数 | GET  | `/api/cs_seller_store_unreads` | 卖家端每个店铺的未读数（店铺选择页徽章）             |
+| 标记已读     | POST | `/api/cs_mark_read`            | 标记已读（role=user/seller，seller 需传 session_id） |
 
 ### WebSocket 端点
 
@@ -1125,10 +1131,10 @@ ws://host/api/ws/customer_service/{mall_id}?token=<access_token>&client_type=use
 
 「广告设置」包含两个标签页：
 
-| 标签页 | 功能 |
-|------|------|
+| 标签页                 | 功能                                                                                                                           |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | **广告申请审核** | 查看所有商家的广告投放申请，支持按状态筛选（待审核/已通过/已驳回）和关键词搜索；审核通过时设置投放起止时间，驳回时填写驳回原因 |
-| **轮播图管理** | 查看已批准的轮播图广告，支持按启用状态筛选；可实时修改排序权重和启停状态（Switch），支持删除轮播图条目 |
+| **轮播图管理**   | 查看已批准的轮播图广告，支持按启用状态筛选；可实时修改排序权重和启停状态（Switch），支持删除轮播图条目                         |
 
 ### 首页轮播
 
@@ -1136,27 +1142,27 @@ ws://host/api/ws/customer_service/{mall_id}?token=<access_token>&client_type=use
 
 ### 数据库表
 
-| 表名 | 说明 |
-|------|------|
-| `ad_apply` | 广告申请记录，字段：`mall_id`、`shopping_id`、`title`、`description`、`img_path`、`duration_days`、`status`（pending/approved/rejected）、`reject_reason`、`apply_time`、`review_time`、`reviewer` |
-| `ad_banner` | 已审核通过并上线的轮播图，字段：`apply_id`、`mall_id`、`shopping_id`、`title`、`img_path`、`sort_order`、`is_active`、`start_time`、`end_time` |
+| 表名          | 说明                                                                                                                                                                                                                     |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ad_apply`  | 广告申请记录，字段：`mall_id`、`shopping_id`、`title`、`description`、`img_path`、`duration_days`、`status`（pending/approved/rejected）、`reject_reason`、`apply_time`、`review_time`、`reviewer` |
+| `ad_banner` | 已审核通过并上线的轮播图，字段：`apply_id`、`mall_id`、`shopping_id`、`title`、`img_path`、`sort_order`、`is_active`、`start_time`、`end_time`                                                         |
 
 首次启动时 `services/ad_migrate/` 自动创建上述两张表（如不存在）。
 
 ### API 端点
 
-| 接口 | 方法 | 路径 | 说明 |
-|------|------|------|------|
-| 提交申请 | POST | `/api/buyer_ad_apply` | 商家提交广告投放申请（表单 + 图片上传）|
-| 我的申请列表 | GET | `/api/buyer_ad_apply_list` | 商家查看自己的申请记录（分页、状态筛选）|
-| 申请图片 | GET | `/api/buyer_ad_apply_img` | 获取广告申请图片（Base64）|
-| 首页轮播 | GET | `/api/ad_banner_active` | 公共接口，获取当前生效轮播图列表 |
-| 平台申请列表 | GET | `/api/manage_ad_apply_list` | 平台查看所有申请（权限 `admin.system_settings`）|
-| 审核通过 | POST | `/api/manage_ad_apply_approve` | 通过申请并写入轮播图表 |
-| 驳回申请 | POST | `/api/manage_ad_apply_reject` | 驳回申请并记录原因 |
-| 轮播图列表 | GET | `/api/manage_ad_banner_list` | 平台管理已上线轮播图（分页、状态筛选）|
-| 更新轮播图 | PATCH | `/api/manage_ad_banner_update` | 修改排序或启用状态 |
-| 删除轮播图 | DELETE | `/api/manage_ad_banner_delete` | 删除轮播图条目 |
+| 接口         | 方法   | 路径                             | 说明                                               |
+| ------------ | ------ | -------------------------------- | -------------------------------------------------- |
+| 提交申请     | POST   | `/api/buyer_ad_apply`          | 商家提交广告投放申请（表单 + 图片上传）            |
+| 我的申请列表 | GET    | `/api/buyer_ad_apply_list`     | 商家查看自己的申请记录（分页、状态筛选）           |
+| 申请图片     | GET    | `/api/buyer_ad_apply_img`      | 获取广告申请图片（Base64）                         |
+| 首页轮播     | GET    | `/api/ad_banner_active`        | 公共接口，获取当前生效轮播图列表                   |
+| 平台申请列表 | GET    | `/api/manage_ad_apply_list`    | 平台查看所有申请（权限 `admin.system_settings`） |
+| 审核通过     | POST   | `/api/manage_ad_apply_approve` | 通过申请并写入轮播图表                             |
+| 驳回申请     | POST   | `/api/manage_ad_apply_reject`  | 驳回申请并记录原因                                 |
+| 轮播图列表   | GET    | `/api/manage_ad_banner_list`   | 平台管理已上线轮播图（分页、状态筛选）             |
+| 更新轮播图   | PATCH  | `/api/manage_ad_banner_update` | 修改排序或启用状态                                 |
+| 删除轮播图   | DELETE | `/api/manage_ad_banner_delete` | 删除轮播图条目                                     |
 
 ## 🎟️ 营销系统（优惠券与活动）
 
@@ -1170,19 +1176,19 @@ ws://host/api/ws/customer_service/{mall_id}?token=<access_token>&client_type=use
 
 ### 优惠券类型
 
-| 类型 | 说明 |
-|------|------|
-| 满减券 | 订单满指定金额后减免固定金额 |
-| 折扣券 | 订单享受折扣比例优惠 |
+| 类型       | 说明                             |
+| ---------- | -------------------------------- |
+| 满减券     | 订单满指定金额后减免固定金额     |
+| 折扣券     | 订单享受折扣比例优惠             |
 | 固定金额券 | 直接减免固定金额，无门槛或低门槛 |
 
 ### 活动类型
 
-| 类型 | 说明 |
-|------|------|
-| 秒杀 | 限时限量低价抢购 |
-| 满减 | 满足条件后自动减免 |
-| 折扣 | 指定商品享受折扣价 |
+| 类型 | 说明                 |
+| ---- | -------------------- |
+| 秒杀 | 限时限量低价抢购     |
+| 满减 | 满足条件后自动减免   |
+| 折扣 | 指定商品享受折扣价   |
 | 拼团 | 多人拼单享受优惠价格 |
 
 ### 优惠券/活动状态流转
@@ -1201,73 +1207,73 @@ stateDiagram-v2
 
 下单时，活动折扣与优惠券可**自动叠加**（折上折），规则如下：
 
-| 活动类型 | 折扣方式 | 默认是否可叠加券 |
-|---------|---------|---------------|
-| `flash_sale` 限时秒杀 | 活动价（商品级） | ✅ 可叠加（除非明确设 `stackable=false`） |
-| `discount` 折扣活动 | 折扣率（商品级） | ✅ 可叠加 |
-| `group_buy` 拼团 | 折扣率/活动价（商品级） | ✅ 可叠加 |
-| `full_reduction` 满减 | 满额减总价（订单级） | ✅ 可叠加 |
+| 活动类型                | 折扣方式                | 默认是否可叠加券                            |
+| ----------------------- | ----------------------- | ------------------------------------------- |
+| `flash_sale` 限时秒杀 | 活动价（商品级）        | ✅ 可叠加（除非明确设 `stackable=false`） |
+| `discount` 折扣活动   | 折扣率（商品级）        | ✅ 可叠加                                   |
+| `group_buy` 拼团      | 折扣率/活动价（商品级） | ✅ 可叠加                                   |
+| `full_reduction` 满减 | 满额减总价（订单级）    | ✅ 可叠加                                   |
 
 - 活动创建时可在 `rules.stackable` 明确设为 `false` 来禁止叠加券
 - 下单响应包含 `activity_discount`（活动省）、`coupon_discount`（券省）、`total_discount`（总节省），前端统一展示"共节省¥X（活动省¥A + 券省¥B）"
 
 ### 三端入口
 
-| 端 | 入口 | 功能 |
-|-----|------|------|
-| **用户端** | 领券中心 `/coupon_center` | 查看可领优惠券、一键领取、显示领取状态 |
-| **用户端** | 活动专区 `/activity_zone` | 查看进行中的活动及参与商品 |
-| **用户端** | 商品详情页 | 展示该商品关联的可领优惠券，支持直接领取 |
-| **用户端** | 购物车结算 | 自动显示折上折提示，支持叠加选择优惠券 |
-| **商家端** | 营销管理 `/buyer_promotion_manage` | 创建/管理优惠券和活动，加入平台活动 |
-| **平台端** | 营销管理 `/management_promotion` | 平台级优惠券和活动管理 |
+| 端               | 入口                                 | 功能                                     |
+| ---------------- | ------------------------------------ | ---------------------------------------- |
+| **用户端** | 领券中心 `/coupon_center`          | 查看可领优惠券、一键领取、显示领取状态   |
+| **用户端** | 活动专区 `/activity_zone`          | 查看进行中的活动及参与商品               |
+| **用户端** | 商品详情页                           | 展示该商品关联的可领优惠券，支持直接领取 |
+| **用户端** | 购物车结算                           | 自动显示折上折提示，支持叠加选择优惠券   |
+| **商家端** | 营销管理 `/buyer_promotion_manage` | 创建/管理优惠券和活动，加入平台活动      |
+| **平台端** | 营销管理 `/management_promotion`   | 平台级优惠券和活动管理                   |
 
 ### API 端点
 
 #### 用户端
 
-| 接口 | 方法 | 路径 | 说明 |
-|------|------|------|------|
-| 可用优惠券 | GET | `/api/user_coupon/available` | 支持 mall_id/shopping_id 筛选 + 用户领取状态（available/claimed/sold_out） |
-| 下单可用券 | GET | `/api/user_coupon/usable` | 按店铺、订单金额、商品范围筛选可用优惠券，含预计优惠额 |
-| 领取优惠券 | POST | `/api/user_coupon/claim` | 领取，受每人限领和总量限制 |
-| 我的优惠券 | GET | `/api/user_coupon/mine` | 用户已领优惠券列表（支持 unused/used/expired 筛选） |
-| 活动列表 | GET | `/api/user_activity/active` | 进行中的活动列表 |
+| 接口       | 方法 | 路径                           | 说明                                                                       |
+| ---------- | ---- | ------------------------------ | -------------------------------------------------------------------------- |
+| 可用优惠券 | GET  | `/api/user_coupon/available` | 支持 mall_id/shopping_id 筛选 + 用户领取状态（available/claimed/sold_out） |
+| 下单可用券 | GET  | `/api/user_coupon/usable`    | 按店铺、订单金额、商品范围筛选可用优惠券，含预计优惠额                     |
+| 领取优惠券 | POST | `/api/user_coupon/claim`     | 领取，受每人限领和总量限制                                                 |
+| 我的优惠券 | GET  | `/api/user_coupon/mine`      | 用户已领优惠券列表（支持 unused/used/expired 筛选）                        |
+| 活动列表   | GET  | `/api/user_activity/active`  | 进行中的活动列表                                                           |
 
 #### 商家端
 
-| 接口 | 方法 | 路径 | 说明 |
-|------|------|------|------|
-| 创建优惠券 | POST | `/api/buyer_coupon/create` | 支持指定商品，mall_id 选择 |
-| 优惠券列表 | GET | `/api/buyer_coupon/list` | 商家优惠券列表 |
-| 更新状态 | POST | `/api/buyer_coupon/status` | 上线/暂停/取消 |
-| 创建活动 | POST | `/api/buyer_activity/create` | 支持指定商品及活动价/库存 |
-| 活动列表 | GET | `/api/buyer_activity/list` | 商家活动列表 |
-| 加入平台活动 | POST | `/api/buyer_activity/join` | 商家加入平台活动 |
-| 退出平台活动 | POST | `/api/buyer_activity/quit` | 商家退出平台活动 |
+| 接口         | 方法 | 路径                           | 说明                       |
+| ------------ | ---- | ------------------------------ | -------------------------- |
+| 创建优惠券   | POST | `/api/buyer_coupon/create`   | 支持指定商品，mall_id 选择 |
+| 优惠券列表   | GET  | `/api/buyer_coupon/list`     | 商家优惠券列表             |
+| 更新状态     | POST | `/api/buyer_coupon/status`   | 上线/暂停/取消             |
+| 创建活动     | POST | `/api/buyer_activity/create` | 支持指定商品及活动价/库存  |
+| 活动列表     | GET  | `/api/buyer_activity/list`   | 商家活动列表               |
+| 加入平台活动 | POST | `/api/buyer_activity/join`   | 商家加入平台活动           |
+| 退出平台活动 | POST | `/api/buyer_activity/quit`   | 商家退出平台活动           |
 
 #### 平台端（权限码 `admin.promotion`）
 
-| 接口 | 方法 | 路径 | 说明 |
-|------|------|------|------|
-| 创建优惠券 | POST | `/api/manage_coupon/create` | 平台级优惠券 |
-| 优惠券列表 | GET | `/api/manage_coupon/list` | 平台优惠券列表 |
-| 更新状态 | POST | `/api/manage_coupon/status` | 上线/暂停/取消 |
-| 创建活动 | POST | `/api/manage_activity/create` | 平台级活动 |
-| 活动列表 | GET | `/api/manage_activity/list` | 平台活动列表 |
+| 接口         | 方法 | 路径                            | 说明           |
+| ------------ | ---- | ------------------------------- | -------------- |
+| 创建优惠券   | POST | `/api/manage_coupon/create`   | 平台级优惠券   |
+| 优惠券列表   | GET  | `/api/manage_coupon/list`     | 平台优惠券列表 |
+| 更新状态     | POST | `/api/manage_coupon/status`   | 上线/暂停/取消 |
+| 创建活动     | POST | `/api/manage_activity/create` | 平台级活动     |
+| 活动列表     | GET  | `/api/manage_activity/list`   | 平台活动列表   |
 | 更新活动状态 | POST | `/api/manage_activity/status` | 上线/暂停/取消 |
 
 ### 数据库表
 
-| 表名 | 说明 |
-|------|------|
-| `coupons` | 优惠券主表，字段：`coupon_no`、`name`、`coupon_type`（full_reduction/discount/fixed）、`issuer_type`（platform/merchant）、`mall_id`、`scope`（all/store/product）、`platform_scope`、`min_order_amount`、`discount_value`、`max_discount`、`total_count`、`per_user_limit`、`start_time`、`end_time`、`status`（draft/active/paused/expired/cancelled） |
-| `user_coupons` | 用户领取记录，字段：`coupon_id`、`user`、`status`（unused/used/expired）、`order_no`、`claimed_at`、`used_at` |
-| `coupon_products` | 优惠券指定商品关联，字段：`coupon_id`、`mall_id`、`shopping_id`（无 specification_id，优惠券按商品整体生效） |
-| `activities` | 活动主表，字段：`activity_no`、`name`、`activity_type`（flash_sale/full_reduction/discount/group_buy）、`issuer_type`、`mall_id`、`scope`、`rules`（JSON，含 discount_rate/thresholds/stackable 等）、`start_time`、`end_time`、`status` |
-| `activity_products` | 活动商品关联，字段：`activity_id`、`mall_id`、`shopping_id`、`specification_id`（NULL=全规格）、`activity_price`、`activity_stock`、`sold_count`、`joined_by`（platform/merchant）、`status` |
-| `activity_coupons` | 活动绑定优惠券关联，字段：`activity_id`、`coupon_id` |
-| `activity_participants` | 商家参与活动记录，字段：`activity_id`、`mall_id`、`joined_at` |
+| 表名                      | 说明                                                                                                                                                                                                                                                                                                                                                                                   |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `coupons`               | 优惠券主表，字段：`coupon_no`、`name`、`coupon_type`（full_reduction/discount/fixed）、`issuer_type`（platform/merchant）、`mall_id`、`scope`（all/store/product）、`platform_scope`、`min_order_amount`、`discount_value`、`max_discount`、`total_count`、`per_user_limit`、`start_time`、`end_time`、`status`（draft/active/paused/expired/cancelled） |
+| `user_coupons`          | 用户领取记录，字段：`coupon_id`、`user`、`status`（unused/used/expired）、`order_no`、`claimed_at`、`used_at`                                                                                                                                                                                                                                                              |
+| `coupon_products`       | 优惠券指定商品关联，字段：`coupon_id`、`mall_id`、`shopping_id`（无 specification_id，优惠券按商品整体生效）                                                                                                                                                                                                                                                                     |
+| `activities`            | 活动主表，字段：`activity_no`、`name`、`activity_type`（flash_sale/full_reduction/discount/group_buy）、`issuer_type`、`mall_id`、`scope`、`rules`（JSON，含 discount_rate/thresholds/stackable 等）、`start_time`、`end_time`、`status`                                                                                                                           |
+| `activity_products`     | 活动商品关联，字段：`activity_id`、`mall_id`、`shopping_id`、`specification_id`（NULL=全规格）、`activity_price`、`activity_stock`、`sold_count`、`joined_by`（platform/merchant）、`status`                                                                                                                                                                         |
+| `activity_coupons`      | 活动绑定优惠券关联，字段：`activity_id`、`coupon_id`                                                                                                                                                                                                                                                                                                                               |
+| `activity_participants` | 商家参与活动记录，字段：`activity_id`、`mall_id`、`joined_at`                                                                                                                                                                                                                                                                                                                    |
 
 > 迁移服务 `services/promotion_migrate/` 在应用启动时自动建立以上所有表。
 
@@ -1284,12 +1290,12 @@ stateDiagram-v2
 
 ### 三端入口
 
-| 端 | 入口 | 功能 |
-|-----|------|------|
-| **用户端** | 商品详情页「用户评价」区 | 发布评价（星级+文字+图片）、浏览评论列表（好评/中评/差评筛选）、删除自己的评论 |
-| **用户端** | 个人中心「我的评论」 | 查看自己的所有评论、删除评论、查看卖家回复 |
-| **卖家端** | 评论管理中心 `/buyer_comment_manage` | 按好评/中评/差评和已回复/未回复筛选，回复买家评论，多店铺主账号支持切换店铺 |
-| **卖家端** | 订单管理中心（已收货订单） | 快捷查看订单评论、快捷回复 |
+| 端               | 入口                                   | 功能                                                                           |
+| ---------------- | -------------------------------------- | ------------------------------------------------------------------------------ |
+| **用户端** | 商品详情页「用户评价」区               | 发布评价（星级+文字+图片）、浏览评论列表（好评/中评/差评筛选）、删除自己的评论 |
+| **用户端** | 个人中心「我的评论」                   | 查看自己的所有评论、删除评论、查看卖家回复                                     |
+| **卖家端** | 评论管理中心 `/buyer_comment_manage` | 按好评/中评/差评和已回复/未回复筛选，回复买家评论，多店铺主账号支持切换店铺    |
+| **卖家端** | 订单管理中心（已收货订单）             | 快捷查看订单评论、快捷回复                                                     |
 
 ### 评论流程
 
@@ -1307,24 +1313,24 @@ flowchart TB
 
 ### API 端点
 
-| 接口 | 方法 | 路径 | 说明 |
-|------|------|------|------|
-| 发布评价 | POST | `/api/comment/create` | 表单 + 图片上传（shopping_id, mall_id, rating, content, images） |
-| 评论列表 | GET | `/api/comment/list` | 商品评论分页列表，支持 rating_type 筛选 |
-| 可否评价 | GET | `/api/comment/check` | 检查当前用户是否可评指定商品 |
-| 用户评论 | GET | `/api/comment/user_list` | 当前用户的评论列表（分页） |
-| 删除评论 | DELETE | `/api/comment/delete` | 删除自己的评论 |
-| 卖家评论列表 | GET | `/api/comment/seller_list` | 店铺评论列表，支持 rating_type + reply_status 筛选 |
-| 卖家回复 | POST | `/api/comment/seller_reply` | 卖家回复买家评论 |
-| 订单评论 | GET | `/api/comment/order_comments` | 按订单号查询评论（卖家端） |
+| 接口         | 方法   | 路径                            | 说明                                                             |
+| ------------ | ------ | ------------------------------- | ---------------------------------------------------------------- |
+| 发布评价     | POST   | `/api/comment/create`         | 表单 + 图片上传（shopping_id, mall_id, rating, content, images） |
+| 评论列表     | GET    | `/api/comment/list`           | 商品评论分页列表，支持 rating_type 筛选                          |
+| 可否评价     | GET    | `/api/comment/check`          | 检查当前用户是否可评指定商品                                     |
+| 用户评论     | GET    | `/api/comment/user_list`      | 当前用户的评论列表（分页）                                       |
+| 删除评论     | DELETE | `/api/comment/delete`         | 删除自己的评论                                                   |
+| 卖家评论列表 | GET    | `/api/comment/seller_list`    | 店铺评论列表，支持 rating_type + reply_status 筛选               |
+| 卖家回复     | POST   | `/api/comment/seller_reply`   | 卖家回复买家评论                                                 |
+| 订单评论     | GET    | `/api/comment/order_comments` | 按订单号查询评论（卖家端）                                       |
 
 ### 数据存储
 
-| 类型 | 名称 | 说明 |
-|------|------|------|
-| MongoDB 集合 | `commodity_comment` | 评论主数据，含 rating、content、images、seller_reply 子文档 |
-| 本地目录 | `./comment_img` | 评论配图文件存储 |
-| Redis | 评论缓存 | 按 mall/shopping/page/rating 缓存评论列表，变更时 pattern 失效 |
+| 类型         | 名称                  | 说明                                                           |
+| ------------ | --------------------- | -------------------------------------------------------------- |
+| MongoDB 集合 | `commodity_comment` | 评论主数据，含 rating、content、images、seller_reply 子文档    |
+| 本地目录     | `./comment_img`     | 评论配图文件存储                                               |
+| Redis        | 评论缓存              | 按 mall/shopping/page/rating 缓存评论列表，变更时 pattern 失效 |
 
 ## 🛍️ 订单与支付系统
 
@@ -1355,59 +1361,71 @@ stateDiagram-v2
 
 ### 数据库表
 
-| 表名 | 说明 |
-|------|------|
-| `orders` | 订单主表，字段：`order_no`、`user_id`、`mall_id`、`total_amount`、`status`（pending/paid/completed/closed/refund_pending/refunded/dispute）、`idempotency_key`、`version`（乐观锁） |
-| `order_items` | 订单明细，字段：`order_id`、`shopping_id`、`name`、`spec`、`price`、`quantity`、`img` |
-| `payment_transactions` | 支付流水，字段：`transaction_no`、`order_no`、`method`、`amount`、`status`（pending/paid/refunded/failed）、`alipay_trade_no` |
-| `escrow_account` | 担保账户，字段：`order_no`、`mall_id`、`amount`、`status`（held/released/refunded）、`released_at` |
-| `refund_requests` | 退款申请，字段：`refund_no`、`order_no`、`user_id`、`mall_id`、`amount`、`reason`、`status`（pending/seller_approved/seller_rejected/dispute/refunded/closed）、`arbitration_result` |
+| 表名                     | 说明                                                                                                                                                                                                 |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `orders`               | 订单主表，字段：`order_no`、`user_id`、`mall_id`、`total_amount`、`status`（pending/paid/completed/closed/refund_pending/refunded/dispute）、`idempotency_key`、`version`（乐观锁）    |
+| `order_items`          | 订单明细，字段：`order_id`、`shopping_id`、`name`、`spec`、`price`、`quantity`、`img`                                                                                                  |
+| `payment_transactions` | 支付流水，字段：`transaction_no`、`order_no`、`method`、`amount`、`status`（pending/paid/refunded/failed）、`alipay_trade_no`                                                            |
+| `escrow_account`       | 担保账户，字段：`order_no`、`mall_id`、`amount`、`status`（held/released/refunded）、`released_at`                                                                                         |
+| `refund_requests`      | 退款申请，字段：`refund_no`、`order_no`、`user_id`、`mall_id`、`amount`、`reason`、`status`（pending/seller_approved/seller_rejected/dispute/refunded/closed）、`arbitration_result` |
 
 ### API 端点
 
 #### 买家端（订单）
 
-| 接口 | 方法 | 路径 | 说明 |
-|------|------|------|------|
-| 创建订单 | POST | `/api/order/create` | 幂等键防重复，扣库存（乐观锁）；支持 `user_coupon_id`（优惠券）和 `prefer_mode`（`activity`=活动+叠加券 / `coupon`=仅用券放弃活动）；响应含 `activity_discount`、`coupon_discount`、`total_discount` |
-| 发起支付 | POST | `/api/order/pay` | 返回支付宝支付表单 HTML |
-| 支付回调 | POST | `/api/order/alipay_notify` | 支付宝异步通知，验签 + 更新状态 + 入担保 |
-| 支付跳转 | GET | `/api/order/alipay_return` | 支付后同步跳转前端 |
-| 同步支付 | POST | `/api/order/sync_pay` | 前端主动查询支付宝交易状态 |
-| 取消订单 | POST | `/api/order/cancel` | 取消待支付订单，回滚库存 |
-| 确认收货 | POST | `/api/order/confirm` | 确认收货，释放担保资金 |
-| 订单退款 | POST | `/api/order/refund` | 直接支付宝全额退款（简易流程） |
-| 订单列表 | GET | `/api/order/list` | 买家订单列表（状态筛选、分页） |
-| 订单详情 | GET | `/api/order/detail` | 订单详情（含流水、担保信息） |
+| 接口     | 方法 | 路径                         | 说明                                                                                                                                                                                                               |
+| -------- | ---- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 创建订单 | POST | `/api/order/create`        | 幂等键防重复，扣库存（乐观锁）；支持 `user_coupon_id`（优惠券）和 `prefer_mode`（`activity`=活动+叠加券 / `coupon`=仅用券放弃活动）；响应含 `activity_discount`、`coupon_discount`、`total_discount` |
+| 发起支付 | POST | `/api/order/pay`           | 返回支付宝支付表单 HTML                                                                                                                                                                                            |
+| 支付回调 | POST | `/api/order/alipay_notify` | 支付宝异步通知，验签 + 更新状态 + 入担保                                                                                                                                                                           |
+| 支付跳转 | GET  | `/api/order/alipay_return` | 支付后同步跳转前端                                                                                                                                                                                                 |
+| 同步支付 | POST | `/api/order/sync_pay`      | 前端主动查询支付宝交易状态                                                                                                                                                                                         |
+| 取消订单 | POST | `/api/order/cancel`        | 取消待支付订单，回滚库存                                                                                                                                                                                           |
+| 确认收货 | POST | `/api/order/confirm`       | 确认收货，释放担保资金                                                                                                                                                                                             |
+| 订单退款 | POST | `/api/order/refund`        | 直接支付宝全额退款（简易流程）                                                                                                                                                                                     |
+| 订单列表 | GET  | `/api/order/list`          | 买家订单列表（状态筛选、分页）                                                                                                                                                                                     |
+| 订单详情 | GET  | `/api/order/detail`        | 订单详情（含流水、担保信息）                                                                                                                                                                                       |
+| 物流查询 | GET  | `/api/order/logistics`     | 查询订单物流信息及轨迹                                                                                                                                                                                             |
 
 #### 买家端（退款申请）
 
-| 接口 | 方法 | 路径 | 说明 |
-|------|------|------|------|
-| 申请退款 | POST | `/api/refund/apply` | 提交退款申请（进入卖家审核） |
-| 发起纠纷 | POST | `/api/refund/dispute` | 卖家拒绝后，买家申请平台介入 |
-| 退款详情 | GET | `/api/refund/detail` | 按退款单号查询详情 |
-| 按订单查退款 | GET | `/api/refund/by_order` | 按订单号查最近退款信息 |
+| 接口         | 方法 | 路径                     | 说明                         |
+| ------------ | ---- | ------------------------ | ---------------------------- |
+| 申请退款     | POST | `/api/refund/apply`    | 提交退款申请（进入卖家审核） |
+| 发起纠纷     | POST | `/api/refund/dispute`  | 卖家拒绝后，买家申请平台介入 |
+| 退款详情     | GET  | `/api/refund/detail`   | 按退款单号查询详情           |
+| 按订单查退款 | GET  | `/api/refund/by_order` | 按订单号查最近退款信息       |
 
 #### 卖家端
 
-| 接口 | 方法 | 路径 | 说明 |
-|------|------|------|------|
-| 订单列表 | GET | `/api/seller/order/list` | 卖家端订单列表（状态/关键词筛选） |
-| 资金明细 | GET | `/api/seller/order/escrow_list` | 担保账户流水 |
-| 退款列表 | GET | `/api/seller/order/refund_list` | 退款申请列表 |
-| 退款审核 | POST | `/api/seller/order/refund_review` | 同意或拒绝退款 |
-| 支付配置保存 | POST | `/api/buyer_pay_config` | 保存支付宝配置（存 MongoDB） |
-| 支付配置查询 | GET | `/api/buyer_pay_config` | 查询配置（私钥脱敏） |
-| 配置连通测试 | POST | `/api/buyer_pay_config/verify` | 校验支付宝密钥有效性 |
+| 接口         | 方法 | 路径                                | 说明                              |
+| ------------ | ---- | ----------------------------------- | --------------------------------- |
+| 订单列表     | GET  | `/api/seller/order/list`          | 卖家端订单列表（状态/关键词筛选） |
+| 资金明细     | GET  | `/api/seller/order/escrow_list`   | 担保账户流水                      |
+| 退款列表     | GET  | `/api/seller/order/refund_list`   | 退款申请列表                      |
+| 退款审核     | POST | `/api/seller/order/refund_review` | 同意或拒绝退款                    |
+| 支付配置保存 | POST | `/api/buyer_pay_config`           | 保存支付宝配置（存 MongoDB）      |
+| 支付配置查询 | GET  | `/api/buyer_pay_config`           | 查询配置（私钥脱敏）              |
+| 配置连通测试 | POST | `/api/buyer_pay_config/verify`    | 校验支付宝密钥有效性              |
+| 卖家发货     | POST | `/api/seller/order/ship`          | 卖家发货（调用顺丰下单）          |
+| 物流列表     | GET  | `/api/seller/logistics/list`      | 物流列表查询                      |
+| 物流详情     | GET  | `/api/seller/logistics/detail`    | 物流详情（含运输轨迹）            |
 
 #### 平台端（纠纷管理）
 
-| 接口 | 方法 | 路径 | 说明 |
-|------|------|------|------|
-| 纠纷列表 | GET | `/api/manage/refund/list` | 平台纠纷/退款列表（权限 `admin.refund`） |
-| 退款详情 | GET | `/api/manage/refund/detail` | 平台查看退款详情 |
-| 仲裁处理 | POST | `/api/manage/refund/resolve` | 平台仲裁（判买家胜/卖家胜） |
+| 接口     | 方法 | 路径                           | 说明                                       |
+| -------- | ---- | ------------------------------ | ------------------------------------------ |
+| 纠纷列表 | GET  | `/api/manage/refund/list`    | 平台纠纷/退款列表（权限 `admin.refund`） |
+| 退款详情 | GET  | `/api/manage/refund/detail`  | 平台查看退款详情                           |
+| 仲裁处理 | POST | `/api/manage/refund/resolve` | 平台仲裁（判买家胜/卖家胜）                |
+
+#### 平台端（物流配置）
+
+| 接口           | 方法 | 路径                                    | 说明                                                    |
+| -------------- | ---- | --------------------------------------- | ------------------------------------------------------- |
+| 物流配置保存   | POST | `/api/manage_logistics_config`        | 保存顺丰物流密钥配置（权限 `admin.logistics_config`） |
+| 物流配置查询   | GET  | `/api/manage_logistics_config_select` | 获取当前物流配置                                        |
+| 物流连通性验证 | POST | `/api/manage_logistics_config/verify` | 验证顺丰 API 连通性（权限 `admin.logistics_config`）  |
 
 ## 📊 卖家仪表盘
 
@@ -1415,19 +1433,19 @@ stateDiagram-v2
 
 ### 看板模块
 
-| 模块 | 展示内容 |
-|------|----------|
-| **数据卡片** | 在售商品数、订单数、销售总额、待处理退款数 |
-| **饼图** | 订单状态分布（待支付/已支付/已完成/已关闭/退款中/已退款） |
-| **折线图** | 日销售额趋势 |
-| **最近订单** | 最新订单列表（订单号、商品、买家、金额、状态、时间） |
+| 模块               | 展示内容                                                  |
+| ------------------ | --------------------------------------------------------- |
+| **数据卡片** | 在售商品数、订单数、销售总额、待处理退款数                |
+| **饼图**     | 订单状态分布（待支付/已支付/已完成/已关闭/退款中/已退款） |
+| **折线图**   | 日销售额趋势                                              |
+| **最近订单** | 最新订单列表（订单号、商品、买家、金额、状态、时间）      |
 
 ### API 端点
 
-| 接口 | 方法 | 路径 | 说明 |
-|------|------|------|------|
-| 仪表盘数据 | GET | `/api/seller/dashboard/summary` | 聚合卡片、饼图、趋势、最近订单 |
-| 导出报表 | GET | `/api/seller/dashboard/export` | 下载 CSV 营业报表（UTF-8 BOM） |
+| 接口       | 方法 | 路径                              | 说明                           |
+| ---------- | ---- | --------------------------------- | ------------------------------ |
+| 仪表盘数据 | GET  | `/api/seller/dashboard/summary` | 聚合卡片、饼图、趋势、最近订单 |
+| 导出报表   | GET  | `/api/seller/dashboard/export`  | 下载 CSV 营业报表（UTF-8 BOM） |
 
 参数 `period` 可选值：`week`（本周）、`month`（本月）、`three_months`（近三月）、`year`（本年）。
 
@@ -1450,7 +1468,7 @@ stateDiagram-v2
 
 - **许可证**: GPLv3
 - **作者**: SDIJF1521
-- **版本**: 0.9.2
+- **版本**: 1.0.0
 
 ## 🤝贡献指南
 
