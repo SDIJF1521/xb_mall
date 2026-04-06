@@ -14,7 +14,7 @@
         :fetch-suggestions="querySearch"
         :trigger-on-focus="true"
         popper-class="nav-search-popper"
-        @select="handleNavSelect"
+        @select="handleNavSelect as any"
         @keydown.enter.prevent="handleEnterNav"
     >
         <template #default="{ item }">

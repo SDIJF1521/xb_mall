@@ -19,6 +19,7 @@ dependencies = [
     "cryptography>=46.0.5",
     "torchvision>=0.25.0",
     "alipay-sdk-python>=3.7.1018",
+    "elasticsearch[async]>=9.3.0",
 ]
 
 [tool.uv.sources]

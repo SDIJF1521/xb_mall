@@ -20,6 +20,7 @@ from config.sql_config import settings as sql_settings
 
 from data.data_mods import AddMall, DeleteMall, UserOnLineUploading
 from services.verification_code import VerificationCode
+from services.initialize_create_es_index import CreateESIndexService
 from data.redis_client import RedisClient
 from data.mongodb_client import mongodb_client
 from data.sql_client import get_db,execute_db_query
@@ -404,6 +405,7 @@ async def lifespan(app: FastAPI):
     
     # 应用启动时的逻辑
     try:
+        await CreateESIndexService().create_index()
         logger.info("正在连接Redis...")
         await redis_client.connect()
         logger.info(f"Redis 连接已建立 | URL: {redis_client.redis_url} | DB: {redis_client.db}")
