@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from aiomysql import connect
+from elasticsearch import AsyncElasticsearch
 from fastapi import APIRouter,Depends,Form,HTTPException
 from starlette.responses import Content
 
@@ -11,6 +12,7 @@ from data.data_mods import ManageRejectCommodityApply
 from data.sql_client import get_db,execute_db_query
 from data.redis_client import RedisClient,get_redis
 from data.mongodb_client import MongoDBClient,get_mongodb_client
+from data.es_client import get_es_client
 
 router = APIRouter()
 
@@ -18,7 +20,8 @@ router = APIRouter()
 async def manage_commodity_rejectAudit(data:Annotated[ManageRejectCommodityApply,Form()],
                                         db:Content = Depends(get_db),
                                         redis:RedisClient = Depends(get_redis),
-                                        mongodb:MongoDBClient = Depends(get_mongodb_client)):
+                                        mongodb:MongoDBClient = Depends(get_mongodb_client),
+                                        es_client:AsyncElasticsearch = Depends(get_es_client)):
     """管理员驳回商品上架申请"""
     async def execute():
         sql_data = await execute_db_query(db,
@@ -30,10 +33,11 @@ async def manage_commodity_rejectAudit(data:Annotated[ManageRejectCommodityApply
                                    (2,data.mall_id,data.shopping_id))
             await mongodb.update_one('shopping',{'mall_id':data.mall_id,'shopping_id':data.shopping_id}, {'$set': {'audit': 2}})
             
-            mongodb_data_msg = await mongodb.find_one('commodity_msg',{'mall_id':data.mall_id,'shopping_id':data.shopping_id,'pass':0,'auditor':username})
+            await mongodb.find_one('commodity_msg',{'mall_id':data.mall_id,'shopping_id':data.shopping_id,'pass':0,'auditor':username})
 
             await mongodb.insert_one('commodity_msg',{'mall_id':data.mall_id,'shopping_id':data.shopping_id,'pass':0,'msg':data.reason,'auditor':username,'read':0})
-            
+            await es_client.update(index="product_index", id=f"{data.mall_id}_{data.shopping_id}", audit=2)
+
             cache = CacheService(redis)
             await cache.delete_pattern('admin:commodity:apply:*')
             await cache.delete_pattern(f'commodity:inform:*')

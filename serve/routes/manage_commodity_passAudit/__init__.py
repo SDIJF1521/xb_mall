@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from aiomysql import Connection
+from elasticsearch import AsyncElasticsearch
 from fastapi import APIRouter,Depends,Form,HTTPException
 
 from services.manage_admin_guard import verify_admin_with_permission
@@ -9,6 +10,7 @@ from services.cache_service import CacheService
 from data.data_mods import ManageCommodityPassAudit
 from data.sql_client import get_db,execute_db_query
 from data.redis_client import RedisClient,get_redis
+from data.es_client import get_es_client
 from data.mongodb_client import MongoDBClient,get_mongodb_client
 
 router = APIRouter()
@@ -17,7 +19,8 @@ router = APIRouter()
 async def manage_commodity_passAudit(data:Annotated[ManageCommodityPassAudit,Form(...)],
                                      db:Connection=Depends(get_db),
                                      redis:RedisClient = Depends(get_redis),
-                                     mongodb:MongoDBClient = Depends(get_mongodb_client)):
+                                     mongodb:MongoDBClient = Depends(get_mongodb_client),
+                                     es_client:AsyncElasticsearch = Depends(get_es_client)):
     """
     管理员审核商品通过
     """
@@ -45,6 +48,7 @@ async def manage_commodity_passAudit(data:Annotated[ManageCommodityPassAudit,For
 
             await mongodb.insert_one('commodity_msg',{'mall_id':data.mall_id,'shopping_id':data.shopping_id,'msg':msg_content,
                                         'pass':1,'auditor':username,'read':0})
+            await es_client.update(index="product_index", id=f"{data.mall_id}_{data.shopping_id}", audit= 1)
             
             cache = CacheService(redis)
             await cache.delete_pattern('admin:commodity:apply:*')

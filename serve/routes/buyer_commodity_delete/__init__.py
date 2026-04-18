@@ -2,6 +2,7 @@ import os
 from typing import Annotated
 
 from aiomysql import Connection
+from elasticsearch import AsyncElasticsearch
 from fastapi import APIRouter,Depends,Form,HTTPException
 
 from services.verify_duter_token import VerifyDuterToken
@@ -11,6 +12,7 @@ from services.cache_service import CacheService
 from data.data_mods import BuyerDeleteCommodity
 from data.sql_client import get_db,execute_db_query
 from data.redis_client import RedisClient,get_redis
+from data.es_client import get_es_client
 from data.mongodb_client import MongoDBClient,get_mongodb_client
 
 router = APIRouter()
@@ -19,7 +21,8 @@ router = APIRouter()
 async def buyer_commodity_delete(data:Annotated[BuyerDeleteCommodity,Form()],
                                 db:Connection=Depends(get_db),
                                 redis:RedisClient=Depends(get_redis),
-                                mongodb:MongoDBClient=Depends(get_mongodb_client)):
+                                mongodb:MongoDBClient=Depends(get_mongodb_client),
+                                es_client:AsyncElasticsearch=Depends(get_es_client)):
     """
     买家删除商品接口
     """
@@ -68,6 +71,7 @@ async def buyer_commodity_delete(data:Annotated[BuyerDeleteCommodity,Form()],
             'inventory_records',
             {'mall_id':data.stroe_id,'shopping_id':data.shopping_id}
         )
+        await es_client.delete(index="product_index", id=f"{data.stroe_id}_{data.shopping_id}")
         return {'code':200,'msg':'删除成功','current':True}
 
     if token_data.get('station') == '1':

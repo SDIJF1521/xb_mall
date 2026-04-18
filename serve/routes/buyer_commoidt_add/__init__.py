@@ -5,6 +5,7 @@ from typing import Annotated,List
 from pydantic import Field
 
 from aiomysql import Connection
+from elasticsearch import AsyncElasticsearch
 from fastapi import APIRouter,Depends,HTTPException,Form,File,UploadFile
 
 from services.verify_duter_token import VerifyDuterToken
@@ -15,6 +16,7 @@ from data.data_mods import CommodityAdd
 from data.sql_client import execute_db_query,get_db
 from data.redis_client import RedisClient,get_redis
 from data.mongodb_client import MongoDBClient,get_mongodb_client
+from data.es_client import get_es_client
 
 router = APIRouter()
 
@@ -22,7 +24,8 @@ router = APIRouter()
 async def commodity_add(data:Annotated[CommodityAdd,Form(),File()],
                         db:Connection=Depends(get_db),
                         redis:RedisClient=Depends(get_redis),
-                        mongodb:MongoDBClient=Depends(get_mongodb_client)):
+                        mongodb:MongoDBClient=Depends(get_mongodb_client),
+                        es_client:AsyncElasticsearch=Depends(get_es_client)):
     """商户添加商品"""
     verify_duter_token = VerifyDuterToken(data.token,redis)
     token_data = await verify_duter_token.token_data()
@@ -100,7 +103,57 @@ async def commodity_add(data:Annotated[CommodityAdd,Form(),File()],
                         "audit":0
                         }
         await mongodb.insert_one('shopping',mongodb_data)
-        
+
+        prices = [i.get('price', 0) for i in sku_list if i.get('price') is not None]
+        min_price = min(prices) if prices else 0
+        max_price = max(prices) if prices else 0
+
+        # 计算总库存
+        total_stock = sum(i.get('stock', 0) for i in sku_list)
+
+        # 构建 attrs（用于筛选）
+        attrs = []
+
+        for sku in sku_list:
+            specs = sku.get("specs", [])
+
+            for s in specs:
+                if ":" in s:
+                    k, v = s.split(":", 1)
+                    attrs.append({
+                        "name": k,
+                        "value": v
+                    })
+        # ES 文档
+        es_doc = {
+            "product_id": f"{data.stroe_id}_{shopping_id}",
+            "store_id": data.stroe_id,
+
+            "title": data.name,
+            "description": data.info,
+
+            "category_id": data.classify_categorize,
+            "types": type_list,
+
+            "min_price": min_price,
+            "max_price": max_price,
+            "stock": total_stock,
+
+            "sales": 0,
+
+            "sku_list": sku_list,
+            "attrs": attrs,
+
+            "audit": 0,
+            "create_time": date.today().strftime("%Y-%m-%d")
+        }
+
+        await es_client.index(
+            index="product_index",
+            id=es_doc["product_id"],
+            document=es_doc
+        )
+
         cache = CacheService(redis)
         await cache.delete_pattern(f'commodity:list:{data.stroe_id}:*')
         await cache.delete_pattern(f'commodity:search:{data.stroe_id}:*')

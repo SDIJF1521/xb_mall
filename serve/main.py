@@ -405,6 +405,7 @@ async def lifespan(app: FastAPI):
     
     # 应用启动时的逻辑
     try:
+        logger.info("正在连接es...")
         await CreateESIndexService().create_index()
         logger.info("正在连接Redis...")
         await redis_client.connect()

@@ -33,8 +33,13 @@ class ElasticSearchClient:
 es_client = ElasticSearchClient()
 
 
-# ✅ 正确获取方式（统一入口）
+# 正确获取方式（统一入口）
 async def get_es_client() -> AsyncElasticsearch:
-    if es_client.client is None:
-        await es_client.init()
-    return es_client.client
+    try:
+        if es_client.client is None:
+            await es_client.init()
+
+        return es_client.client
+    except:
+        logger.info('Elasticsearch客户端异常')
+        return None
