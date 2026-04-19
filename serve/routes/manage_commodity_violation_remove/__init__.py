@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from aiomysql import Connection
+from elasticsearch import AsyncElasticsearch
 from fastapi import APIRouter, Depends, Form, HTTPException
 
 from services.manage_admin_guard import verify_admin_with_permission
@@ -9,6 +10,7 @@ from services.cache_service import CacheService
 from data.sql_client import get_db, execute_db_query
 from data.redis_client import RedisClient, get_redis
 from data.mongodb_client import MongoDBClient, get_mongodb_client
+from data.es_client import get_es_client
 from data.data_mods import ManageCommodityViolationRemove
 
 router = APIRouter()
@@ -18,7 +20,8 @@ router = APIRouter()
 async def manage_commodity_violation_remove(data: Annotated[ManageCommodityViolationRemove, Form()],
                                             db: Connection = Depends(get_db),
                                             redis: RedisClient = Depends(get_redis),
-                                            mongodb: MongoDBClient = Depends(get_mongodb_client)):
+                                            mongodb: MongoDBClient = Depends(get_mongodb_client),
+                                            es_client: AsyncElasticsearch = Depends(get_es_client)):
     """平台端取消商品违规标记（恢复为已下架状态）"""
     async def execute():
         sql_data = await execute_db_query(db,
@@ -38,7 +41,9 @@ async def manage_commodity_violation_remove(data: Annotated[ManageCommodityViola
             'mall_id': data.mall_id,
             'shopping_id': data.shopping_id
         })
-
+        await es_client.update(index='products_index', 
+                               id=f'{data.mall_id}_{data.shopping_id}',
+                               doc={'audit':3})
         await mongodb.insert_one('commodity_msg', {
             'mall_id': data.mall_id,
             'shopping_id': data.shopping_id,

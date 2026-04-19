@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from aiomysql import Connection
+from elasticsearch import AsyncElasticsearch
 from fastapi import APIRouter,Depends,Form,HTTPException
 
 from services.verify_duter_token import VerifyDuterToken
@@ -10,6 +11,7 @@ from services.buyer_role_authority import RoleAuthorityService
 from data.data_mods import BuyerPutawayCommodity
 from data.sql_client_pool import DatabasePool, get_db_pool
 from data.redis_client import RedisClient,get_redis
+from data.es_client import get_es_client
 from data.mongodb_client import MongoDBClient,get_mongodb_client
 
 router = APIRouter()
@@ -18,7 +20,8 @@ router = APIRouter()
 async def buyer_commodity_putaway(data:Annotated[BuyerPutawayCommodity,Form()],
                                   db:Connection=Depends(get_db_pool),
                                   redis:RedisClient=Depends(get_redis),
-                                  mongodb:MongoDBClient=Depends(get_mongodb_client)):
+                                  mongodb:MongoDBClient=Depends(get_mongodb_client),
+                                  es_client:AsyncElasticsearch=Depends(get_es_client)):
     """
     买家上架商品接口
     """
@@ -45,6 +48,7 @@ async def buyer_commodity_putaway(data:Annotated[BuyerPutawayCommodity,Form()],
             await cache.delete_pattern(f'commodity:inform:*')
             await cache.delete_pattern(f'admin:commodity:detail:{data.stroe_id}:{data.shopping_id}')
             await cache.delete_pattern(f'admin:commodity:apply:*')
+            await es_client.update(index="product_index", id=f"{data.stroe_id}_{data.shopping_id}", doc={'audit':1})
             return {'code':200,'msg':'上架成功','current':True}
         else:
             return {'code':404,'msg':'商品不存在或不是已下架状态','current':False}

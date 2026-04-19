@@ -7,7 +7,7 @@ class CreateESIndexService:
 
     async def show_index(self):
         es: AsyncElasticsearch = await get_es_client()
-        return await es.indices.exists(index="products")
+        return await es.indices.exists(index="product_index")
 
     async def create_index(self):
         try:
@@ -17,7 +17,7 @@ class CreateESIndexService:
                 logger.info("索引已存在")
                 return
 
-            await es.indices.create(index="products")
+            await es.indices.create(index="product_index")
             logger.info("索引创建成功")
         except Exception as e:
             logger.error(f"创建索引失败: {str(e)}")

@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from aiomysql import Connection
+from elasticsearch import AsyncElasticsearch
 from fastapi import APIRouter,Depends,Form,HTTPException
 
 from services.verify_duter_token import VerifyDuterToken
@@ -10,6 +11,7 @@ from services.buyer_role_authority import RoleAuthorityService
 from data.data_mods import BuyerDelistingCommodity
 from data.sql_client_pool import DatabasePool, get_db_pool
 from data.redis_client import RedisClient,get_redis
+from data.es_client import get_es_client
 from data.mongodb_client import MongoDBClient,get_mongodb_client
 
 router = APIRouter()
@@ -18,7 +20,8 @@ router = APIRouter()
 async def buyer_commodity_delisting(data:Annotated[BuyerDelistingCommodity,Form()],
                                     db:Connection=Depends(get_db_pool),
                                     redis:RedisClient=Depends(get_redis),
-                                    mongodb:MongoDBClient=Depends(get_mongodb_client)):
+                                    mongodb:MongoDBClient=Depends(get_mongodb_client),
+                                    es_client:AsyncElasticsearch=Depends(get_es_client)):
     """
     买家下架商品接口
     """
@@ -36,6 +39,7 @@ async def buyer_commodity_delisting(data:Annotated[BuyerDelistingCommodity,Form(
             await sql.execute_query('update shopping set audit = 3 where mall_id = %s and shopping_id = %s',(data.stroe_id,data.shopping_id))
             await mongodb.update_one('shopping',{'mall_id':data.stroe_id,'shopping_id':data.shopping_id},
                                     {'$set':{'audit':3}})
+            await es_client.update(index="product_index", id=f"{data.stroe_id}_{data.shopping_id}", doc={'audit':3})
             # 移除redis相关缓存信息
             await cache.delete_pattern(f'commodity:list:{data.stroe_id}:*')
             await cache.delete_pattern(f'commodity:search:{data.stroe_id}:*')

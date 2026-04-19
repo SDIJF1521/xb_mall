@@ -36,7 +36,7 @@ async def manage_commodity_rejectAudit(data:Annotated[ManageRejectCommodityApply
             await mongodb.find_one('commodity_msg',{'mall_id':data.mall_id,'shopping_id':data.shopping_id,'pass':0,'auditor':username})
 
             await mongodb.insert_one('commodity_msg',{'mall_id':data.mall_id,'shopping_id':data.shopping_id,'pass':0,'msg':data.reason,'auditor':username,'read':0})
-            await es_client.update(index="product_index", id=f"{data.mall_id}_{data.shopping_id}", audit=2)
+            await es_client.update(index="product_index", id=f"{data.mall_id}_{data.shopping_id}", doc={'audit':2})
 
             cache = CacheService(redis)
             await cache.delete_pattern('admin:commodity:apply:*')

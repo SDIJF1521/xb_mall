@@ -48,7 +48,7 @@ async def manage_commodity_passAudit(data:Annotated[ManageCommodityPassAudit,For
 
             await mongodb.insert_one('commodity_msg',{'mall_id':data.mall_id,'shopping_id':data.shopping_id,'msg':msg_content,
                                         'pass':1,'auditor':username,'read':0})
-            await es_client.update(index="product_index", id=f"{data.mall_id}_{data.shopping_id}", audit= 1)
+            await es_client.update(index="product_index", id=f"{data.mall_id}_{data.shopping_id}", doc={'audit':1})
             
             cache = CacheService(redis)
             await cache.delete_pattern('admin:commodity:apply:*')

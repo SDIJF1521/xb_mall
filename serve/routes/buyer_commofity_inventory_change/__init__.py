@@ -2,6 +2,7 @@ from typing import Annotated
 
 from datetime import date
 from aiomysql import Connection
+from elasticsearch import AsyncElasticsearch
 from fastapi import APIRouter,Depends,Form,HTTPException
 
 from services.verify_duter_token import VerifyDuterToken
@@ -11,6 +12,7 @@ from services.cache_service import CacheService
 from data.data_mods import BuyerCommodityRepertoryChange
 from data.sql_client_pool import get_db_pool,db_pool
 from data.redis_client import get_redis,RedisClient
+from data.es_client import get_es_client
 from data.mongodb_client import get_mongodb_client,MongoDBClient
 
 router = APIRouter()
@@ -20,7 +22,8 @@ async def change_commodity_repertory(
                                     data:Annotated[BuyerCommodityRepertoryChange,Form(...)],
                                     db:Connection = Depends(get_db_pool),
                                     redis:RedisClient = Depends(get_redis),
-                                    mongo:MongoDBClient = Depends(get_mongodb_client)
+                                    mongo:MongoDBClient = Depends(get_mongodb_client),
+                                    es_client:AsyncElasticsearch = Depends(get_es_client)
                                     ):
     
     verify_duter_token = VerifyDuterToken(data.token,redis)
@@ -114,6 +117,23 @@ async def change_commodity_repertory(
                         {'$set':{
                             "specification_list.$.stock":select_data[0][4]+data.change_num
                         }})
+                await es_client.update(index='product_index',
+                        id=f"{data.stroe_id}_{data.shopping_id}",
+                        script = {"source":'''
+                                            for (item in ctx._source.sku_list) {
+                                                if (item.specification_id == params.spec_id) {
+                                                    item.price = params.new_price;
+                                                }
+                                            }
+                                    
+                                        ''',
+                                    "params":{
+                                        "spec_id":data.sku_id,
+                                        "new_price":select_data[0][4]+data.change_num
+                                    }
+
+                                    }
+                        )
                 await info()
                 return {"code":200,"msg":"库存变更成功",'current':True}
             else:
@@ -140,6 +160,23 @@ async def change_commodity_repertory(
                             "specification_list.$.stock":select_data[0][4]-data.change_num
                         }})
                 await info()
+                await es_client.update(index='product_index',
+                                       id=f"{data.stroe_id}_{data.shopping_id}",
+                                       script = {"source":'''
+                                                            for (item in ctx._source.sku_list) {
+                                                                if (item.specification_id == params.spec_id) {
+                                                                    item.price = params.new_price;
+                                                                }
+                                                            }
+                                                  
+                                                        ''',
+                                                    "params":{
+                                                        "spec_id":data.sku_id,
+                                                        "new_price":select_data[0][4]-data.change_num
+                                                    }
+
+                                                 }
+                                        )
                 return {"code":200,"msg":"库存变更成功",'current':True}
         else:
             return {"code":404,"msg":"商品不存在",'current':False}

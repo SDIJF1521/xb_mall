@@ -6,6 +6,7 @@ from typing import Annotated
 from datetime import date
 
 from aiomysql import Connection
+from elasticsearch import AsyncElasticsearch
 from fastapi import APIRouter,Depends,Form,File,UploadFile
 
 from services.verify_duter_token import VerifyDuterToken
@@ -15,6 +16,7 @@ from services.cache_service import CacheService
 from data.data_mods import SellerCommodityEdit
 from data.sql_client import get_db,execute_db_query
 from data.redis_client import RedisClient,get_redis
+from data.es_client import get_es_client
 from data.mongodb_client import MongoDBClient,get_mongodb_client
 
 router = APIRouter()
@@ -23,7 +25,8 @@ router = APIRouter()
 async def buyer_commodity_edit(data:Annotated[SellerCommodityEdit,Form(),File()],
                                db:Connection=Depends(get_db),
                                redis:RedisClient=Depends(get_redis),
-                               mongodb:MongoDBClient=Depends(get_mongodb_client)):
+                               mongodb:MongoDBClient=Depends(get_mongodb_client),
+                               es_client:AsyncElasticsearch= Depends(get_es_client)):
     """
     卖家端商品编辑
     """
@@ -147,7 +150,59 @@ async def buyer_commodity_edit(data:Annotated[SellerCommodityEdit,Form(),File()]
             if new_img:
                 cache_key = cache._make_key('img_base64', new_img)
                 await cache.delete(cache_key)
-        
+        await es_client.delete(index="product_index", id=f"{data.stroe_id}_{data.shopping_id}")
+
+        prices = [i.get('price', 0) for i in sku_list if i.get('price') is not None]
+        min_price = min(prices) if prices else 0
+        max_price = max(prices) if prices else 0
+
+        # 计算总库存
+        total_stock = sum(i.get('stock', 0) for i in sku_list)
+
+        # 构建 attrs（用于筛选）
+        attrs = []
+
+        for sku in sku_list:
+            specs = sku.get("specs", [])
+
+            for s in specs:
+                if ":" in s:
+                    k, v = s.split(":", 1)
+                    attrs.append({
+                        "name": k,
+                        "value": v
+                    })
+        # ES 文档
+        es_doc = {
+            "product_id": f"{data.stroe_id}_{data.shopping_id}",
+            "store_id": data.stroe_id,
+
+            "title": data.name,
+            "description": data.info,
+
+            "category_id": data.classify_categorize,
+            "types": type_list,
+
+            "min_price": min_price,
+            "max_price": max_price,
+            "stock": total_stock,
+
+            "sales": 0,
+
+            "sku_list": sku_list,
+            "attrs": attrs,
+
+            "audit": 0,
+            "create_time": date.today().strftime("%Y-%m-%d")
+        }
+
+        await es_client.index(
+            index="product_index",
+            id=es_doc["product_id"],
+            document=es_doc
+        )
+
+
         return {"code":200,"msg":"编辑成功",'current':True}
 
     try:
